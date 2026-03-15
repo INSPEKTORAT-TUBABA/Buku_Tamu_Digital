@@ -2221,6 +2221,18 @@ function startApp() {
     updateDataCounter();
     document.getElementById('mainNavigation').style.display = 'block';
     document.getElementById('btnFormHeader').style.display = '';
+    // Bersihkan form agar tidak ada sisa data tamu sebelumnya
+    document.getElementById('bukuTamuForm').reset();
+    hasSignature = false; hasPhoto = false;
+    fotoDataURLFront = null; fotoDataURLBack = null;
+    totalStrokeLength = 0; signatureDataURL = null;
+    _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
+    _editBebasMode = false; isEditMode = false; editingIndex = -1; editingSementara = false;
+    clearTimeout(_timerNama); clearTimeout(_timerUraian); clearTimeout(_timerHp);
+    const imgFront = document.getElementById('imgFront');
+    const imgBack  = document.getElementById('imgBack');
+    if (imgFront) { imgFront.src = ''; imgFront.style.display = 'none'; }
+    if (imgBack)  { imgBack.src  = ''; imgBack.style.display  = 'none'; }
     // Hubungkan ke Firebase Penyimpanan Terpusat
     inisialisasiFirebase();
     // Tampilkan overlay isian untuk field nama pertama kali
