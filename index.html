@@ -2417,7 +2417,29 @@ function resizeCanvas() {
         ctx2.lineCap = 'round';
         ctx2.strokeStyle = '#00008B';
         attachSignatureEvents();
+        // Tampilkan placeholder jika belum ada tanda tangan
+        if (!hasSignature) _gambarPlaceholderTTD();
     }, 100);
+}
+
+// Gambar teks placeholder "Tanda Tangan" di tengah canvas
+function _gambarPlaceholderTTD() {
+    if (!ctx2 || !signatureCanvas) return;
+    const w = signatureCanvas.width;
+    const h = signatureCanvas.height;
+    ctx2.save();
+    ctx2.clearRect(0, 0, w, h);
+    // Teks besar transparan di tengah
+    ctx2.globalAlpha = 0.12;
+    ctx2.fillStyle = '#1a3a6e';
+    ctx2.font = 'bold 22px Arial';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillText('✍️ Tanda Tangan', w / 2, h / 2 - 10);
+    ctx2.font = '13px Arial';
+    ctx2.globalAlpha = 0.09;
+    ctx2.fillText('Tanda tangani di sini', w / 2, h / 2 + 18);
+    ctx2.restore();
 }
 
 let _sigRect = null;
@@ -2431,6 +2453,8 @@ function _updateSigRect() {
 function startDrawing(e) {
     isDrawing = true;
     _updateSigRect();
+    // Hapus placeholder saat mulai menggambar
+    if (!hasSignature) ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
     const x = (e.clientX - _sigRect.left) * (signatureCanvas.width / _sigRect.width);
     const y = (e.clientY - _sigRect.top)  * (signatureCanvas.height / _sigRect.height);
     _lastX = x; _lastY = y; _curX = x; _curY = y;
@@ -2495,6 +2519,8 @@ function handleTouch(e) {
     if (e.type === 'touchstart') {
         isDrawing = true;
         _updateSigRect();
+        // Hapus placeholder saat mulai sentuh
+        if (!hasSignature) ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         const x = (touch.clientX - _sigRect.left) * (signatureCanvas.width / _sigRect.width);
         const y = (touch.clientY - _sigRect.top)  * (signatureCanvas.height / _sigRect.height);
         _lastX = x; _lastY = y; _curX = x; _curY = y;
@@ -2517,6 +2543,7 @@ function handleTouch(e) {
 
 function clearSignature() {
     ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    _gambarPlaceholderTTD();
     hasSignature = false;
     totalStrokeLength = 0;
     signatureDataURL = null;
@@ -3573,14 +3600,14 @@ async function simpanDariEditBebas() {
     if (paperScroll) paperScroll.style.display = '';
     _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
 
-    // ── Tampilkan tabel data & export PDF — sama persis dengan Simpan Detail Lengkap ──
-    showData();
-    // Jika data berasal dari dataSementara, sekarang sudah dipindah ke dataBukuTamu
-    // Index di dataBukuTamu adalah savedIndex (jika update final) atau length-1 (jika baru)
+    // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
+    showData(); // update tabel internal dulu
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
         exportDetailPerTamuPDF(pdfIndex);
     }
+    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 function selesaiEditBebas() {
@@ -3972,11 +3999,11 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
-    // Tampilkan halaman DATA BUKU TAMU (tabel ringkasan)
-    showData();
     // Unduh PDF detail per tamu
     const finalIndex = dataBukuTamu.length - 1;
     exportDetailPerTamuPDF(finalIndex);
+    // Kembali ke halaman selamat datang
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 async function hapusSementara(sIndex) {
