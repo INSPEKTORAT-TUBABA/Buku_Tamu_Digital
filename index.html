@@ -574,9 +574,9 @@
             display: block !important;
             margin: 10px auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            width: 220px !important;
-            max-width: 220px;
-            height: 220px !important;
+            width: 100% !important;
+            max-width: 360px;
+            height: 160px !important;
         }
         
         .detail-container {
@@ -1799,22 +1799,34 @@
 
                 <!-- Tombol Aksi setelah TTD selesai -->
                 <div id="field-aksi" class="hidden" style="margin-top:1px; text-align:center;">
-                    <div style="margin-bottom:15px;">
-                        <button type="button" onclick="bukaKamera()"
-                                style="font-size:16px; background:#ffc107; color:black; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; margin:0 10px;">
+                    <div style="margin-bottom:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+                        <!-- Mode normal (bukan edit): satu tombol ambil kedua foto -->
+                        <button type="button" id="btnAmbilFotoNormal" onclick="bukaKamera()"
+                                style="font-size:15px; background:#ffc107; color:black; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">
                             📸 Ambil Foto
                         </button>
+                        <!-- Mode edit: dua tombol terpisah -->
+                        <button type="button" id="btnAmbilFotoDepan" onclick="bukaKameraTarget('depan')"
+                                style="display:none; font-size:15px; background:#17a2b8; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
+                            🤳 Foto Wajah
+                        </button>
+                        <button type="button" id="btnAmbilFotoBelakang" onclick="bukaKameraTarget('belakang')"
+                                style="display:none; font-size:15px; background:#6610f2; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
+                            📷 Foto Suasana
+                        </button>
                         <button type="button" onclick="clearSignature()"
-                                style="font-size:16px; background:#dc3545; color:white; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; margin:0 1px;">
-                            🗑️ Hapus Tanda Tangan
+                                style="font-size:15px; background:#dc3545; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
+                            🗑️ Hapus TTD
                         </button>
                     </div>
                     <div class="warning" id="photoWarning" style="display:none; margin:10px 0;">⚠️ Foto wajib diambil!</div>
                     <div id="photoPreview" style="margin-top:20px; margin-bottom:40px; display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
                         <div style="text-align:center;">
+                            <small style="font-size:0.78em; color:#666; display:block; margin-bottom:4px;">Foto Wajah</small>
                             <img id="imgFront" style="max-width:220px; border:1px solid #ccc; border-radius:8px; display:none;" alt="Foto Depan">
                         </div>
                         <div style="text-align:center;">
+                            <small style="font-size:0.78em; color:#666; display:block; margin-bottom:4px;">Foto Suasana</small>
                             <img id="imgBack" style="max-width:220px; border:1px solid #ccc; border-radius:8px; display:none;" alt="Foto Belakang">
                         </div>
                     </div>
@@ -1998,11 +2010,19 @@
                 Ambil foto pertama
             </div>
 
-            <video id="video" autoplay playsinline muted style="width:100%; max-width:420px; background:#000; border-radius:8px; margin-bottom:20px;"></video>
+            <!-- Indikator deteksi wajah -->
+            <div id="faceStatus" style="display:none; margin-bottom:10px; font-size:0.9em; font-weight:bold; padding:6px 14px; border-radius:20px; display:inline-block;">
+            </div>
 
-            <div style="margin:20px 0;">
-                <button type="button" class="btn-capture" onclick="capture()" 
-                        style="background:#28a745; color:white; border:none; padding:14px 32px; font-size:1.2em; border-radius:50px; cursor:pointer; margin:0 10px; box-shadow:0 4px 12px rgba(40,167,69,0.4);">
+            <div style="position:relative; display:inline-block;">
+                <video id="video" autoplay playsinline muted style="width:100%; max-width:420px; background:#000; border-radius:8px; margin-bottom:8px; display:block;"></video>
+                <!-- Overlay kotak wajah -->
+                <canvas id="faceOverlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; border-radius:8px;"></canvas>
+            </div>
+
+            <div style="margin:16px 0;">
+                <button type="button" id="btnCapture" class="btn-capture" onclick="capture()" 
+                        style="background:#28a745; color:white; border:none; padding:14px 32px; font-size:1.2em; border-radius:50px; cursor:pointer; margin:0 10px; box-shadow:0 4px 12px rgba(40,167,69,0.4); transition:all 0.3s;">
                     📸 Ambil Foto
                 </button>
                 <button type="button" class="btn-cancel" onclick="stopAll()" 
@@ -2389,14 +2409,13 @@ function resizeCanvas() {
         tempCanvas.width = signatureCanvas.width;
         tempCanvas.height = signatureCanvas.height;
         tempCanvas.getContext('2d').drawImage(signatureCanvas, 0, 0);
-        signatureCanvas.width = 220;
-        signatureCanvas.height = 220;
-        ctx2.drawImage(tempCanvas, 0, 0, 220, 220);
+        signatureCanvas.width = 360;
+        signatureCanvas.height = 160;
+        ctx2.drawImage(tempCanvas, 0, 0, 360, 160);
         ctx2.lineWidth = 2;
         ctx2.lineCap = 'round';
         ctx2.strokeStyle = '#00008B';
         attachSignatureEvents();
-        // Tampilkan placeholder jika belum ada tanda tangan
         if (!hasSignature) _gambarPlaceholderTTD();
     }, 100);
 }
@@ -2408,16 +2427,15 @@ function _gambarPlaceholderTTD() {
     const h = signatureCanvas.height;
     ctx2.save();
     ctx2.clearRect(0, 0, w, h);
-    // Teks besar transparan di tengah
-    ctx2.globalAlpha = 0.12;
+    ctx2.globalAlpha = 0.13;
     ctx2.fillStyle = '#1a3a6e';
-    ctx2.font = 'bold 22px Arial';
+    ctx2.font = 'bold 26px Arial';
     ctx2.textAlign = 'center';
     ctx2.textBaseline = 'middle';
-    ctx2.fillText('✍️ Tanda Tangan', w / 2, h / 2 - 10);
-    ctx2.font = '13px Arial';
+    ctx2.fillText('✍️  Tanda Tangan', w / 2, h / 2 - 12);
+    ctx2.font = '14px Arial';
     ctx2.globalAlpha = 0.09;
-    ctx2.fillText('Tanda tangani di sini', w / 2, h / 2 + 18);
+    ctx2.fillText('Tanda tangani di area ini', w / 2, h / 2 + 18);
     ctx2.restore();
 }
 
@@ -3183,11 +3201,173 @@ function autoStepNomorHp() {
 }
 
 
+function _toggleTombolFoto() {
+    const normal   = document.getElementById('btnAmbilFotoNormal');
+    const depan    = document.getElementById('btnAmbilFotoDepan');
+    const belakang = document.getElementById('btnAmbilFotoBelakang');
+    if (!normal) return;
+    if (isEditMode || _editBebasMode) {
+        normal.style.display   = 'none';
+        depan.style.display    = '';
+        belakang.style.display = '';
+    } else {
+        normal.style.display   = '';
+        depan.style.display    = 'none';
+        belakang.style.display = 'none';
+    }
+}
+
+let _fotoTarget = null; // 'depan' | 'belakang' | null
+
 async function bukaKamera() {
+    _fotoTarget = null; // ambil keduanya
     step = 1;
     document.getElementById('infoKamera').innerText = "📸 Ambil foto pertama (wajah)";
     document.getElementById('photoModal').style.display = 'flex';
     await initCamera('user');
+}
+
+async function bukaKameraTarget(target) {
+    _fotoTarget = target; // 'depan' atau 'belakang'
+    if (target === 'depan') {
+        document.getElementById('infoKamera').innerText = "🤳 Ambil foto wajah";
+        document.getElementById('photoModal').style.display = 'flex';
+        await initCamera('user');
+    } else {
+        document.getElementById('infoKamera').innerText = "📷 Ambil foto suasana";
+        document.getElementById('photoModal').style.display = 'flex';
+        await initCamera('environment');
+    }
+}
+
+let _faceDetector = null;
+let _faceDetectRAF = null;
+let _faceDetectMode = 'none'; // 'api' | 'brightness' | 'none'
+let _faceFound = false;
+
+async function _initFaceDetection() {
+    // Reset
+    _faceFound = false;
+    if (_faceDetectRAF) { cancelAnimationFrame(_faceDetectRAF); _faceDetectRAF = null; }
+
+    // Coba FaceDetector API (Chrome Android mendukung)
+    if ('FaceDetector' in window) {
+        try {
+            _faceDetector = new FaceDetector({ maxDetectedFaces: 1, fastMode: true });
+            _faceDetectMode = 'api';
+        } catch(e) { _faceDetectMode = 'brightness'; }
+    } else {
+        _faceDetectMode = 'brightness';
+    }
+}
+
+function _stopFaceDetection() {
+    if (_faceDetectRAF) { cancelAnimationFrame(_faceDetectRAF); _faceDetectRAF = null; }
+    _faceFound = false;
+    const status = document.getElementById('faceStatus');
+    if (status) status.style.display = 'none';
+    _setCaptureEnabled(true); // aktifkan kembali saat kamera ditutup
+}
+
+function _setCaptureEnabled(enabled) {
+    const btn = document.getElementById('btnCapture');
+    if (!btn) return;
+    if (enabled) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.style.background = '#28a745';
+        btn.title = '';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.45';
+        btn.style.cursor = 'not-allowed';
+        btn.style.background = '#6c757d';
+        btn.title = 'Arahkan wajah ke kamera terlebih dahulu';
+    }
+}
+
+function _updateFaceStatus(found) {
+    const status = document.getElementById('faceStatus');
+    if (!status) return;
+    status.style.display = 'inline-block';
+    if (found) {
+        status.textContent = '✅ Wajah terdeteksi — siap ambil foto';
+        status.style.background = '#d4edda';
+        status.style.color = '#155724';
+        status.style.border = '1px solid #c3e6cb';
+    } else {
+        status.textContent = '⚠️ Arahkan wajah ke kamera';
+        status.style.background = '#fff3cd';
+        status.style.color = '#856404';
+        status.style.border = '1px solid #ffc107';
+    }
+}
+
+async function _runFaceDetectionLoop() {
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('faceOverlay');
+    if (!video || video.readyState < 2) {
+        _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
+        return;
+    }
+
+    // Hanya jalankan deteksi wajah saat foto depan (kamera selfie)
+    const isDepan = (_fotoTarget === 'depan') || (_fotoTarget === null && step === 1);
+    if (!isDepan) {
+        _setCaptureEnabled(true);
+        if (overlay) { const c = overlay.getContext('2d'); c.clearRect(0,0,overlay.width,overlay.height); }
+        const status = document.getElementById('faceStatus');
+        if (status) status.style.display = 'none';
+        _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
+        return;
+    }
+
+    if (_faceDetectMode === 'api' && _faceDetector) {
+        try {
+            const faces = await _faceDetector.detect(video);
+            _faceFound = faces.length > 0;
+
+            // Gambar kotak di overlay canvas
+            if (overlay) {
+                overlay.width  = video.videoWidth  || video.offsetWidth;
+                overlay.height = video.videoHeight || video.offsetHeight;
+                const c = overlay.getContext('2d');
+                c.clearRect(0, 0, overlay.width, overlay.height);
+                if (_faceFound && faces[0].boundingBox) {
+                    const b = faces[0].boundingBox;
+                    const scaleX = overlay.width  / (video.videoWidth  || overlay.width);
+                    const scaleY = overlay.height / (video.videoHeight || overlay.height);
+                    c.strokeStyle = '#28a745';
+                    c.lineWidth   = 3;
+                    c.strokeRect(b.x * scaleX, b.y * scaleY, b.width * scaleX, b.height * scaleY);
+                }
+            }
+        } catch(e) { _faceFound = true; } // jika error, izinkan
+    } else {
+        // Fallback: deteksi brightness di area tengah (skin tone range)
+        try {
+            const tmpC = document.createElement('canvas');
+            tmpC.width = 60; tmpC.height = 60;
+            const t = tmpC.getContext('2d');
+            t.drawImage(video, video.videoWidth*0.25, video.videoHeight*0.1,
+                               video.videoWidth*0.5,  video.videoHeight*0.7,
+                               0, 0, 60, 60);
+            const px = t.getImageData(0, 0, 60, 60).data;
+            let skinCount = 0;
+            for (let i = 0; i < px.length; i += 16) {
+                const r = px[i], g = px[i+1], b = px[i+2];
+                // Deteksi skin tone sederhana
+                if (r > 60 && g > 40 && b > 20 && r > g && r > b &&
+                    r - g > 10 && r < 250) skinCount++;
+            }
+            _faceFound = skinCount > 50; // threshold
+        } catch(e) { _faceFound = true; }
+    }
+
+    _updateFaceStatus(_faceFound);
+    _setCaptureEnabled(_faceFound);
+    _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
 }
 
 async function initCamera(facing) {
@@ -3195,19 +3375,54 @@ async function initCamera(facing) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;
     }
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: facing },
-            audio: false
-        });
-        const video = document.getElementById('video');
-        video.srcObject = stream;
-        video.onloadedmetadata = () => video.play().catch(e => console.log("play error:", e));
-    } catch (err) {
-        console.error("Kamera error:", err);
-        alert("Tidak dapat mengakses kamera.\nPastikan izin kamera diizinkan dan coba refresh halaman.");
-        stopAll();
+    // Stop detection loop sebelum ganti kamera
+    if (_faceDetectRAF) { cancelAnimationFrame(_faceDetectRAF); _faceDetectRAF = null; }
+
+    const isDepan = facing === 'user';
+    // Nonaktifkan tombol sementara saat kamera depan, aktifkan langsung untuk kamera belakang
+    _setCaptureEnabled(!isDepan);
+    const status = document.getElementById('faceStatus');
+    if (status) status.style.display = isDepan ? 'inline-block' : 'none';
+    if (isDepan && status) { status.textContent = '⏳ Memulai kamera...'; status.style.background='#e2e3e5'; status.style.color='#383d41'; status.style.border='1px solid #d6d8db'; }
+
+    // Coba beberapa constraint bertingkat agar kompatibel semua HP
+    const constraints = facing === 'user'
+        ? [
+            { video: { facingMode: { exact: 'user' } }, audio: false },
+            { video: { facingMode: 'user' }, audio: false },
+            { video: true, audio: false }
+          ]
+        : [
+            { video: { facingMode: { exact: 'environment' } }, audio: false },
+            { video: { facingMode: 'environment' }, audio: false },
+            { video: true, audio: false }
+          ];
+
+    let lastErr = null;
+    for (const c of constraints) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(c);
+            const video = document.getElementById('video');
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                video.play().catch(e => console.log("play error:", e));
+                // Mulai deteksi wajah setelah video siap
+                if (isDepan) {
+                    _initFaceDetection().then(() => {
+                        setTimeout(_runFaceDetectionLoop, 500);
+                    });
+                }
+            };
+            return; // berhasil, keluar
+        } catch (err) {
+            lastErr = err;
+            stream = null;
+        }
     }
+    // Semua gagal
+    console.error("Kamera error:", lastErr);
+    alert("Tidak dapat mengakses kamera.\nPastikan izin kamera diizinkan dan coba refresh halaman.");
+    stopAll();
 }
 
 async function capture() {
@@ -3221,8 +3436,27 @@ async function capture() {
     ctxCap.fillRect(0, 0, canvas.width, canvas.height);
     ctxCap.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    // Mode target tunggal (edit mode — hanya depan atau belakang)
+    if (_fotoTarget === 'depan') {
+        fotoDataURLFront = dataUrl;
+        document.getElementById('imgFront').src = dataUrl;
+        document.getElementById('imgFront').style.display = 'block';
+        hasPhoto = !!(fotoDataURLFront || fotoDataURLBack);
+        stopAll();
+        return;
+    }
+    if (_fotoTarget === 'belakang') {
+        fotoDataURLBack = dataUrl;
+        document.getElementById('imgBack').src = dataUrl;
+        document.getElementById('imgBack').style.display = 'block';
+        hasPhoto = !!(fotoDataURLFront || fotoDataURLBack);
+        stopAll();
+        return;
+    }
+
+    // Mode normal — ambil kedua foto berurutan
     if (step === 1) {
-        // ── Foto pertama (depan) selesai → otomatis ganti ke kamera belakang ──
         fotoDataURLFront = dataUrl;
         document.getElementById('imgFront').src = dataUrl;
         document.getElementById('imgFront').style.display = 'block';
@@ -3230,7 +3464,6 @@ async function capture() {
         document.getElementById('infoKamera').innerText = '📷 Ambil foto kedua (suasana)';
         await initCamera('environment');
     } else {
-        // ── Foto kedua (belakang) selesai → tutup kamera → tampil overlay pratinjau ──
         fotoDataURLBack = dataUrl;
         document.getElementById('imgBack').src = dataUrl;
         document.getElementById('imgBack').style.display = 'block';
@@ -3238,24 +3471,24 @@ async function capture() {
         stopAll();
         if (!isEditMode) {
             _editBebasMode = false;
-            // Tutup overlay step isian (kembalikan area ke form) lalu buka pratinjau
-            _tutupStepIsian(() => {
-                bukaOverlay();
-            });
+            _tutupStepIsian(() => { bukaOverlay(); });
         } else {
-            alert("Foto berhasil diambil. Lanjut edit lalu simpan perubahan.");
             document.getElementById('photoPreview').scrollIntoView({behavior:'smooth'});
         }
     }
 }
 
 function stopAll() {
+    _stopFaceDetection();
     if (stream) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;
     }
     document.getElementById('photoModal').style.display = 'none';
     document.getElementById('video').srcObject = null;
+    // Bersihkan overlay
+    const overlay = document.getElementById('faceOverlay');
+    if (overlay) { const c = overlay.getContext('2d'); c.clearRect(0,0,overlay.width,overlay.height); }
 }
 
 // ════════════════════════════════════════════════
@@ -3426,6 +3659,7 @@ function editDariOverlay() {
 
         // ── Aktifkan mode edit-bebas (bukan isEditMode agar simpan berjalan normal) ──
         _editBebasMode = true;
+        _toggleTombolFoto();
 
         // ── Tutup overlay step isian, kembalikan #stepInputArea ke form, lalu jalankan edit ──
         _tutupStepIsian(() => {
@@ -3590,8 +3824,8 @@ async function simpanDariEditBebas() {
 }
 
 function selesaiEditBebas() {
-    // Pratinjau ulang dari mode edit bebas - tidak perlu foto baru jika sudah ada
     _editBebasMode = false;
+    _toggleTombolFoto();
     _stepNamaDone   = false;
     _stepUraianDone = false;
     _stepHpDone     = false;
@@ -3617,8 +3851,8 @@ function selesaiEditBebas() {
 }
 
 function batalEditBebas() {
-    // Batalkan mode edit, kembalikan ke tampilan ringkasan sebelumnya
     _editBebasMode = false;
+    _toggleTombolFoto();
     _stepNamaDone   = false;
     _stepUraianDone = false;
     _stepHpDone     = false;
@@ -4024,8 +4258,10 @@ function editData(index) {
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.onload = function() {
-                ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-                ctx2.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                if (ctx2 && signatureCanvas) {
+                    ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                    ctx2.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                }
                 hasSignature = true;
                 totalStrokeLength = 100;
             };
@@ -4034,12 +4270,39 @@ function editData(index) {
         fotoDataURLFront = data.fotoFront || null;
         fotoDataURLBack  = data.fotoBack  || null;
         hasPhoto = !!(data.fotoFront || data.fotoBack);
-        if (data.fotoFront) document.getElementById('imgFront').src = data.fotoFront;
-        if (data.fotoBack)  document.getElementById('imgBack').src  = data.fotoBack;
+        const imgFront = document.getElementById('imgFront');
+        const imgBack  = document.getElementById('imgBack');
+        if (data.fotoFront && imgFront) { imgFront.src = data.fotoFront; imgFront.style.display = 'block'; }
+        else if (imgFront) imgFront.style.display = 'none';
+        if (data.fotoBack  && imgBack)  { imgBack.src  = data.fotoBack;  imgBack.style.display  = 'block'; }
+        else if (imgBack)  imgBack.style.display = 'none';
+
+        // Aktifkan mode edit-bebas & toggle tombol foto
+        _editBebasMode = true;
+        isEditMode = false; // gunakan _editBebasMode saja agar alur simpan konsisten
+        editingIndex = index;
+        editingSementara = false;
+        _toggleTombolFoto();
+
         forceShowEditFields();
+        // Tampilkan field-aksi agar tombol foto & TTD terlihat
+        document.getElementById('field-aksi').classList.remove('hidden');
+
         document.getElementById('formSection').style.display = 'block';
         document.getElementById('dataSection').style.display = 'none';
-        document.getElementById('editModeButtons').style.display = 'block';
+        document.getElementById('editModeButtons').style.display = 'none';
+
+        // Tampilkan floating edit buttons, sembunyikan navigasi
+        const mainNav = document.getElementById('mainNavigation');
+        if (mainNav) mainNav.style.display = 'none';
+        const bfh = document.getElementById('btnFormHeader');
+        if (bfh) bfh.style.display = 'none';
+        const floatBtns = document.getElementById('floatingEditBtns');
+        if (floatBtns) floatBtns.style.display = 'flex';
+        const paperScroll = document.getElementById('paperScroll');
+        if (paperScroll) paperScroll.style.display = 'none';
+
+        setTimeout(() => { resizeCanvas(); }, 150);
     }
 }
 
@@ -4103,7 +4366,7 @@ function editSementara(sIndex) {
         const data = dataTamuSementara[sIndex];
         editingIndex = sIndex;
         originalEditData = JSON.parse(JSON.stringify(data));
-        isEditMode = true;
+        isEditMode = false;
         editingSementara = true;
         document.getElementById('nama').value = data.nama || '';
         validateNama();
@@ -4124,8 +4387,10 @@ function editSementara(sIndex) {
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.onload = function() {
-                ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-                ctx2.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                if (ctx2 && signatureCanvas) {
+                    ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                    ctx2.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                }
                 hasSignature = true;
                 totalStrokeLength = 100;
             };
@@ -4134,12 +4399,32 @@ function editSementara(sIndex) {
         fotoDataURLFront = data.fotoFront || null;
         fotoDataURLBack  = data.fotoBack  || null;
         hasPhoto = !!(data.fotoFront || data.fotoBack);
-        if (data.fotoFront) document.getElementById('imgFront').src = data.fotoFront;
-        if (data.fotoBack)  document.getElementById('imgBack').src  = data.fotoBack;
+        const imgFront = document.getElementById('imgFront');
+        const imgBack  = document.getElementById('imgBack');
+        if (data.fotoFront && imgFront) { imgFront.src = data.fotoFront; imgFront.style.display = 'block'; }
+        else if (imgFront) imgFront.style.display = 'none';
+        if (data.fotoBack  && imgBack)  { imgBack.src  = data.fotoBack;  imgBack.style.display  = 'block'; }
+        else if (imgBack)  imgBack.style.display = 'none';
+
+        _editBebasMode = true;
+        _toggleTombolFoto();
         forceShowEditFields();
+        document.getElementById('field-aksi').classList.remove('hidden');
+
         document.getElementById('formSection').style.display = 'block';
         document.getElementById('dataSection').style.display = 'none';
-        document.getElementById('editModeButtons').style.display = 'block';
+        document.getElementById('editModeButtons').style.display = 'none';
+
+        const mainNav = document.getElementById('mainNavigation');
+        if (mainNav) mainNav.style.display = 'none';
+        const bfh = document.getElementById('btnFormHeader');
+        if (bfh) bfh.style.display = 'none';
+        const floatBtns = document.getElementById('floatingEditBtns');
+        if (floatBtns) floatBtns.style.display = 'flex';
+        const paperScroll = document.getElementById('paperScroll');
+        if (paperScroll) paperScroll.style.display = 'none';
+
+        setTimeout(() => { resizeCanvas(); }, 150);
     }
 }
 
