@@ -3818,6 +3818,8 @@ async function simpanDariEditBebas() {
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
         exportDetailPerTamuPDF(pdfIndex);
+        // Kirim notifikasi WhatsApp ke pihak yang dituju
+        setTimeout(() => { kirimNotifWA(dataBukuTamu[pdfIndex]); }, 1200);
     }
     // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
     setTimeout(() => { goToWelcome(); }, 800);
@@ -4198,7 +4200,47 @@ function buildDetailHTML(data, index, isSementara) {
     return `<div class="detail-container" style="${headerBg}"><div class="detail-header"><h3>${badge}Data Tamu #${nomor}</h3><div>${editBtn}${simpanBtn}</div></div><div class="detail-row"><div class="detail-label">Nama Lengkap</div><div class="detail-value">${data.nama}</div></div>${data.asal === 'INSTANSI' ? `<div class="detail-row"><div class="detail-label">Instansi / Unit Kerja</div><div class="detail-value">${data.instansi || '-'}</div></div>` : data.asal === 'MASYARAKAT' ? `<div class="detail-row"><div class="detail-label">Asal</div><div class="detail-value">Masyarakat</div></div><div class="detail-row"><div class="detail-label">Kecamatan</div><div class="detail-value">${data.kecamatan || '-'}</div></div><div class="detail-row"><div class="detail-label">Desa / Kelurahan</div><div class="detail-value">${data.desa || '-'}</div></div>` : `<div class="detail-row"><div class="detail-label">Asal</div><div class="detail-value">${data.asal || '-'}</div></div>`}<div class="detail-row"><div class="detail-label">Pihak Ditemui</div><div class="detail-value">${data.pihakDitemui}</div></div><div class="detail-row"><div class="detail-label">Jenis Layanan</div><div class="detail-value">${data.jenisLayanan}</div></div><div class="detail-row"><div class="detail-label">Uraian Keperluan</div><div class="detail-value">${data.uraian}</div></div><div class="detail-row"><div class="detail-label">Nomor WhatsApp</div><div class="detail-value">${data.nomorHp}</div></div><div class="detail-row"><div class="detail-label">Waktu Kunjungan</div><div class="detail-value">${data.timestamp}</div></div><div class="detail-row"><div class="detail-label">Dokumentasi Foto</div><div class="detail-value">${data.fotoFront ? `<img src="${data.fotoFront}" style="width:150px;margin-right:10px;border:1px solid #ddd;" alt="Foto Depan">` : ''}${data.fotoBack ? `<img src="${data.fotoBack}" style="width:150px;border:1px solid #ddd;" alt="Foto Belakang">` : ''}</div></div><div class="detail-row"><div class="detail-label">Tanda Tangan</div><div class="detail-value"><img src="${data.tandaTangan}" style="max-width:300px;border:1px solid #ddd;" alt="TTD"></div></div></div>`;
 }
 
-async function konfirmasiDanSimpanPDF(sIndex) {
+// ============================================================
+//  NOTIFIKASI WHATSAPP OTOMATIS KE PIHAK YANG DITUJU
+// ============================================================
+// Daftar nomor WA pihak — SESUAIKAN dengan nomor asli
+const _WA_PIHAK = {
+    'INSPEKTUR'  : '6281277779710',   // ← ganti nomor asli
+    'SEKRETARIS' : '6285952753584',   // ← ganti nomor asli
+    'IRBANSUS'   : '6285959827480',   // ← ganti nomor asli
+    'IRBAN 1'    : '6282374854100',   // ← ganti nomor asli
+    'IRBAN 2'    : '6281277779710',   // ← ganti nomor asli
+    'IRBAN 3'    : '6281277779710',   // ← ganti nomor asli
+    'IRBAN 4'    : '6281277779710',   // ← ganti nomor asli
+};
+
+function kirimNotifWA(data) {
+    if (!data || !data.pihakDitemui) return;
+    const nomorPihak = _WA_PIHAK[data.pihakDitemui];
+    if (!nomorPihak) return;
+
+    const asal = data.asal === 'INSTANSI'
+        ? `Instansi  : ${data.instansi || '-'}`
+        : `Kecamatan : ${data.kecamatan || '-'}\nDesa      : ${data.desa || '-'}`;
+
+    const pesan =
+`🔔 *NOTIFIKASI TAMU BARU*
+Inspektorat Daerah Kab. Tulang Bawang Barat
+━━━━━━━━━━━━━━━━━━━━━
+👤 Nama      : ${data.nama}
+🏠 Asal      : ${data.asal === 'INSTANSI' ? 'Instansi' : 'Masyarakat'}
+${asal}
+👥 Tujuan    : ${data.pihakDitemui}
+📋 Layanan   : ${data.jenisLayanan}
+📝 Keperluan : ${data.uraian}
+📱 No. WA    : ${data.nomorHp}
+🕐 Waktu     : ${data.timestamp || new Date().toLocaleString('id-ID')}
+━━━━━━━━━━━━━━━━━━━━━
+_Pesan ini dikirim otomatis oleh Sistem Buku Tamu Digital_`;
+
+    const url = `https://wa.me/${nomorPihak}?text=${encodeURIComponent(pesan)}`;
+    window.open(url, '_blank');
+}
     if (sIndex < 0 || sIndex >= dataTamuSementara.length) return;
     const data = dataTamuSementara[sIndex];
     const fbKeySementara = data._fbKey || null;
@@ -4215,6 +4257,8 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     // Unduh PDF detail per tamu
     const finalIndex = dataBukuTamu.length - 1;
     exportDetailPerTamuPDF(finalIndex);
+    // Kirim notifikasi WhatsApp ke pihak yang dituju
+    setTimeout(() => { kirimNotifWA(data); }, 1200);
     // Kembali ke halaman selamat datang
     setTimeout(() => { goToWelcome(); }, 800);
 }
