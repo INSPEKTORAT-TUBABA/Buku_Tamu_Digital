@@ -55,8 +55,26 @@
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; background: #e8f4fd; }
-        body { font-family: 'Arial', sans-serif; min-height: 100vh; }
+        html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #e8f4fd;
+        }
+
+        /* Wrapper scrollable di dalam bingkai emas */
+        #pageScroller {
+            position: fixed;
+            inset: 18px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            z-index: 1;
+        }
+        #pageScroller::-webkit-scrollbar { width: 4px; }
+        #pageScroller::-webkit-scrollbar-thumb { background: rgba(212,168,32,0.4); border-radius: 4px; }
 
         /* ========================================
            BINGKAI DEKORATIF EMAS - FRAME OVERLAY
@@ -340,7 +358,7 @@
             position: relative;
             z-index: 2;
             max-width: 720px;
-            margin: 20px auto;
+            margin: 10px auto 18px auto;
             padding: 0;
             border-radius: 12px 12px 8px 8px;
             background: #f7f3eb;
@@ -1453,6 +1471,8 @@
     </div>
 </div>
 
+<!-- Scroller di dalam bingkai emas -->
+<div id="pageScroller">
 <!-- Main Application -->
 <div id="mainApp">
     <div class="header-gambar">
@@ -4998,5 +5018,6 @@ document.addEventListener('touchmove', function(e) {
 
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 </script>
+</div><!-- /pageScroller -->
 </body>
 </html>
