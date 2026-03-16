@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Detail Tamu — Inspektorat Daerah Tubaba</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#e8f0fe;min-height:100vh;padding:16px;display:flex;justify-content:center;}
+.page{max-width:600px;width:100%;background:#f7f3eb;border:6px solid transparent;border-image:linear-gradient(135deg,#f5e07a 0%,#d4a820 20%,#a07810 40%,#f5e07a 55%,#d4a820 70%,#c8960e 85%,#f5e07a 100%) 1;box-shadow:0 0 0 1px rgba(212,168,32,0.3),0 4px 24px rgba(0,0,0,0.15);margin:10px 0;}
+/* Header */
+.header{background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%);color:#fff;padding:18px 20px 14px;text-align:center;border-bottom:2px solid #d4a820;}
+.header h1{font-size:1.3em;font-weight:900;color:#f5e07a;letter-spacing:0.06em;margin-bottom:4px;}
+.header h2{font-size:0.82em;font-weight:600;color:rgba(220,235,255,0.9);letter-spacing:0.05em;margin-bottom:8px;}
+.header .subtitle{font-size:0.75em;color:rgba(180,200,240,0.8);letter-spacing:0.03em;}
+/* Data table */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table tr{border-bottom:1px solid rgba(212,168,32,0.2);}
+.data-table tr:nth-child(odd) .lbl-cell{background:#eef3fa;}
+.data-table tr:nth-child(even) .lbl-cell{background:#e8eef8;}
+.data-table tr:nth-child(odd) .val-cell{background:#f5f8ff;}
+.data-table tr:nth-child(even) .val-cell{background:#eef3fa;}
+.lbl-cell{padding:10px 14px;font-weight:700;font-size:0.83em;color:#0d1f45;width:180px;vertical-align:middle;border-right:2px solid #d4a820;border-left:3px solid #1a3a6e;}
+.val-cell{padding:10px 14px;font-size:0.88em;color:#1a1a2e;vertical-align:middle;}
+/* Section header */
+.section-hdr{background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:9px 16px;font-size:0.82em;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;border-top:2px solid #d4a820;border-bottom:1px solid rgba(212,168,32,0.4);}
+/* Foto area */
+.foto-area{padding:16px;background:#f0f4f8;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.foto-wrap{text-align:center;}
+.foto-wrap img{width:160px;height:160px;object-fit:cover;border:3px solid #d4a820;border-radius:4px;display:block;background:#ddd;}
+.foto-label{margin-top:6px;font-size:0.75em;font-weight:700;color:#0d1f45;background:#f5e07a;padding:2px 10px;border-radius:20px;display:inline-block;}
+/* TTD area */
+.ttd-area{padding:16px 20px 20px;background:#f7f3eb;}
+.ttd-title{font-size:0.85em;font-weight:700;color:#0d1f45;margin-bottom:10px;}
+.ttd-box{border:1.5px solid #d4a820;background:#fff;padding:8px;display:inline-block;border-radius:4px;min-width:200px;}
+.ttd-box img{max-width:200px;max-height:80px;display:block;}
+.ttd-nama{font-size:1.05em;font-weight:900;color:#0d1f45;text-align:center;margin-top:10px;letter-spacing:0.02em;}
+/* Footer */
+.footer{padding:10px 16px;text-align:center;background:#e8eef8;border-top:2px solid rgba(212,168,32,0.3);font-size:0.72em;color:#5a6a8a;font-style:italic;}
+/* Loading & error */
+.loading{text-align:center;padding:50px 20px;}
+.spinner{width:44px;height:44px;border:4px solid #e0e0e0;border-top-color:#1a3a6e;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <div class="loading" id="loadingBox">
+    <div class="spinner"></div>
+    <p style="color:#555;font-size:0.9em;">Memuat data tamu...</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+const FB_CONFIG_DETAIL = {
+    apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
+    authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
+    databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "buku-tamu-digital-64d8f",
+    storageBucket:     "buku-tamu-digital-64d8f.firebasestorage.app",
+    messagingSenderId: "778866088048",
+    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
+};
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderTamu(data, nomor) {
+    const page = document.getElementById('page');
+    const no = nomor || '?';
+
+    // Baris data tamu
+    let rows = `
+        <tr><td class="lbl-cell">Nama Lengkap</td><td class="val-cell"><b>${esc(data.nama||'-')}</b></td></tr>`;
+
+    if (data.asal === 'INSTANSI') {
+        rows += `<tr><td class="lbl-cell">Instansi / Unit Kerja</td><td class="val-cell">${esc(data.instansi||'-')}</td></tr>`;
+    } else if (data.asal === 'MASYARAKAT') {
+        rows += `<tr><td class="lbl-cell">Asal</td><td class="val-cell">Masyarakat</td></tr>
+                 <tr><td class="lbl-cell">Kecamatan</td><td class="val-cell">${esc(data.kecamatan||'-')}</td></tr>
+                 <tr><td class="lbl-cell">Desa / Kelurahan</td><td class="val-cell">${esc(data.desa||'-')}</td></tr>`;
+    } else if (data.asal) {
+        rows += `<tr><td class="lbl-cell">Asal</td><td class="val-cell">${esc(data.asal)}</td></tr>`;
+    }
+
+    rows += `
+        <tr><td class="lbl-cell">Pihak yang Ditemui</td><td class="val-cell">${esc(data.pihakDitemui||'-')}</td></tr>
+        <tr><td class="lbl-cell">Jenis Layanan</td><td class="val-cell">${esc(data.jenisLayanan||'-')}</td></tr>
+        <tr><td class="lbl-cell">Uraian Keperluan</td><td class="val-cell">${esc(data.uraian||'-')}</td></tr>
+        <tr><td class="lbl-cell">Nomor WhatsApp</td><td class="val-cell">
+            <a href="https://wa.me/${(data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'')}" style="color:#075e54;font-weight:bold;">${esc(data.nomorHp||'-')}</a>
+        </td></tr>
+        <tr><td class="lbl-cell">Waktu Kunjungan</td><td class="val-cell">${esc(data.timestamp||'-')}</td></tr>`;
+
+    // Foto
+    const fotoHtml = (data.fotoFront || data.fotoBack) ? `
+        <div class="section-hdr">📷 Dokumentasi Foto &amp; Tanda Tangan</div>
+        <div class="foto-area">
+            ${data.fotoFront ? `<div class="foto-wrap"><img src="${data.fotoFront}" alt="Foto Depan"/><div class="foto-label">Foto Depan</div></div>` : ''}
+            ${data.fotoBack  ? `<div class="foto-wrap"><img src="${data.fotoBack}"  alt="Foto Belakang"/><div class="foto-label">Foto Belakang</div></div>` : ''}
+        </div>` : `<div class="section-hdr">✍️ Tanda Tangan</div>`;
+
+    // TTD
+    const ttdHtml = data.tandaTangan ? `
+        <div class="ttd-area">
+            <div class="ttd-title">Tanda Tangan:</div>
+            <div class="ttd-box"><img src="${data.tandaTangan}" alt="TTD"/></div>
+            <div class="ttd-nama">${esc(data.nama||'')}</div>
+        </div>` : '';
+
+    page.innerHTML = `
+        <div class="header">
+            <h1>BUKU TAMU DIGITAL</h1>
+            <h2>INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT</h2>
+            <div class="subtitle">Data Tamu #${no} &nbsp;•&nbsp; ${esc(data.timestamp||'')}</div>
+        </div>
+        <table class="data-table">${rows}</table>
+        ${fotoHtml}
+        ${ttdHtml}
+        <div class="footer">Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital — Inspektorat Kab. Tulang Bawang Barat</div>`;
+}
+
+function tampilError(pesan) {
+    document.getElementById('page').innerHTML = `
+        <div class="header"><h1>⚠️ TIDAK DITEMUKAN</h1></div>
+        <div style="padding:30px;text-align:center;color:#555;">${pesan}</div>`;
+}
+
+// Ambil parameter dari URL
+const params  = new URLSearchParams(window.location.search);
+const fbKey   = params.get('key');
+const encoded = params.get('tamu');
+
+if (fbKey) {
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG_DETAIL);
+        const db = firebase.database();
+        db.ref('bukuTamu/dataFinal/' + fbKey).get().then(snap => {
+            if (!snap.exists()) { tampilError('Data tamu tidak ditemukan atau sudah dihapus.'); return; }
+            let raw = snap.val();
+            let data = raw;
+            // Dekompres jika ada field _c
+            if (raw && raw._c) {
+                try { data = JSON.parse(decodeURIComponent(escape(atob(raw._c)))); } catch(e) { data = raw; }
+            }
+            // Ambil nomor urut dari dataFinal
+            db.ref('bukuTamu/dataFinal').get().then(snapAll => {
+                let no = '?';
+                if (snapAll.exists()) {
+                    const keys = Object.keys(snapAll.val()||{});
+                    const idx = keys.indexOf(fbKey);
+                    if (idx >= 0) no = idx + 1;
+                }
+                renderTamu(data, no);
+            }).catch(() => renderTamu(data, '?'));
+        }).catch(err => tampilError('Gagal memuat data: ' + err.message));
+    } catch(e) { tampilError('Error: ' + e.message); }
+
+} else if (encoded) {
+    try {
+        const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        renderTamu(data, '?');
+    } catch(e) { tampilError('Link tidak valid atau sudah kedaluwarsa.'); }
+
+} else {
+    tampilError('Tidak ada data.<br>Buka link ini dari notifikasi WhatsApp.');
+}
+</script>
+</body>
+</html>
