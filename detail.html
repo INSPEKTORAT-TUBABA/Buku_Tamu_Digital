@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Detail Tamu — Inspektorat Daerah Tubaba</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#e8f0fe;min-height:100vh;padding:16px;}
+.card{max-width:520px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,0.12);overflow:hidden;}
+.header{background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:22px 20px;text-align:center;}
+.header .logo{font-size:2.2em;margin-bottom:6px;}
+.header h1{font-size:1.1em;letter-spacing:0.05em;margin-bottom:4px;}
+.header p{font-size:0.78em;color:rgba(255,255,255,0.7);}
+.header .badge{display:inline-block;background:rgba(245,224,122,0.2);border:1px solid rgba(245,224,122,0.4);border-radius:20px;padding:3px 14px;font-size:0.78em;margin-top:8px;color:#f5e07a;}
+.row{display:flex;border-bottom:1px solid #eef2ff;min-height:44px;}
+.row:last-child{border-bottom:none;}
+.lbl{width:140px;padding:12px 14px;background:#f8f0e0;font-weight:700;font-size:0.82em;color:#555;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #eee;}
+.val{flex:1;padding:12px 14px;font-size:0.88em;color:#222;display:flex;align-items:center;word-break:break-word;}
+.section-header{background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:10px 16px;font-size:0.85em;font-weight:bold;letter-spacing:0.04em;}
+.foto-area{padding:16px;background:#f8f9fa;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.foto-box{text-align:center;}
+.foto-box img{width:150px;height:150px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;display:block;}
+.foto-box p{font-size:0.75em;color:#666;margin-top:5px;font-weight:bold;}
+.ttd-area{padding:16px 20px;}
+.ttd-area p{font-size:0.82em;color:#555;font-weight:bold;margin-bottom:8px;}
+.ttd-box{background:#fff;border:1px solid #d4a820;border-radius:8px;padding:8px;display:inline-block;}
+.ttd-box img{max-width:220px;max-height:80px;display:block;}
+.nama-ttd{text-align:center;font-weight:bold;font-size:1em;color:#0d1f45;margin-top:8px;}
+.footer{padding:14px 16px;text-align:center;background:#f0f4f8;font-size:0.75em;color:#888;border-top:1px solid #eee;}
+.error-box{text-align:center;padding:40px 20px;color:#888;}
+.loading{text-align:center;padding:40px 20px;}
+.spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:#1a3a6e;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.badge-asal{display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.82em;font-weight:bold;color:#fff;}
+.badge-inst{background:#0d6efd;}
+.badge-masy{background:#28a745;}
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="loading" id="loadingBox">
+    <div class="spinner"></div>
+    <p style="color:#555;font-size:0.9em;">Memuat data tamu...</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// ── Firebase config (sama dengan index.html) ──
+// PENTING: Isi dengan config Firebase kamu yang sebenarnya
+const FB_CONFIG_DETAIL = {
+    apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
+    authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
+    databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "buku-tamu-digital-64d8f",
+    storageBucket:     "buku-tamu-digital-64d8f.firebasestorage.app",
+    messagingSenderId: "778866088048",
+    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
+};
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderTamu(data) {
+    const card = document.getElementById('card');
+
+    let asalHtml = '';
+    const asalBadge = data.asal === 'INSTANSI'
+        ? `<span class="badge-asal badge-inst">INSTANSI</span>`
+        : data.asal === 'MASYARAKAT'
+        ? `<span class="badge-asal badge-masy">MASYARAKAT</span>`
+        : escHtml(data.asal||'-');
+
+    if (data.asal === 'INSTANSI') {
+        asalHtml = `<div class="row"><div class="lbl">Instansi / Unit Kerja</div><div class="val">${escHtml(data.instansi||'-')}</div></div>`;
+    } else if (data.asal === 'MASYARAKAT') {
+        asalHtml = `
+            <div class="row"><div class="lbl">Kecamatan</div><div class="val">${escHtml(data.kecamatan||'-')}</div></div>
+            <div class="row"><div class="lbl">Desa / Kelurahan</div><div class="val">${escHtml(data.desa||'-')}</div></div>`;
+    }
+
+    const fotoHtml = (data.fotoFront || data.fotoBack) ? `
+        <div class="section-header">📷 DOKUMENTASI FOTO</div>
+        <div class="foto-area">
+            ${data.fotoFront ? `<div class="foto-box"><img src="${data.fotoFront}" alt="Foto Depan"/><p>Foto Depan</p></div>` : ''}
+            ${data.fotoBack  ? `<div class="foto-box"><img src="${data.fotoBack}"  alt="Foto Belakang"/><p>Foto Belakang</p></div>` : ''}
+        </div>` : '';
+
+    const ttdHtml = data.tandaTangan ? `
+        <div class="ttd-area">
+            <p>✍️ Tanda Tangan:</p>
+            <div class="ttd-box"><img src="${data.tandaTangan}" alt="TTD"/></div>
+            <div class="nama-ttd">${escHtml(data.nama||'')}</div>
+        </div>` : '';
+
+    card.innerHTML = `
+        <div class="header">
+            <div class="logo">📋</div>
+            <h1>DETAIL TAMU</h1>
+            <p>Buku Tamu Digital — Inspektorat Daerah Kab. Tulang Bawang Barat</p>
+            <div class="badge">${escHtml(data.timestamp||'')}</div>
+        </div>
+        <div class="row"><div class="lbl">Nama Lengkap</div><div class="val"><b>${escHtml(data.nama||'-')}</b></div></div>
+        <div class="row"><div class="lbl">Asal</div><div class="val">${asalBadge}</div></div>
+        ${asalHtml}
+        <div class="row"><div class="lbl">Pihak Ditemui</div><div class="val">${escHtml(data.pihakDitemui||'-')}</div></div>
+        <div class="row"><div class="lbl">Jenis Layanan</div><div class="val">${escHtml(data.jenisLayanan||'-')}</div></div>
+        <div class="row"><div class="lbl">Uraian Keperluan</div><div class="val">${escHtml(data.uraian||'-')}</div></div>
+        <div class="row"><div class="lbl">No WA Tamu</div><div class="val">
+            <a href="https://wa.me/${(data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'')}" style="color:#075e54;font-weight:bold;">${escHtml(data.nomorHp||'-')}</a>
+        </div></div>
+        <div class="row"><div class="lbl">Waktu Kunjungan</div><div class="val">${escHtml(data.timestamp||'-')}</div></div>
+        ${fotoHtml}
+        ${ttdHtml}
+        <div class="footer">
+            🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WhatsApp resmi<br>
+            Inspektorat Daerah Kabupaten Tulang Bawang Barat
+        </div>`;
+}
+
+function tampilError(pesan) {
+    document.getElementById('card').innerHTML = `
+        <div class="header"><div class="logo">⚠️</div><h1>TIDAK DITEMUKAN</h1></div>
+        <div class="error-box"><p>${pesan}</p></div>`;
+}
+
+// ── Ambil key dari URL dan load dari Firebase ──
+const params = new URLSearchParams(window.location.search);
+const fbKey  = params.get('key');
+const encoded = params.get('tamu'); // fallback: encoded data
+
+if (fbKey) {
+    // Load dari Firebase
+    if (FB_CONFIG_DETAIL.apiKey === 'GANTI_API_KEY') {
+        tampilError('Firebase belum dikonfigurasi di file detail.html');
+    } else {
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG_DETAIL);
+            const db = firebase.database();
+            db.ref('bukuTamu/dataFinal/' + fbKey).get().then(snap => {
+                if (!snap.exists()) {
+                    tampilError('Data tamu tidak ditemukan atau sudah dihapus.');
+                    return;
+                }
+                const raw = snap.val();
+                // Dekompres jika perlu
+                let data = raw;
+                if (raw._c) {
+                    try {
+                        data = JSON.parse(decodeURIComponent(escape(atob(raw._c))));
+                    } catch(e) { data = raw; }
+                }
+                renderTamu(data);
+            }).catch(err => {
+                tampilError('Gagal memuat data: ' + err.message);
+            });
+        } catch(e) {
+            tampilError('Error: ' + e.message);
+        }
+    }
+} else if (encoded) {
+    // Fallback: decode dari URL parameter
+    try {
+        const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        renderTamu(data);
+    } catch(e) {
+        tampilError('Link tidak valid atau sudah kedaluwarsa.');
+    }
+} else {
+    tampilError('Tidak ada data yang ditampilkan.<br>Buka link ini dari notifikasi WhatsApp.');
+}
+</script>
+</body>
+</html>
