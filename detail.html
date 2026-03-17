@@ -6,314 +6,79 @@
     <title>Detail Tamu - Buku Tamu Digital Inspektorat Tubaba</title>
     <meta name="theme-color" content="#0d1f45"/>
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #e8f0fb;
-            min-height: 100vh;
-        }
-
-        /* ── Bingkai / wrapper ── */
-        .page-wrapper {
-            max-width: 640px;
-            margin: 0 auto;
-            background: #faf7f0;
-            min-height: 100vh;
-            box-shadow: 0 0 24px rgba(13,31,69,0.18);
-            border-left: 4px solid #d4a820;
-            border-right: 4px solid #d4a820;
-        }
-
-        /* ── HEADER ── */
-        .doc-header {
-            background: linear-gradient(135deg, #0d1f45 0%, #1a3a6e 60%, #0d1f45 100%);
-            padding: 18px 16px 14px;
-            text-align: center;
-            border-bottom: 3px solid #d4a820;
-        }
-
-        .doc-header .main-title {
-            font-size: clamp(1.1rem, 5.5vw, 1.5rem);
-            font-weight: 900;
-            color: #f5e07a;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            margin: 0 0 4px 0;
-            line-height: 1.2;
-        }
-
-        /* ── INI BAGIAN YANG DIUBAH: dua baris di HP ── */
-        .doc-header .sub-title {
-            font-size: clamp(0.68rem, 3.2vw, 0.92rem);
-            font-weight: 700;
-            color: #dce8ff;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin: 0 0 6px 0;
-            line-height: 1.45;
-            /* white-space: nowrap dihapus agar bisa wrap di HP */
-            word-break: break-word;
-        }
-
-        /* Baris 1 dan baris 2 subtitle — tampil terpisah di semua layar */
-        .doc-header .sub-title .line1,
-        .doc-header .sub-title .line2 {
-            display: block;
-        }
-
-        .doc-header .doc-meta {
-            font-size: clamp(0.65rem, 2.8vw, 0.8rem);
-            color: rgba(180, 210, 255, 0.80);
-            letter-spacing: 0.04em;
-            margin: 0;
-        }
-
-        /* ── TABEL DATA ── */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(0.78rem, 3.2vw, 0.92rem);
-        }
-
-        .data-table tr:nth-child(even) .cell-label,
-        .data-table tr:nth-child(even) .cell-value {
-            background: #eef3fb;
-        }
-
-        .data-table tr:nth-child(odd) .cell-label,
-        .data-table tr:nth-child(odd) .cell-value {
-            background: #f7f9ff;
-        }
-
-        .cell-label {
-            padding: 9px 10px 9px 12px;
-            font-weight: 700;
-            color: #0d1f45;
-            width: 38%;
-            border-bottom: 1px solid #d8e2f0;
-            border-left: 3px solid #0d1f45;
-            vertical-align: top;
-        }
-
-        .cell-value {
-            padding: 9px 12px 9px 10px;
-            color: #1a1a3a;
-            border-bottom: 1px solid #d8e2f0;
-            vertical-align: top;
-            word-break: break-word;
-        }
-
-        .cell-value a {
-            color: #0d6efd;
-            text-decoration: underline;
-        }
-
-        /* ── SEKSI FOTO & TTD ── */
-        .section-header {
-            background: #0d1f45;
-            color: #f5e07a;
-            font-weight: 700;
-            font-size: clamp(0.78rem, 3.5vw, 0.92rem);
-            letter-spacing: 0.06em;
-            padding: 9px 14px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .foto-grid {
-            display: flex;
-            gap: 12px;
-            padding: 14px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .foto-item {
-            text-align: center;
-        }
-
-        .foto-item img {
-            width: clamp(120px, 40vw, 160px);
-            height: clamp(120px, 40vw, 160px);
-            object-fit: cover;
-            border: 2px solid #d4a820;
-            border-radius: 6px;
-            display: block;
-        }
-
-        .foto-label {
-            font-size: 0.75rem;
-            color: #555;
-            margin-top: 5px;
-            font-style: italic;
-        }
-
-        /* ── TANDA TANGAN + NAMA ── */
-        .ttd-section {
-            padding: 14px 16px 18px;
-        }
-
-        .ttd-label {
-            font-weight: 700;
-            color: #0d1f45;
-            font-size: clamp(0.82rem, 3.4vw, 0.95rem);
-            margin-bottom: 8px;
-        }
-
-        /* Bingkai tanda tangan + nama dalam satu kotak */
-        .ttd-box {
-            border: 2px solid #d4a820;
-            border-radius: 8px;
-            background: #fff;
-            display: inline-block;
-            max-width: 280px;
-            width: 100%;
-            overflow: hidden;
-        }
-
-        .ttd-box-img-area {
-            padding: 10px 10px 8px;
-        }
-
-        .ttd-box img {
-            display: block;
-            width: 100%;
-            height: auto;
-            max-height: 110px;
-            object-fit: contain;
-        }
-
-        /* Garis pemisah emas antara TTD dan nama */
-        .ttd-divider {
-            height: 1.5px;
-            background: linear-gradient(to right, transparent, #d4a820 20%, #d4a820 80%, transparent);
-            margin: 0 8px;
-        }
-
-        /* Nama di dalam bingkai */
-        .ttd-nama {
-            font-weight: 800;
-            font-size: clamp(0.95rem, 4.2vw, 1.15rem);
-            color: #0d1f45;
-            text-align: center;
-            padding: 8px 10px 10px;
-            letter-spacing: 0.04em;
-            background: #fffdf5;
-        }
-
-        /* ── FOOTER ── */
-        .doc-footer {
-            background: #fdf8ec;
-            border-top: 2px solid #d4a820;
-            text-align: center;
-            padding: 10px 14px;
-            font-size: clamp(0.62rem, 2.5vw, 0.72rem);
-            color: #777;
-            font-style: italic;
-        }
-
-        /* ── Loading & Error ── */
-        .loading-state, .error-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            padding: 30px 20px;
-            text-align: center;
-            color: #555;
-        }
-
-        .loading-spinner {
-            width: 44px; height: 44px;
-            border: 4px solid #d4a82040;
-            border-top: 4px solid #d4a820;
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-            margin-bottom: 14px;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-icon { font-size: 2.5rem; margin-bottom: 10px; }
-        .error-msg { color: #c0392b; font-weight: 600; font-size: 0.95rem; }
-
-        /* ── Responsive: lebih rapi di HP kecil ── */
-        @media (max-width: 400px) {
-            .cell-label { width: 42%; font-size: 0.75rem; }
-            .cell-value { font-size: 0.78rem; }
-        }
+        *,*::before,*::after{box-sizing:border-box;}
+        body{font-family:Arial,sans-serif;margin:0;padding:0;background:#dce8f8;min-height:100vh;}
+        .page-wrapper{max-width:620px;margin:0 auto;background:#faf7f0;min-height:100vh;box-shadow:0 0 28px rgba(13,31,69,.20);border-left:4px solid #d4a820;border-right:4px solid #d4a820;}
+        .doc-header{background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 55%,#0d1f45 100%);padding:18px 16px 14px;text-align:center;border-bottom:3px solid #d4a820;}
+        .doc-header .main-title{font-size:clamp(1.05rem,5.5vw,1.45rem);font-weight:900;color:#f5e07a;letter-spacing:.12em;text-transform:uppercase;margin:0 0 5px 0;line-height:1.2;}
+        .sub-line{display:block;font-size:clamp(.68rem,3.3vw,.90rem);font-weight:700;color:#dce8ff;letter-spacing:.06em;text-transform:uppercase;line-height:1.5;}
+        .doc-meta{margin-top:6px;font-size:clamp(.64rem,2.7vw,.78rem);color:rgba(180,210,255,.80);letter-spacing:.03em;}
+        .data-table{width:100%;border-collapse:collapse;font-size:clamp(.78rem,3.2vw,.90rem);}
+        .data-table tr:nth-child(odd) td{background:#f7f9ff;}
+        .data-table tr:nth-child(even) td{background:#eef3fb;}
+        .cell-label{padding:9px 10px 9px 12px;font-weight:700;color:#0d1f45;width:38%;border-bottom:1px solid #d8e2f0;border-left:3px solid #0d1f45;vertical-align:top;}
+        .cell-value{padding:9px 12px 9px 10px;color:#1a1a3a;border-bottom:1px solid #d8e2f0;vertical-align:top;word-break:break-word;}
+        .cell-value a{color:#0d6efd;}
+        .section-header{background:#0d1f45;color:#f5e07a;font-weight:700;font-size:clamp(.78rem,3.5vw,.90rem);letter-spacing:.06em;padding:9px 14px;}
+        .foto-grid{display:flex;gap:14px;padding:16px 14px 8px;justify-content:center;flex-wrap:wrap;}
+        .foto-item{text-align:center;}
+        .foto-item img{width:clamp(130px,42vw,170px);height:clamp(130px,42vw,170px);object-fit:cover;border:2.5px solid #d4a820;border-radius:7px;display:block;background:#eee;}
+        .foto-label{font-size:.73rem;color:#555;margin-top:5px;font-style:italic;}
+        .ttd-section{padding:12px 14px 20px;}
+        .ttd-label{font-weight:700;color:#0d1f45;font-size:clamp(.82rem,3.4vw,.93rem);margin-bottom:8px;}
+        .ttd-box{display:inline-block;width:100%;max-width:270px;border:2px solid #d4a820;border-radius:8px;background:#fff;overflow:hidden;}
+        .ttd-img-area{padding:10px 10px 6px;}
+        .ttd-img-area img{display:block;width:100%;max-height:108px;object-fit:contain;background:#fff;}
+        .ttd-divider{height:1.5px;margin:0 8px;background:linear-gradient(to right,transparent,#d4a820 20%,#d4a820 80%,transparent);}
+        .ttd-nama{padding:8px 10px 10px;text-align:center;font-weight:800;font-size:clamp(.92rem,4vw,1.1rem);color:#0d1f45;letter-spacing:.04em;background:#fffdf5;}
+        .doc-footer{border-top:2px solid #d4a820;background:#fdf8ec;text-align:center;padding:10px 14px;font-size:clamp(.60rem,2.4vw,.70rem);color:#777;font-style:italic;}
+        .state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:30px 20px;text-align:center;color:#555;}
+        .spinner{width:46px;height:46px;border:4px solid rgba(212,168,32,.25);border-top-color:#d4a820;border-radius:50%;animation:spin .85s linear infinite;margin-bottom:14px;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .err-icon{font-size:2.5rem;margin-bottom:10px;}
+        .err-msg{color:#c0392b;font-weight:600;font-size:.92rem;margin-bottom:6px;}
+        .err-hint{color:#888;font-size:.78rem;}
     </style>
 </head>
 <body>
-
 <div class="page-wrapper" id="pageWrapper">
-
-    <!-- Loading state awal -->
-    <div class="loading-state" id="loadingState">
-        <div class="loading-spinner"></div>
+    <div class="state-box" id="stateLoading">
+        <div class="spinner"></div>
         <div>Memuat data tamu...</div>
     </div>
-
-    <!-- Konten dokumen (disembunyikan sampai data siap) -->
     <div id="docContent" style="display:none;">
-
-        <!-- HEADER -->
         <div class="doc-header">
-            <div class="main-title">✦ BUKU TAMU DIGITAL ✦</div>
-            <div class="sub-title">
-                <span class="line1">INSPEKTORAT DAERAH</span>
-                <span class="line2">KABUPATEN TULANG BAWANG BARAT</span>
-            </div>
-            <div class="doc-meta" id="docMeta">Data Tamu</div>
+            <div class="main-title">&#10022; BUKU TAMU DIGITAL &#10022;</div>
+            <span class="sub-line">INSPEKTORAT DAERAH</span>
+            <span class="sub-line">KABUPATEN TULANG BAWANG BARAT</span>
+            <div class="doc-meta" id="docMeta"></div>
         </div>
-
-        <!-- TABEL DATA -->
         <table class="data-table" id="dataTable"></table>
-
-        <!-- SEKSI FOTO & TTD -->
-        <div class="section-header">📷 DOKUMENTASI FOTO &amp; TANDA TANGAN</div>
-
+        <div class="section-header">&#128247; DOKUMENTASI FOTO &amp; TANDA TANGAN</div>
         <div class="foto-grid" id="fotoGrid"></div>
-
         <div class="ttd-section" id="ttdSection" style="display:none;">
             <div class="ttd-label">Tanda Tangan:</div>
             <div class="ttd-box">
-                <div class="ttd-box-img-area">
-                    <img id="ttdImg" src="" alt="Tanda Tangan"/>
-                </div>
+                <div class="ttd-img-area"><img id="ttdImg" src="" alt="Tanda Tangan"/></div>
                 <div class="ttd-divider"></div>
                 <div class="ttd-nama" id="ttdNama"></div>
             </div>
         </div>
-
-        <!-- FOOTER -->
         <div class="doc-footer">
-            Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital — Inspektorat Kab. Tulang Bawang Barat
+            Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital &#8212; Inspektorat Kab. Tulang Bawang Barat
         </div>
-
     </div>
-
-    <!-- Error state -->
-    <div class="error-state" id="errorState" style="display:none;">
-        <div class="error-icon">⚠️</div>
-        <div class="error-msg" id="errorMsg">Data tidak ditemukan.</div>
-        <div style="margin-top:8px;font-size:0.82rem;color:#888;">Pastikan link yang Anda buka sudah benar.</div>
+    <div class="state-box" id="stateError" style="display:none;">
+        <div class="err-icon">&#9888;&#65039;</div>
+        <div class="err-msg" id="errMsg">Data tidak ditemukan.</div>
+        <div class="err-hint">Pastikan link yang Anda buka sudah benar.</div>
     </div>
+</div>
 
-</div><!-- /page-wrapper -->
-
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-// ── Firebase config (sama dengan index.html) ──
-const FB_CONFIG = {
+var FB_CONFIG = {
     apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
     authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
     databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -323,190 +88,122 @@ const FB_CONFIG = {
     appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
 };
 
-// ── Helper ── ambil parameter URL ──
-function getParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
+function getParam(n){ return new URLSearchParams(window.location.search).get(n); }
+
+function showLoading(){ document.getElementById('stateLoading').style.display='flex'; document.getElementById('docContent').style.display='none'; document.getElementById('stateError').style.display='none'; }
+function showContent(){ document.getElementById('stateLoading').style.display='none'; document.getElementById('docContent').style.display='block'; document.getElementById('stateError').style.display='none'; }
+function showError(msg){ document.getElementById('stateLoading').style.display='none'; document.getElementById('docContent').style.display='none'; document.getElementById('stateError').style.display='flex'; document.getElementById('errMsg').textContent=msg||'Terjadi kesalahan.'; }
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function validImgSrc(v){
+    if(!v || typeof v !== 'string') return '';
+    if(v.startsWith('data:image')) return v;
+    if(v.startsWith('http')) return v;
+    return '';
 }
 
-// ── Tampilkan data ke DOM ──
-function tampilkanData(data) {
-    if (!data) { tampilError('Data tidak ditemukan.'); return; }
+function tampilkanData(data, nomor){
+    if(!data || !data.nama){ showError('Data tidak ditemukan atau tidak lengkap.'); return; }
 
-    // Meta header
-    const nomor = data._nomor || '';
-    document.getElementById('docMeta').textContent =
-        (nomor ? 'Data Tamu #' + nomor + '  •  ' : '') + (data.timestamp || '');
+    document.getElementById('docMeta').textContent = (nomor ? 'Data Tamu #'+nomor+'  \u2022  ' : '') + (data.timestamp||'');
 
-    // Bangun baris tabel
-    const rows = [];
-    rows.push({ label: 'Nama Lengkap', value: data.nama || '-' });
-
-    if (data.asal === 'INSTANSI') {
-        rows.push({ label: 'Asal', value: 'Instansi / Unit Kerja' });
-        rows.push({ label: 'Instansi / Unit Kerja', value: data.instansi || '-' });
-    } else if (data.asal === 'MASYARAKAT') {
-        rows.push({ label: 'Asal', value: 'Masyarakat' });
-        rows.push({ label: 'Kecamatan', value: data.kecamatan || '-' });
-        rows.push({ label: 'Desa / Kelurahan', value: data.desa || '-' });
+    var rows = [{ k:'Nama Lengkap', v: data.nama||'-' }];
+    if(data.asal==='INSTANSI'){
+        rows.push({k:'Asal',v:'Instansi / Unit Kerja'},{k:'Instansi / Unit Kerja',v:data.instansi||'-'});
+    } else if(data.asal==='MASYARAKAT'){
+        rows.push({k:'Asal',v:'Masyarakat'},{k:'Kecamatan',v:data.kecamatan||'-'},{k:'Desa / Kelurahan',v:data.desa||'-'});
     } else {
-        rows.push({ label: 'Asal', value: data.asal || '-' });
+        rows.push({k:'Asal',v:data.asal||'-'});
     }
+    rows.push({k:'Pihak yang Ditemui',v:data.pihakDitemui||'-'},{k:'Jenis Layanan',v:data.jenisLayanan||'-'},{k:'Uraian Keperluan',v:data.uraian||'-'});
 
-    rows.push({ label: 'Pihak yang Ditemui', value: data.pihakDitemui || '-' });
-    rows.push({ label: 'Jenis Layanan',       value: data.jenisLayanan || '-' });
-    rows.push({ label: 'Uraian Keperluan',    value: data.uraian || '-' });
+    var noHp = (data.nomorHp||'').replace(/^C\s*/,'').replace(/\s/g,'');
+    var noHpClean = noHp.replace(/[^0-9]/g,'');
+    var waNo = noHpClean.startsWith('0') ? '62'+noHpClean.slice(1) : noHpClean;
+    rows.push({k:'Nomor WhatsApp', v: noHp ? '<a href="https://wa.me/'+waNo+'">'+esc(noHp)+'</a>' : '-', html:true});
+    rows.push({k:'Waktu Kunjungan', v:data.timestamp||'-'});
 
-    const noHp = (data.nomorHp || '').replace(/^C\s*/, '');
-    rows.push({
-        label: 'Nomor WhatsApp',
-        value: noHp
-            ? `<a href="https://wa.me/${noHp.replace(/[^0-9]/g, '')}">${noHp}</a>`
-            : '-',
-        isHtml: true
-    });
-    rows.push({ label: 'Waktu Kunjungan', value: data.timestamp || '-' });
-
-    const tbody = document.getElementById('dataTable');
-    tbody.innerHTML = rows.map(r => `
-        <tr>
-            <td class="cell-label">${r.label}</td>
-            <td class="cell-value">${r.isHtml ? r.value : escHtml(r.value)}</td>
-        </tr>
-    `).join('');
+    document.getElementById('dataTable').innerHTML = rows.map(function(r){
+        return '<tr><td class="cell-label">'+esc(r.k)+'</td><td class="cell-value">'+(r.html?r.v:esc(r.v))+'</td></tr>';
+    }).join('');
 
     // Foto
-    const grid = document.getElementById('fotoGrid');
-    let fotoHtml = '';
-    if (data.fotoFront) {
-        fotoHtml += `<div class="foto-item">
-            <img src="${data.fotoFront}" alt="Foto Depan" loading="lazy"/>
-            <div class="foto-label">Foto Depan</div>
-        </div>`;
-    }
-    if (data.fotoBack) {
-        fotoHtml += `<div class="foto-item">
-            <img src="${data.fotoBack}" alt="Foto Belakang" loading="lazy"/>
-            <div class="foto-label">Foto Belakang</div>
-        </div>`;
-    }
-    if (!fotoHtml) {
-        fotoHtml = '<div style="padding:16px;color:#aaa;font-style:italic;">Tidak ada foto tersedia</div>';
-    }
-    grid.innerHTML = fotoHtml;
+    var fotoGrid = document.getElementById('fotoGrid');
+    var frontSrc = validImgSrc(data.fotoFront);
+    var backSrc  = validImgSrc(data.fotoBack);
+    var fotoHtml = '';
+    if(frontSrc) fotoHtml += '<div class="foto-item"><img src="'+frontSrc+'" alt="Foto Depan"/><div class="foto-label">Foto Depan</div></div>';
+    if(backSrc)  fotoHtml += '<div class="foto-item"><img src="'+backSrc+'"  alt="Foto Belakang"/><div class="foto-label">Foto Belakang</div></div>';
+    if(!fotoHtml) fotoHtml = '<div style="padding:18px 0;color:#aaa;font-style:italic;font-size:.85rem;">Tidak ada foto tersedia</div>';
+    fotoGrid.innerHTML = fotoHtml;
 
-    // Tanda tangan + NAMA DI BAWAH TTD
-    if (data.tandaTangan) {
-        document.getElementById('ttdImg').src = data.tandaTangan;
-        document.getElementById('ttdNama').textContent = data.nama || '';
+    // TTD
+    var ttdSrc = validImgSrc(data.tandaTangan);
+    if(ttdSrc){
+        document.getElementById('ttdImg').src = ttdSrc;
+        document.getElementById('ttdNama').textContent = data.nama||'';
         document.getElementById('ttdSection').style.display = 'block';
     }
 
-    // Tampilkan konten, sembunyikan loading
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('docContent').style.display = 'block';
+    showContent();
 }
 
-function tampilError(msg) {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('errorMsg').textContent = msg;
-    document.getElementById('errorState').style.display = 'flex';
-}
-
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-// ── Decompress / decode data dari Firebase (sama dengan index.html) ──
-async function dekompresiData(raw) {
-    if (!raw) return null;
-    try {
-        // Jika data mengandung kompresi base64+gzip (sesuai _fbKompresData di index.html)
-        if (raw._c && raw._d) {
-            const binary = atob(raw._d);
-            const bytes  = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const ds     = new DecompressionStream('deflate-raw');
-            const writer = ds.writable.getWriter();
-            const reader = ds.readable.getReader();
-            writer.write(bytes);
-            writer.close();
-            const chunks = [];
-            let done = false;
-            while (!done) {
-                const { value, done: d } = await reader.read();
-                if (value) chunks.push(value);
-                done = d;
-            }
-            const total = chunks.reduce((s, c) => s + c.length, 0);
-            const out   = new Uint8Array(total);
-            let pos = 0;
-            for (const c of chunks) { out.set(c, pos); pos += c.length; }
-            return JSON.parse(new TextDecoder().decode(out));
-        }
-        return raw;
-    } catch(e) {
-        console.warn('dekompresi gagal, fallback raw:', e);
-        return raw;
-    }
-}
-
-// ── Main: muat data ──
-async function init() {
-    const fbKey  = getParam('key');
-    const encoded = getParam('tamu');
-
-    if (fbKey) {
-        // ── Mode Firebase ──
-        try {
-            if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
-            const db = firebase.database();
-            // Cari di dataFinal dulu, lalu dataSementara
-            let snap = await db.ref('bukuTamu/dataFinal/' + fbKey).get();
-            if (!snap.exists()) {
-                snap = await db.ref('bukuTamu/dataSementara/' + fbKey).get();
-            }
-            if (!snap.exists()) {
-                tampilError('Data dengan kunci tersebut tidak ditemukan di server.');
-                return;
-            }
-            const raw = snap.val();
-            const data = await dekompresiData(raw);
-            // Nomor urut — ambil dari semua dataFinal
-            try {
-                const allSnap = await db.ref('bukuTamu/dataFinal').get();
-                if (allSnap.exists()) {
-                    const keys = Object.keys(allSnap.val());
-                    const idx  = keys.indexOf(fbKey);
-                    if (idx >= 0) data._nomor = idx + 1;
+function bacaDataFinal(db, fbKey){
+    db.ref('bukuTamu/dataFinal/'+fbKey).once('value', function(snap){
+        if(snap.exists()){
+            var data = snap.val();
+            // Ambil nomor urut (best-effort)
+            db.ref('bukuTamu/dataFinal').once('value', function(allSnap){
+                var nomor = null;
+                if(allSnap.exists()){
+                    var keys = Object.keys(allSnap.val());
+                    var idx  = keys.indexOf(fbKey);
+                    if(idx >= 0) nomor = idx+1;
                 }
-            } catch(e) { /* nomor tidak kritis */ }
-            tampilkanData(data);
-        } catch(e) {
-            console.error('Firebase error:', e);
-            tampilError('Gagal memuat data dari server. Periksa koneksi internet Anda.');
+                tampilkanData(data, nomor);
+            }, function(){ tampilkanData(data, null); });
+        } else {
+            // Coba dataSementara
+            db.ref('bukuTamu/dataSementara/'+fbKey).once('value', function(snapS){
+                if(snapS.exists()){
+                    tampilkanData(snapS.val(), null);
+                } else {
+                    showError('Data dengan kunci tersebut tidak ditemukan di server.');
+                }
+            }, function(e){ showError('Gagal memuat data. Coba buka ulang link ini.'); console.error(e); });
         }
+    }, function(e){ showError('Gagal terhubung ke server. Periksa koneksi internet Anda.'); console.error(e); });
+}
 
-    } else if (encoded) {
-        // ── Mode encoded (tanpa foto/TTD) ──
+function init(){
+    showLoading();
+    var fbKey   = getParam('key');
+    var encoded = getParam('tamu');
+
+    if(fbKey){
         try {
-            const json = decodeURIComponent(escape(atob(encoded)));
-            const data = JSON.parse(json);
-            tampilkanData(data);
-        } catch(e) {
-            tampilError('Format data tidak valid.');
+            if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+            var db = firebase.database();
+            bacaDataFinal(db, fbKey);
+        } catch(e){
+            showError('Gagal menginisialisasi koneksi ke server.');
+            console.error(e);
         }
-
+    } else if(encoded){
+        try {
+            var json = decodeURIComponent(escape(atob(encoded)));
+            var data = JSON.parse(json);
+            tampilkanData(data, null);
+        } catch(e){
+            showError('Format data dalam link tidak valid.');
+        }
     } else {
-        tampilError('Tidak ada data yang disertakan dalam link ini.');
+        showError('Link tidak mengandung data tamu yang valid.');
     }
 }
 
-// Jalankan setelah DOM siap
-document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
