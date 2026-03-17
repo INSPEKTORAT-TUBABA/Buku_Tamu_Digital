@@ -4902,11 +4902,11 @@ async function exportDetailPerTamuPDF(index) {
         doc.line(margin,y,margin+contentWidth,y); doc.line(margin,y+38,margin+contentWidth,y+38);
         doc.setFontSize(15); doc.setTextColor(245,224,122); doc.setFont("helvetica","bold");
         doc.text('BUKU TAMU DIGITAL',pageWidth/2,y+10,{align:'center'});
-        doc.setFontSize(9.5); doc.setTextColor(220,235,255); doc.setFont("helvetica","bold");
+        doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(220,235,255);
         doc.text('INSPEKTORAT DAERAH',pageWidth/2,y+19,{align:'center'});
         doc.text('KABUPATEN TULANG BAWANG BARAT',pageWidth/2,y+26,{align:'center'});
         doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(180,200,240);
-        doc.text(`Data Tamu #${index+1}  •  ${data.timestamp}`,pageWidth/2,y+33,{align:'center'});
+        doc.text(`Data Tamu #${index+1}  \u2022  ${data.timestamp}`,pageWidth/2,y+33,{align:'center'});
         y+=46;
         const fields=[{label:"Nama Lengkap",value:data.nama||'-'}];
         if(data.asal==='INSTANSI') fields.push({label:"Instansi / Unit Kerja",value:data.instansi||'-'});
@@ -4941,17 +4941,21 @@ async function exportDetailPerTamuPDF(index) {
         doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
         doc.text("Tanda Tangan:",margin,y); y+=4;
         const sW=80,sH=28,sX=margin+2,sY=y+2;
-        const sBoxH=sH+20; // tinggi bingkai diperbesar untuk muat nama di dalam
+        const namaH=10; // tinggi area nama di dalam bingkai
+        const sBoxH=sH+6+namaH; // total tinggi bingkai: TTD + padding + nama
         doc.setFillColor(255,255,255); doc.rect(sX-2,sY-2,sW+4,sBoxH+4,'F');
         doc.setDrawColor(180,140,20); doc.setLineWidth(0.5); doc.rect(sX-2,sY-2,sW+4,sBoxH+4,'S');
         if(jpegTTD){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(jpegTTD,'JPEG',sX,sY,sW,sH);}catch(e){doc.setFontSize(9);doc.setTextColor(150);doc.text("(Gagal menampilkan tanda tangan)",sX+4,sY+8);}}
         else{doc.setFontSize(9);doc.setTextColor(150);doc.text("(Tidak ada tanda tangan)",sX+4,sY+8);}
-        // Garis pemisah tipis antara TTD dan nama
-        doc.setDrawColor(212,168,32); doc.setLineWidth(0.3);
-        doc.line(sX,sY+sH+4,sX+sW,sY+sH+4);
-        // Nama di dalam bingkai (di bawah TTD)
-        doc.setGState(doc.GState({opacity:1.0})); doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
-        doc.text(data.nama||"________________________",sX+sW/2,sY+sH+14,{align:'center'});
+        // Garis pemisah emas horizontal
+        doc.setDrawColor(212,168,32); doc.setLineWidth(0.4);
+        doc.line(sX,sY+sH+3,sX+sW,sY+sH+3);
+        // Area nama (latar cream)
+        doc.setFillColor(255,253,240); doc.rect(sX,sY+sH+4,sW,namaH,'F');
+        // Teks nama di dalam bingkai
+        doc.setGState(doc.GState({opacity:1.0}));
+        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
+        doc.text(data.nama||"________________________",sX+sW/2,sY+sH+4+namaH/2+2,{align:'center'});
         const fY=280;
         
         doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(70,70,95);
