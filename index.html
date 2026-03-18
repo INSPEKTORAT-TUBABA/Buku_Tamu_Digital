@@ -6078,75 +6078,67 @@ function _tampilNotifUpdate() {
 // ── Tombol Install (Add to Home Screen) ──
 let _deferredPrompt = null;
 
+// ── Cek apakah sudah berjalan sebagai PWA (standalone) ──
+function _sudahInstallPWA() {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.navigator.standalone === true) return true; // iOS
+    return false;
+}
+
+// ── Cek apakah ini perangkat mobile ──
+function _adalahMobile() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredPrompt = e;
 
-    // Tampilkan tombol install setelah 3 detik
-    setTimeout(() => _tampilTombolInstall(), 3000);
+    // Jika sudah di-install → abaikan
+    if (_sudahInstallPWA()) return;
+
+    // Jika sudah pernah di-prompt dan ditolak → jangan prompt lagi
+    if (localStorage.getItem('pwa_prompt_done') === '1') return;
+
+    // Jika di HP dan belum pernah di-prompt → otomatis prompt segera
+    if (_adalahMobile()) {
+        setTimeout(() => _autoInstallPWA(), 1200);
+    }
 });
 
-function _tampilTombolInstall() {
+async function _autoInstallPWA() {
     if (!_deferredPrompt) return;
-    // Jangan tampilkan jika sudah di-install
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (_sudahInstallPWA()) return;
+    if (localStorage.getItem('pwa_prompt_done') === '1') return;
 
-    const bar = document.createElement('div');
-    bar.id = '_pwaInstallBar';
-    bar.style.cssText = `
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 999998;
-        background: linear-gradient(135deg, #0d1f45, #1a3a6e);
-        color: white; padding: 14px 20px;
-        display: flex; align-items: center; gap: 12px;
-        border-top: 2px solid #d4a820;
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.40);
-        animation: slideUpBar 0.4s cubic-bezier(0.22,1,0.36,1) both;
-    `;
-    bar.innerHTML = `
-        <img src="/icons/icon-72.png" style="width:42px;height:42px;border-radius:10px;flex-shrink:0;" onerror="this.style.display='none'"/>
-        <div style="flex:1;min-width:0;">
-            <div style="font-weight:bold;font-size:0.92em;color:#f5e07a;">📲 Install Aplikasi</div>
-            <div style="font-size:0.76em;opacity:0.80;margin-top:2px;">Tambahkan Buku Tamu ke layar utama</div>
-        </div>
-        <button id="_btnInstallPWA" style="
-            background: linear-gradient(135deg,#d4a820,#f5e07a); color:#0d1f45;
-            border:none; padding:9px 18px; border-radius:20px;
-            font-weight:bold; cursor:pointer; font-size:0.88em; white-space:nowrap;">
-            Install
-        </button>
-        <button onclick="document.getElementById('_pwaInstallBar').remove()" style="
-            background:rgba(255,255,255,0.12);border:none;color:white;
-            width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1em;flex-shrink:0;">
-            ✕
-        </button>
-    `;
+    try {
+        // Tandai sudah pernah di-prompt (agar tidak muncul lagi)
+        localStorage.setItem('pwa_prompt_done', '1');
 
-    // Tambah animasi CSS
-    if (!document.getElementById('_pwaBarStyle')) {
-        const st = document.createElement('style');
-        st.id = '_pwaBarStyle';
-        st.textContent = `@keyframes slideUpBar {
-            from { transform: translateY(100%); opacity:0; }
-            to   { transform: translateY(0);    opacity:1; }
-        }`;
-        document.head.appendChild(st);
-    }
-
-    document.body.appendChild(bar);
-
-    document.getElementById('_btnInstallPWA').addEventListener('click', async () => {
-        bar.remove();
+        // Tampilkan dialog install native browser
         _deferredPrompt.prompt();
         const { outcome } = await _deferredPrompt.userChoice;
         console.log('[PWA] Install outcome:', outcome);
+
+        if (outcome === 'accepted') {
+            console.log('[PWA] Pengguna menerima install ✓');
+        } else {
+            // Ditolak — hapus flag agar bisa dicoba 1x lagi di sesi berikutnya
+            // (opsional: hapus baris berikut jika tidak mau prompt ulang)
+            // localStorage.removeItem('pwa_prompt_done');
+        }
+    } catch(e) {
+        console.warn('[PWA] Auto install gagal:', e);
+    } finally {
         _deferredPrompt = null;
-    });
+    }
 }
 
 // ── Deteksi sudah berjalan sebagai standalone (sudah di-install) ──
 window.addEventListener('appinstalled', () => {
     console.log('[PWA] Aplikasi berhasil di-install!');
     _deferredPrompt = null;
+    localStorage.setItem('pwa_prompt_done', '1');
     const bar = document.getElementById('_pwaInstallBar');
     if (bar) bar.remove();
 });
