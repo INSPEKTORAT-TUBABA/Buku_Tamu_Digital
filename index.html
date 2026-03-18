@@ -5062,9 +5062,10 @@ function simpanFonnteToken() {
     if (!token) { alert('⚠️ Token kosong! Salin token dari Fonnte lalu tempel di sini.'); return; }
     localStorage.setItem('fonnte_token', token);
     CONFIG_FONNTE_TOKEN = token;
-    fbSimpanKonfigurasi('fonnte_token', token); // ← sync ke Firebase (untuk HP & semua perangkat)
+    // Simpan ke Firebase → semua perangkat (HP/tablet) langsung pakai token ini
+    fbSimpanKonfigurasi('fonnte_token', token);
     if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
-    alert('✅ Token Fonnte tersimpan!\n\nPDF akan OTOMATIS dikirim ke WA pihak yang dituju setiap kali tamu selesai mengisi.\n\nKlik Tes Kirim WA untuk memastikan berfungsi.');
+    alert('✅ Token Fonnte tersimpan!\n\nToken otomatis disinkronkan ke semua perangkat melalui Firebase.\nHP akan kirim WA otomatis tanpa perlu konfigurasi ulang.\n\nKlik Tes Kirim WA untuk memastikan berfungsi.');
 }
 
 function _parseNomorWA(raw) {
@@ -5247,8 +5248,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================================================
 // Nomor & token WA — diisi via panel admin (ketik 'Untung1' di field nama)
 // Atau isi langsung di bawah ini untuk hardcode:
-let CONFIG_WA_PENERIMA  = ''; // Contoh: '628123456789'
-let CONFIG_FONNTE_TOKEN = ''; // Token Fonnte jika pakai API (opsional)
+let CONFIG_WA_PENERIMA  = ''; // Diisi otomatis dari Firebase/localStorage
+let CONFIG_FONNTE_TOKEN = ''; // Diisi otomatis dari Firebase/localStorage
 
 // Nomor WA admin/pengirim (yang didaftarkan ke Fonnte)
 // 081277779710 → 6281277779710
@@ -5279,33 +5280,86 @@ const _DEFAULT_ROUTING_WA = {
     'IRBAN 4':    '6285184518197'
 };
 
-// Muat dari localStorage saat halaman dibuka
+// ── Muat konfigurasi dari localStorage (berlaku untuk semua perangkat) ──
 (function _initWaConfig() {
     const savedToken  = localStorage.getItem('fonnte_token') || '';
     const savedWorker = localStorage.getItem('cf_worker_url') || '';
     if (savedToken)  CONFIG_FONNTE_TOKEN = savedToken;
     if (savedWorker) CONFIG_WORKER_URL   = savedWorker;
 
-    // Pastikan routing default tersimpan ke localStorage jika belum ada
     try {
         const raw = localStorage.getItem('wa_routing_pihak');
         if (!raw || raw === '{}') {
-            const def = {
-                'INSPEKTUR':  '6285952753584',
-                'SEKRETARIS': '6282374854100',
-                'IRBANSUS':   '6285184518197',
-                'IRBAN 1':    '6285184518197',
-                'IRBAN 2':    '6285184518197',
-                'IRBAN 3':    '6285184518197',
-                'IRBAN 4':    '6285184518197'
-            };
-            localStorage.setItem('wa_routing_pihak', JSON.stringify(def));
+            localStorage.setItem('wa_routing_pihak', JSON.stringify(_DEFAULT_ROUTING_WA));
         }
-        // Set CONFIG_WA_PENERIMA dari routing
         const routing = JSON.parse(localStorage.getItem('wa_routing_pihak') || '{}');
         CONFIG_WA_PENERIMA = Object.values(routing).filter(Boolean).join(',');
     } catch(e) {}
 })();
+
+// ================================================================
+//  FIREBASE CONFIG SYNC — Token & Routing tersimpan terpusat
+//  sehingga HP langsung bisa kirim tanpa perlu konfigurasi ulang
+// ================================================================
+
+// ── Simpan konfigurasi ke Firebase (dipanggil saat admin klik Simpan) ──
+async function fbSimpanKonfigurasi(key, value) {
+    if (!fbDb) return;
+    try { await fbDb.ref('bukuTamu/konfigurasi/' + key).set(value); }
+    catch(e) { console.warn('[FB-Config] Gagal simpan:', key, e); }
+}
+
+// ── Muat konfigurasi dari Firebase → berlaku untuk semua perangkat ──
+async function fbMuatKonfigurasi() {
+    if (!fbDb) return;
+    try {
+        const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
+        if (!snap.exists()) {
+            // Firebase belum ada konfigurasi — push dari localStorage (ini adalah laptop pertama kali)
+            await _sinkronLokalKeFirebase();
+            return;
+        }
+        const cfg = snap.val();
+        // Token Fonnte
+        if (cfg.fonnte_token && cfg.fonnte_token.trim()) {
+            CONFIG_FONNTE_TOKEN = cfg.fonnte_token.trim();
+            localStorage.setItem('fonnte_token', CONFIG_FONNTE_TOKEN);
+        }
+        // URL Worker
+        if (cfg.worker_url && cfg.worker_url.trim()) {
+            CONFIG_WORKER_URL = cfg.worker_url.trim();
+            localStorage.setItem('cf_worker_url', CONFIG_WORKER_URL);
+        }
+        // Routing nomor WA
+        if (cfg.wa_routing && typeof cfg.wa_routing === 'object') {
+            localStorage.setItem('wa_routing_pihak', JSON.stringify(cfg.wa_routing));
+            CONFIG_WA_PENERIMA = Object.values(cfg.wa_routing).filter(Boolean).join(',');
+        }
+        if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
+        console.log('[FB-Config] Konfigurasi dimuat dari Firebase ✓',
+            'token:', CONFIG_FONNTE_TOKEN ? 'ada' : 'kosong');
+    } catch(e) { console.warn('[FB-Config] Gagal muat:', e); }
+}
+
+// ── Sinkron konfigurasi lokal → Firebase (otomatis dari laptop) ──
+async function _sinkronLokalKeFirebase() {
+    if (!fbDb) return;
+    try {
+        const localToken   = localStorage.getItem('fonnte_token') || '';
+        const localWorker  = localStorage.getItem('cf_worker_url') || '';
+        const localRouting = localStorage.getItem('wa_routing_pihak') || '';
+        const updates = {};
+        if (localToken)  updates['fonnte_token'] = localToken;
+        if (localWorker) updates['worker_url']   = localWorker;
+        if (localRouting) {
+            try { updates['wa_routing'] = JSON.parse(localRouting); } catch(e) {}
+        }
+        if (Object.keys(updates).length > 0) {
+            await fbDb.ref('bukuTamu/konfigurasi').update(updates);
+            console.log('[FB-Config] Konfigurasi lokal disinkronkan ke Firebase ✓');
+        }
+    } catch(e) { console.warn('[FB-Config] Gagal sinkron lokal:', e); }
+}
 
 const NOMOR_WA_TUJUAN = null; // Tidak dipakai lagi — gunakan CONFIG_WA_PENERIMA
 
@@ -5382,7 +5436,7 @@ function simpanRoutingWA() {
         if (nomor) { routing[pihak] = nomor; ada++; }
     });
     _setRoutingWA(routing);
-    fbSimpanKonfigurasi('wa_routing', routing); // ← sync ke Firebase (untuk HP & semua perangkat)
+    fbSimpanKonfigurasi('wa_routing', routing); // sync ke Firebase → HP pakai routing ini
     _tampilStatusWA();
     alert('✅ Nomor routing tersimpan untuk ' + ada + ' pihak!\n\n' +
         _DAFTAR_PIHAK.filter(p => routing[p])
@@ -5469,57 +5523,17 @@ async function _kirimViaFonnte(nomorBersih, pesan, pdfBlob, namaFile) {
     return await _kirimFonnteRutin(nomorBersih, pesan, pesan, pdfBlob, namaFile);
 }
 
-// ── Kirim via WA Web (DINONAKTIFKAN — jangan buka browser di HP) ──
+// ── Kirim via WA Web — DINONAKTIFKAN ──
+// Tidak membuka browser WhatsApp. Gunakan Fonnte API agar pengiriman otomatis.
 function _kirimViaWALink(nomorBersih, pesan) {
-    // Tidak membuka browser — token Fonnte belum tersimpan di perangkat ini.
-    // Konfigurasi token via panel Admin di laptop terlebih dahulu.
-    _tampilInfoWA('⚠️ Token Fonnte belum ada di perangkat ini. Buka Admin di laptop → simpan token.', '#e67e22', false);
-    console.warn('[WA] Fallback WA link dinonaktifkan. Simpan token Fonnte via panel Admin.');
-}
-
-// ── Ambil token dari Firebase jika CONFIG kosong ──
-async function _pastikanToken() {
-    if (CONFIG_FONNTE_TOKEN) return CONFIG_FONNTE_TOKEN;
-    const local = localStorage.getItem('fonnte_token') || '';
-    if (local) { CONFIG_FONNTE_TOKEN = local; return local; }
-    // Coba ambil dari Firebase
-    if (fbDb) {
-        try {
-            const snap = await fbDb.ref('bukuTamu/konfigurasi/fonnte_token').get();
-            if (snap.exists()) {
-                const t = snap.val();
-                CONFIG_FONNTE_TOKEN = t;
-                localStorage.setItem('fonnte_token', t);
-                return t;
-            }
-        } catch(e) { console.warn('Gagal ambil token dari Firebase:', e); }
-    }
-    return '';
-}
-
-// ── Ambil routing WA dari Firebase jika belum ada ──
-async function _pastikanRouting() {
-    const local = localStorage.getItem('wa_routing_pihak');
-    if (local && local !== '{}') return;
-    if (!fbDb) return;
-    try {
-        const snap = await fbDb.ref('bukuTamu/konfigurasi/wa_routing').get();
-        if (snap.exists()) {
-            const routing = snap.val();
-            localStorage.setItem('wa_routing_pihak', JSON.stringify(routing));
-            CONFIG_WA_PENERIMA = Object.values(routing).filter(Boolean).join(',');
-        }
-    } catch(e) { console.warn('Gagal ambil routing dari Firebase:', e); }
+    console.warn('[WA] _kirimViaWALink dinonaktifkan. Token Fonnte belum tersinkron.');
 }
 
 // ── Fungsi utama: dipanggil setelah PDF dibuat ──
 async function kirimPdfKeWA(pdfBlob, data, _diabaikan, namaFile) {
     const pihak = data.pihakDitemui || '';
-
-    // Pastikan token & routing sudah dimuat dari Firebase sebelum kirim
-    await _pastikanRouting();
-
     const daftarNomor = _getNomorTujuan(pihak);
+
     if (daftarNomor.length === 0) {
         const fallback = localStorage.getItem('wa_penerima_admin') || '';
         if (!fallback) return;
@@ -5527,11 +5541,10 @@ async function kirimPdfKeWA(pdfBlob, data, _diabaikan, namaFile) {
         if (daftarNomor.length === 0) return;
     }
 
+    const adaPdf = !!(pdfBlob && pdfBlob.size > 0);
     const pesanDenganPdf   = _buatPesanWA(data, true);
     const pesanTanpaPdf    = _buatPesanWA(data, false);
-
-    // Ambil token — termasuk dari Firebase jika belum ada di lokal
-    const token = await _pastikanToken();
+    const token = (CONFIG_FONNTE_TOKEN || localStorage.getItem('fonnte_token') || '').trim();
     let berhasilCount = 0;
 
     _tampilInfoWA('⏳ Mengirim ke ' + pihak + '…', '#128c7e', true);
@@ -5543,9 +5556,8 @@ async function kirimPdfKeWA(pdfBlob, data, _diabaikan, namaFile) {
         if (token) {
             const ok = await _kirimFonnteRutin(nomor, pesanDenganPdf, pesanTanpaPdf, pdfBlob, namaFile);
             if (ok) berhasilCount++;
-        } else {
-            _tampilInfoWA('⚠️ Token Fonnte belum dikonfigurasi. Buka panel Admin di laptop.', '#e74c3c', false);
-            break;
+        } else if (i === 0) {
+            _kirimViaWALink(nomor, pesanTanpaPdf);
         }
     }
 
@@ -5637,7 +5649,7 @@ function simpanWorkerUrl() {
     }
     localStorage.setItem('cf_worker_url', url);
     CONFIG_WORKER_URL = url;
-    fbSimpanKonfigurasi('worker_url', url); // ← sync ke Firebase (untuk HP & semua perangkat)
+    fbSimpanKonfigurasi('worker_url', url); // sync ke Firebase → HP pakai URL Worker ini
     _tampilStatusWA();
     alert('✅ URL Worker tersimpan!\n\nSekarang PDF akan dikirim sebagai lampiran via Worker ini.');
 }
@@ -5798,57 +5810,6 @@ function tampilStatusSync(pesan, warna) {
     el._ft = setTimeout(() => { el.style.opacity = '0.45'; }, 5000);
 }
 
-// ── Simpan konfigurasi ke Firebase ──
-async function fbSimpanKonfigurasi(key, value) {
-    if (!fbDb) return;
-    try { await fbDb.ref('bukuTamu/konfigurasi/' + key).set(value); }
-    catch(e) { console.warn('fbSimpanKonfigurasi gagal:', e); }
-}
-
-// ── Muat konfigurasi dari Firebase → terapkan ke perangkat ini ──
-async function fbMuatKonfigurasi() {
-    if (!fbDb) return;
-    try {
-        const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
-        if (!snap.exists()) return;
-        const cfg = snap.val();
-        if (cfg.fonnte_token) {
-            CONFIG_FONNTE_TOKEN = cfg.fonnte_token;
-            localStorage.setItem('fonnte_token', cfg.fonnte_token);
-        }
-        if (cfg.worker_url) {
-            CONFIG_WORKER_URL = cfg.worker_url;
-            localStorage.setItem('cf_worker_url', cfg.worker_url);
-        }
-        if (cfg.wa_routing && typeof cfg.wa_routing === 'object') {
-            localStorage.setItem('wa_routing_pihak', JSON.stringify(cfg.wa_routing));
-            CONFIG_WA_PENERIMA = Object.values(cfg.wa_routing).filter(Boolean).join(',');
-        }
-        console.log('[Config] Konfigurasi dimuat dari Firebase ✓');
-        if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
-    } catch(e) { console.warn('fbMuatKonfigurasi gagal:', e); }
-}
-
-// ── Sinkron konfigurasi lokal ke Firebase (dipanggil dari laptop) ──
-async function fbSinkronKonfigurasiLokal() {
-    if (!fbDb) return;
-    try {
-        const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
-        const fbCfg = snap.exists() ? snap.val() : {};
-
-        const localToken   = localStorage.getItem('fonnte_token')    || '';
-        const localWorker  = localStorage.getItem('cf_worker_url')   || '';
-        const localRouting = localStorage.getItem('wa_routing_pihak') || '';
-
-        // Hanya push ke Firebase jika lokal punya data tapi Firebase belum
-        if (localToken  && !fbCfg.fonnte_token) await fbSimpanKonfigurasi('fonnte_token', localToken);
-        if (localWorker && !fbCfg.worker_url)   await fbSimpanKonfigurasi('worker_url',   localWorker);
-        if (localRouting && !fbCfg.wa_routing) {
-            try { await fbSimpanKonfigurasi('wa_routing', JSON.parse(localRouting)); } catch(e) {}
-        }
-    } catch(e) { console.warn('fbSinkronKonfigurasiLokal gagal:', e); }
-}
-
 // ── Inisialisasi Firebase saat app mulai ──
 async function inisialisasiFirebase() {
     if (FB_CONFIG.apiKey === 'GANTI_API_KEY') {
@@ -5860,14 +5821,12 @@ async function inisialisasiFirebase() {
         fbDb = firebase.database();
         tampilStatusSync('🔄 Menghubungkan ke server...', '#888');
 
-        // Muat data dari Firebase (source of truth)
+        // Muat data tamu dari Firebase
         await fbMuatSemua();
 
-        // Muat konfigurasi WA/Fonnte dari Firebase → berlaku untuk semua perangkat termasuk HP
+        // Muat konfigurasi (token Fonnte, routing WA, URL Worker) dari Firebase
+        // → ini yang membuat HP bisa kirim WA otomatis sama seperti laptop
         await fbMuatKonfigurasi();
-
-        // Sinkron konfigurasi lokal ke Firebase (otomatis dari laptop jika belum ada di FB)
-        await fbSinkronKonfigurasiLokal();
 
         // Pasang listener real-time agar perangkat lain auto-sinkron
         fbPasangListener();
