@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
     <title>Buku Tamu Digital - Inspektorat Daerah Tubaba</title>
 
     <!-- ═══════════════════════════════════════════
@@ -55,11 +55,13 @@
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
-        html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        html { margin: 0; padding: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; }
         body {
             font-family: 'Arial', sans-serif;
             margin: 0; padding: 0;
             width: 100%; height: 100%;
+            min-height: 100dvh;
+            min-height: -webkit-fill-available;
             overflow: hidden;
             background: #e8f4fd;
         }
@@ -164,6 +166,9 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
+            /* dvh = dynamic viewport height — mengisi layar penuh termasuk area address bar */
+            height: 100dvh;
+            height: -webkit-fill-available;
             background: radial-gradient(ellipse at 20% 50%, #0d0221 0%, #050014 40%, #000008 100%);
             display: flex;
             flex-direction: column;
@@ -1468,7 +1473,7 @@
         <canvas id="logoCanvas3D"></canvas>
         <h1 class="welcome-title">SELAMAT DATANG</h1>
         <p class="welcome-subtitle">DI <strong>INSPEKTORAT DAERAH</strong><br/>KABUPATEN TULANG BAWANG BARAT</p>
-        <button class="btn-start" onclick="startApp()">📝 ISI BUKU TAMU</button>
+        <button class="btn-start" onclick="mintaFullscreen(); startApp()">📝 ISI BUKU TAMU</button>
     </div>
 </div>
 
@@ -2502,6 +2507,28 @@ let editingSementara = false;
 
 const PIXELS_PER_CM = 37.7952755906;
 const MIN_STROKE_LENGTH_CM = 2;
+
+// ================================================================
+//  FULLSCREEN — Sembunyikan address bar browser di HP
+// ================================================================
+function mintaFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+                el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) { req.call(el).catch(() => {}); }
+    // Fallback scroll untuk sembunyikan address bar Android Chrome
+    setTimeout(() => { window.scrollTo(0, 1); }, 150);
+}
+
+(function _fullscreenOtomatis() {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
+    if (window.navigator.standalone === true) return;
+    window.addEventListener('load', () => { setTimeout(() => { window.scrollTo(0, 1); }, 500); });
+    document.addEventListener('touchstart', function _ft() {
+        mintaFullscreen();
+        document.removeEventListener('touchstart', _ft);
+    }, { once: true, passive: true });
+})();
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
