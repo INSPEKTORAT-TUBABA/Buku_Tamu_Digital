@@ -4900,13 +4900,12 @@ async function exportDetailPerTamuPDF(index) {
         doc.setFillColor(26,58,110); doc.rect(margin+contentWidth*0.4,y,contentWidth*0.6,32,'F');
         doc.setDrawColor(212,168,32); doc.setLineWidth(1.2);
         doc.line(margin,y,margin+contentWidth,y); doc.line(margin,y+32,margin+contentWidth,y+32);
-        doc.setFontSize(14); doc.setTextColor(245,224,122); doc.setFont("helvetica","bold");
-        doc.text('BUKU TAMU DIGITAL',pageWidth/2,y+9,{align:'center'});
-        doc.setFontSize(8.5); doc.setFont("helvetica","bold"); doc.setTextColor(220,235,255);
-        doc.text('INSPEKTORAT DAERAH',pageWidth/2,y+17,{align:'center'});
-        doc.text('KABUPATEN TULANG BAWANG BARAT',pageWidth/2,y+23,{align:'center'});
-        doc.setFontSize(7); doc.setFont("helvetica","normal"); doc.setTextColor(180,200,240);
-        doc.text(`Data Tamu #${index+1}  \u2022  ${data.timestamp}`,pageWidth/2,y+29,{align:'center'});
+        doc.setFontSize(15); doc.setTextColor(245,224,122); doc.setFont("helvetica","bold");
+        doc.text('BUKU TAMU DIGITAL',pageWidth/2,y+11,{align:'center'});
+        doc.setFontSize(9.5); doc.setTextColor(220,235,255);
+        doc.text('INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT',pageWidth/2,y+19,{align:'center'});
+        doc.setFontSize(7.5); doc.setTextColor(180,200,240);
+        doc.text(`Data Tamu #${index+1}  •  ${data.timestamp}`,pageWidth/2,y+27,{align:'center'});
         y+=40;
         const fields=[{label:"Nama Lengkap",value:data.nama||'-'}];
         if(data.asal==='INSTANSI') fields.push({label:"Instansi / Unit Kerja",value:data.instansi||'-'});
@@ -4941,21 +4940,12 @@ async function exportDetailPerTamuPDF(index) {
         doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
         doc.text("Tanda Tangan:",margin,y); y+=4;
         const sW=80,sH=28,sX=margin+2,sY=y+2;
-        // Bingkai sama persis dengan aslinya: sH+14 = 42mm — TIDAK ditambah
         doc.setFillColor(255,255,255); doc.rect(sX-2,sY-2,sW+4,sH+14,'F');
         doc.setDrawColor(180,140,20); doc.setLineWidth(0.5); doc.rect(sX-2,sY-2,sW+4,sH+14,'S');
-        // Gambar tanda tangan
         if(jpegTTD){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(jpegTTD,'JPEG',sX,sY,sW,sH);}catch(e){doc.setFontSize(9);doc.setTextColor(150);doc.text("(Gagal menampilkan tanda tangan)",sX+4,sY+8);}}
         else{doc.setFontSize(9);doc.setTextColor(150);doc.text("(Tidak ada tanda tangan)",sX+4,sY+8);}
-        // Garis emas pemisah (di dalam ruang 14mm yang sudah ada)
-        doc.setDrawColor(212,168,32); doc.setLineWidth(0.35);
-        doc.line(sX+2,sY+sH+2,sX+sW-2,sY+sH+2);
-        // Latar cream untuk nama (di dalam ruang 14mm yang sudah ada)
-        doc.setFillColor(255,253,240); doc.rect(sX,sY+sH+3,sW,9,'F');
-        // Nama di dalam bingkai
-        doc.setGState(doc.GState({opacity:1.0}));
-        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
-        doc.text(data.nama||"________________________",sX+sW/2,sY+sH+9,{align:'center'});
+        doc.setGState(doc.GState({opacity:1.0})); doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
+        doc.text(data.nama||"________________________",sX+sW/2,sY+sH+10,{align:'center'});
         const fY=280;
         
         doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(70,70,95);
@@ -5072,6 +5062,8 @@ function simpanFonnteToken() {
     if (!token) { alert('⚠️ Token kosong! Salin token dari Fonnte lalu tempel di sini.'); return; }
     localStorage.setItem('fonnte_token', token);
     CONFIG_FONNTE_TOKEN = token;
+    // Simpan ke Firebase agar sinkron ke semua perangkat (termasuk HP)
+    fbSimpanKonfigurasi('fonnte_token', token);
     if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
     alert('✅ Token Fonnte tersimpan!\n\nPDF akan OTOMATIS dikirim ke WA pihak yang dituju setiap kali tamu selesai mengisi.\n\nKlik Tes Kirim WA untuk memastikan berfungsi.');
 }
@@ -5288,7 +5280,44 @@ const _DEFAULT_ROUTING_WA = {
     'IRBAN 4':    '6285184518197'
 };
 
-// Muat dari localStorage saat halaman dibuka
+// ── Simpan konfigurasi WA ke Firebase (agar sinkron ke semua perangkat) ──
+async function fbSimpanKonfigurasi(key, value) {
+    if (!fbDb) return;
+    try {
+        await fbDb.ref('bukuTamu/konfigurasi/' + key).set(value);
+    } catch(e) { console.warn('fbSimpanKonfigurasi gagal:', e); }
+}
+
+// ── Muat konfigurasi dari Firebase dan terapkan ke semua perangkat ──
+async function fbMuatKonfigurasi() {
+    if (!fbDb) return;
+    try {
+        const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
+        if (!snap.exists()) return;
+        const cfg = snap.val();
+
+        // Token Fonnte
+        if (cfg.fonnte_token) {
+            CONFIG_FONNTE_TOKEN = cfg.fonnte_token;
+            localStorage.setItem('fonnte_token', cfg.fonnte_token);
+        }
+        // URL Worker
+        if (cfg.worker_url) {
+            CONFIG_WORKER_URL = cfg.worker_url;
+            localStorage.setItem('cf_worker_url', cfg.worker_url);
+        }
+        // Routing nomor WA per pihak
+        if (cfg.wa_routing && typeof cfg.wa_routing === 'object') {
+            localStorage.setItem('wa_routing_pihak', JSON.stringify(cfg.wa_routing));
+            CONFIG_WA_PENERIMA = Object.values(cfg.wa_routing).filter(Boolean).join(',');
+        }
+
+        console.log('[Config] Konfigurasi berhasil dimuat dari Firebase ✓');
+        if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
+    } catch(e) { console.warn('fbMuatKonfigurasi gagal:', e); }
+}
+
+// Muat dari localStorage saat halaman dibuka (akan ditimpa Firebase jika ada)
 (function _initWaConfig() {
     const savedToken  = localStorage.getItem('fonnte_token') || '';
     const savedWorker = localStorage.getItem('cf_worker_url') || '';
@@ -5391,6 +5420,8 @@ function simpanRoutingWA() {
         if (nomor) { routing[pihak] = nomor; ada++; }
     });
     _setRoutingWA(routing);
+    // Simpan ke Firebase agar sinkron ke semua perangkat (termasuk HP)
+    fbSimpanKonfigurasi('wa_routing', routing);
     _tampilStatusWA();
     alert('✅ Nomor routing tersimpan untuk ' + ada + ' pihak!\n\n' +
         _DAFTAR_PIHAK.filter(p => routing[p])
@@ -5605,6 +5636,8 @@ function simpanWorkerUrl() {
     }
     localStorage.setItem('cf_worker_url', url);
     CONFIG_WORKER_URL = url;
+    // Simpan ke Firebase agar sinkron ke semua perangkat (termasuk HP)
+    fbSimpanKonfigurasi('worker_url', url);
     _tampilStatusWA();
     alert('✅ URL Worker tersimpan!\n\nSekarang PDF akan dikirim sebagai lampiran via Worker ini.');
 }
@@ -5779,6 +5812,9 @@ async function inisialisasiFirebase() {
 
         // Muat data dari Firebase (source of truth)
         await fbMuatSemua();
+
+        // Muat konfigurasi WA dari Firebase (token, routing, worker URL)
+        await fbMuatKonfigurasi();
 
         // Pasang listener real-time agar perangkat lain auto-sinkron
         fbPasangListener();
