@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
     <title>Buku Tamu Digital - Inspektorat Daerah Tubaba</title>
 
     <!-- ═══════════════════════════════════════════
@@ -60,10 +60,7 @@
             font-family: 'Arial', sans-serif;
             margin: 0; padding: 0;
             width: 100%; height: 100%;
-            /* Sedikit lebih tinggi dari layar agar address bar bisa di-scroll hilang */
-            min-height: calc(100vh + 1px);
-            min-height: calc(100dvh + 1px);
-            overflow-x: hidden;
+            overflow: hidden;
             background: #e8f4fd;
         }
 
@@ -166,11 +163,7 @@
         #welcomePage {
             position: fixed;
             top: 0; left: 0;
-            width: 100%;
-            /* Isi penuh layar fisik — window.screen.height mengatasi address bar */
-            height: 100vh;
-            height: 100dvh;
-            height: -webkit-fill-available;
+            width: 100%; height: 100%;
             background: radial-gradient(ellipse at 20% 50%, #0d0221 0%, #050014 40%, #000008 100%);
             display: flex;
             flex-direction: column;
@@ -179,7 +172,6 @@
             z-index: 10000;
             padding: 26px;
             overflow: hidden;
-            cursor: pointer; /* petunjuk bahwa area bisa diklik */
         }
 
         #particleCanvas {
@@ -1470,13 +1462,13 @@
 <div class="corner-ornament bl" aria-hidden="true"><div class="gem"></div></div>
 <div class="corner-ornament br" aria-hidden="true"><div class="gem"></div></div>
 <!-- Welcome Page -->
-<div id="welcomePage" onclick="mintaFullscreen()">
+<div id="welcomePage">
     <canvas id="particleCanvas"></canvas>
     <div class="welcome-content">
         <canvas id="logoCanvas3D"></canvas>
         <h1 class="welcome-title">SELAMAT DATANG</h1>
         <p class="welcome-subtitle">DI <strong>INSPEKTORAT DAERAH</strong><br/>KABUPATEN TULANG BAWANG BARAT</p>
-        <button class="btn-start" onclick="event.stopPropagation(); mintaFullscreen(); startApp()">📝 ISI BUKU TAMU</button>
+        <button class="btn-start" onclick="startApp()">📝 ISI BUKU TAMU</button>
     </div>
 </div>
 
@@ -2510,49 +2502,6 @@ let editingSementara = false;
 
 const PIXELS_PER_CM = 37.7952755906;
 const MIN_STROKE_LENGTH_CM = 2;
-
-// ================================================================
-//  FULLSCREEN — Sembunyikan address bar browser di HP
-// ================================================================
-// ================================================================
-//  FULLSCREEN — Sembunyikan address bar sepenuhnya di HP
-// ================================================================
-function mintaFullscreen() {
-    // Harus dipanggil langsung dari handler user gesture (sync)
-    const el = document.documentElement;
-    const req = el.requestFullscreen
-             || el.webkitRequestFullscreen
-             || el.mozRequestFullScreen
-             || el.msRequestFullscreen;
-    if (req) {
-        req.call(el).catch(() => {
-            // Fallback jika API fullscreen tidak diizinkan: scroll address bar hilang
-            window.scrollTo(0, 1);
-        });
-    } else {
-        window.scrollTo(0, 1);
-    }
-}
-
-// Jaga fullscreen tetap aktif jika keluar (mis. notifikasi)
-document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && !_sudahInstallPWA()) {
-        // Keluar dari fullscreen karena interupsi — scroll fallback
-        setTimeout(() => window.scrollTo(0, 1), 200);
-    }
-});
-
-(function _fullscreenOtomatis() {
-    // Jika sudah PWA standalone → sudah fullscreen, tidak perlu
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
-    if (window.navigator.standalone === true) return;
-
-    // Saat load: scroll address bar agar tersembunyi (metode paling kompatibel)
-    window.addEventListener('load', () => {
-        document.body.style.minHeight = (window.screen.height + 1) + 'px';
-        setTimeout(() => { window.scrollTo(0, 1); }, 300);
-    });
-})();
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -3969,13 +3918,6 @@ async function simpanDariEditBebas() {
     // ── Semua valid — jalankan simpan via simpanData() ──
     _editBebasMode = false;
     isEditMode = true;
-
-    // ── Simpan index & key SEBELUM resetFormComplete() menghapusnya ──
-    const pdfTargetIndex   = (!savedSementara && savedIndex >= 0) ? savedIndex : -1;
-    const fbKeySebelumEdit = (!savedSementara && savedIndex >= 0)
-        ? (dataBukuTamu[savedIndex]?._fbKey || null)
-        : null;
-
     const ok = await simpanData();
     isEditMode = false;
 
@@ -3995,24 +3937,17 @@ async function simpanDariEditBebas() {
     if (paperScroll) paperScroll.style.display = '';
     _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
 
-    // ── Pastikan _fbKey tetap ada di data setelah edit ──
-    const finalIndex = (pdfTargetIndex >= 0 && pdfTargetIndex < dataBukuTamu.length)
-        ? pdfTargetIndex
-        : dataBukuTamu.length - 1;
+    // ── Tentukan index data yang baru disimpan ──
+    const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
 
-    if (finalIndex >= 0 && finalIndex < dataBukuTamu.length) {
-        // Kembalikan _fbKey jika hilang setelah edit
-        if (!dataBukuTamu[finalIndex]._fbKey && fbKeySebelumEdit) {
-            dataBukuTamu[finalIndex]._fbKey = fbKeySebelumEdit;
-        }
-    }
+    // ── Tunggu sebentar agar Firebase selesai tulis sebelum PDF & WA dikirim ──
+    // (memastikan _fbKey sudah tersimpan sehingga link WA pendek & foto tampil)
+    await new Promise(r => setTimeout(r, 600));
 
-    // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
     showData();
-    if (finalIndex >= 0 && finalIndex < dataBukuTamu.length) {
-        exportDetailPerTamuPDF(finalIndex);
+    if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
+        exportDetailPerTamuPDF(pdfIndex);
     }
-    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
     setTimeout(() => { goToWelcome(); }, 800);
 }
 
@@ -4204,10 +4139,23 @@ async function simpanData() {
             dataTamuSementara[editingIndex] = formData;
             if (fbKey) await fbUpdate(fbKey, formData, true);
         } else {
-            const fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
-            formData._fbKey = fbKey; // pastikan _fbKey tidak hilang setelah edit
+            let fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
+            formData._fbKey = fbKey;
             dataBukuTamu[editingIndex] = formData;
-            if (fbKey) await fbUpdate(fbKey, formData, false);
+            if (fbKey) {
+                // Sudah punya key → update record yang ada
+                await fbUpdate(fbKey, formData, false);
+            } else if (fbDb) {
+                // Belum punya key (data lama) → buat record baru di Firebase
+                // agar link WA pendek dan foto/TTD bisa tampil di detail.html
+                try {
+                    const dataKirim = await _fbKompresData(formData);
+                    const newRef = fbDb.ref('bukuTamu/dataFinal').push();
+                    await newRef.set(dataKirim);
+                    formData._fbKey = newRef.key;
+                    dataBukuTamu[editingIndex]._fbKey = newRef.key;
+                } catch(e) { console.warn('fbCreate on edit error:', e); }
+            }
         }
     } else {
         dataBukuTamu.push(formData);
@@ -4405,10 +4353,13 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
-    // Unduh PDF detail per tamu
+
+    // Tunggu Firebase selesai tulis agar _fbKey sudah tersimpan
+    // sehingga link WA pendek dan foto/TTD tampil di detail.html
+    await new Promise(r => setTimeout(r, 600));
+
     const finalIndex = dataBukuTamu.length - 1;
     exportDetailPerTamuPDF(finalIndex);
-    // Kembali ke halaman selamat datang
     setTimeout(() => { goToWelcome(); }, 800);
 }
 
@@ -5131,10 +5082,8 @@ function simpanFonnteToken() {
     if (!token) { alert('⚠️ Token kosong! Salin token dari Fonnte lalu tempel di sini.'); return; }
     localStorage.setItem('fonnte_token', token);
     CONFIG_FONNTE_TOKEN = token;
-    // Simpan ke Firebase → semua perangkat (HP/tablet) langsung pakai token ini
-    fbSimpanKonfigurasi('fonnte_token', token);
     if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
-    alert('✅ Token Fonnte tersimpan!\n\nToken otomatis disinkronkan ke semua perangkat melalui Firebase.\nHP akan kirim WA otomatis tanpa perlu konfigurasi ulang.\n\nKlik Tes Kirim WA untuk memastikan berfungsi.');
+    alert('✅ Token Fonnte tersimpan!\n\nPDF akan OTOMATIS dikirim ke WA pihak yang dituju setiap kali tamu selesai mengisi.\n\nKlik Tes Kirim WA untuk memastikan berfungsi.');
 }
 
 function _parseNomorWA(raw) {
@@ -5317,8 +5266,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================================================
 // Nomor & token WA — diisi via panel admin (ketik 'Untung1' di field nama)
 // Atau isi langsung di bawah ini untuk hardcode:
-let CONFIG_WA_PENERIMA  = ''; // Diisi otomatis dari Firebase/localStorage
-let CONFIG_FONNTE_TOKEN = ''; // Diisi otomatis dari Firebase/localStorage
+let CONFIG_WA_PENERIMA  = ''; // Contoh: '628123456789'
+let CONFIG_FONNTE_TOKEN = ''; // Token Fonnte jika pakai API (opsional)
 
 // Nomor WA admin/pengirim (yang didaftarkan ke Fonnte)
 // 081277779710 → 6281277779710
@@ -5349,86 +5298,33 @@ const _DEFAULT_ROUTING_WA = {
     'IRBAN 4':    '6285184518197'
 };
 
-// ── Muat konfigurasi dari localStorage (berlaku untuk semua perangkat) ──
+// Muat dari localStorage saat halaman dibuka
 (function _initWaConfig() {
     const savedToken  = localStorage.getItem('fonnte_token') || '';
     const savedWorker = localStorage.getItem('cf_worker_url') || '';
     if (savedToken)  CONFIG_FONNTE_TOKEN = savedToken;
     if (savedWorker) CONFIG_WORKER_URL   = savedWorker;
 
+    // Pastikan routing default tersimpan ke localStorage jika belum ada
     try {
         const raw = localStorage.getItem('wa_routing_pihak');
         if (!raw || raw === '{}') {
-            localStorage.setItem('wa_routing_pihak', JSON.stringify(_DEFAULT_ROUTING_WA));
+            const def = {
+                'INSPEKTUR':  '6285952753584',
+                'SEKRETARIS': '6282374854100',
+                'IRBANSUS':   '6285184518197',
+                'IRBAN 1':    '6285184518197',
+                'IRBAN 2':    '6285184518197',
+                'IRBAN 3':    '6285184518197',
+                'IRBAN 4':    '6285184518197'
+            };
+            localStorage.setItem('wa_routing_pihak', JSON.stringify(def));
         }
+        // Set CONFIG_WA_PENERIMA dari routing
         const routing = JSON.parse(localStorage.getItem('wa_routing_pihak') || '{}');
         CONFIG_WA_PENERIMA = Object.values(routing).filter(Boolean).join(',');
     } catch(e) {}
 })();
-
-// ================================================================
-//  FIREBASE CONFIG SYNC — Token & Routing tersimpan terpusat
-//  sehingga HP langsung bisa kirim tanpa perlu konfigurasi ulang
-// ================================================================
-
-// ── Simpan konfigurasi ke Firebase (dipanggil saat admin klik Simpan) ──
-async function fbSimpanKonfigurasi(key, value) {
-    if (!fbDb) return;
-    try { await fbDb.ref('bukuTamu/konfigurasi/' + key).set(value); }
-    catch(e) { console.warn('[FB-Config] Gagal simpan:', key, e); }
-}
-
-// ── Muat konfigurasi dari Firebase → berlaku untuk semua perangkat ──
-async function fbMuatKonfigurasi() {
-    if (!fbDb) return;
-    try {
-        const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
-        if (!snap.exists()) {
-            // Firebase belum ada konfigurasi — push dari localStorage (ini adalah laptop pertama kali)
-            await _sinkronLokalKeFirebase();
-            return;
-        }
-        const cfg = snap.val();
-        // Token Fonnte
-        if (cfg.fonnte_token && cfg.fonnte_token.trim()) {
-            CONFIG_FONNTE_TOKEN = cfg.fonnte_token.trim();
-            localStorage.setItem('fonnte_token', CONFIG_FONNTE_TOKEN);
-        }
-        // URL Worker
-        if (cfg.worker_url && cfg.worker_url.trim()) {
-            CONFIG_WORKER_URL = cfg.worker_url.trim();
-            localStorage.setItem('cf_worker_url', CONFIG_WORKER_URL);
-        }
-        // Routing nomor WA
-        if (cfg.wa_routing && typeof cfg.wa_routing === 'object') {
-            localStorage.setItem('wa_routing_pihak', JSON.stringify(cfg.wa_routing));
-            CONFIG_WA_PENERIMA = Object.values(cfg.wa_routing).filter(Boolean).join(',');
-        }
-        if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
-        console.log('[FB-Config] Konfigurasi dimuat dari Firebase ✓',
-            'token:', CONFIG_FONNTE_TOKEN ? 'ada' : 'kosong');
-    } catch(e) { console.warn('[FB-Config] Gagal muat:', e); }
-}
-
-// ── Sinkron konfigurasi lokal → Firebase (otomatis dari laptop) ──
-async function _sinkronLokalKeFirebase() {
-    if (!fbDb) return;
-    try {
-        const localToken   = localStorage.getItem('fonnte_token') || '';
-        const localWorker  = localStorage.getItem('cf_worker_url') || '';
-        const localRouting = localStorage.getItem('wa_routing_pihak') || '';
-        const updates = {};
-        if (localToken)  updates['fonnte_token'] = localToken;
-        if (localWorker) updates['worker_url']   = localWorker;
-        if (localRouting) {
-            try { updates['wa_routing'] = JSON.parse(localRouting); } catch(e) {}
-        }
-        if (Object.keys(updates).length > 0) {
-            await fbDb.ref('bukuTamu/konfigurasi').update(updates);
-            console.log('[FB-Config] Konfigurasi lokal disinkronkan ke Firebase ✓');
-        }
-    } catch(e) { console.warn('[FB-Config] Gagal sinkron lokal:', e); }
-}
 
 const NOMOR_WA_TUJUAN = null; // Tidak dipakai lagi — gunakan CONFIG_WA_PENERIMA
 
@@ -5505,7 +5401,6 @@ function simpanRoutingWA() {
         if (nomor) { routing[pihak] = nomor; ada++; }
     });
     _setRoutingWA(routing);
-    fbSimpanKonfigurasi('wa_routing', routing); // sync ke Firebase → HP pakai routing ini
     _tampilStatusWA();
     alert('✅ Nomor routing tersimpan untuk ' + ada + ' pihak!\n\n' +
         _DAFTAR_PIHAK.filter(p => routing[p])
@@ -5592,10 +5487,12 @@ async function _kirimViaFonnte(nomorBersih, pesan, pdfBlob, namaFile) {
     return await _kirimFonnteRutin(nomorBersih, pesan, pesan, pdfBlob, namaFile);
 }
 
-// ── Kirim via WA Web — DINONAKTIFKAN ──
-// Tidak membuka browser WhatsApp. Gunakan Fonnte API agar pengiriman otomatis.
+// ── Kirim via WA Web (fallback — buka link, user klik send sendiri) ──
 function _kirimViaWALink(nomorBersih, pesan) {
-    console.warn('[WA] _kirimViaWALink dinonaktifkan. Token Fonnte belum tersinkron.');
+    const pesanFull = pesan + '\n\n_(PDF sudah terunduh di perangkat — lampirkan jika perlu)_';
+    const waUrl = `https://wa.me/${nomorBersih}?text=${encodeURIComponent(pesanFull)}`;
+    _tampilInfoWA('📲 WhatsApp dibuka — klik Kirim untuk mengirim notifikasi tamu.', '#e67e22', false);
+    setTimeout(() => window.open(waUrl, '_blank'), 700);
 }
 
 // ── Fungsi utama: dipanggil setelah PDF dibuat ──
@@ -5718,7 +5615,6 @@ function simpanWorkerUrl() {
     }
     localStorage.setItem('cf_worker_url', url);
     CONFIG_WORKER_URL = url;
-    fbSimpanKonfigurasi('worker_url', url); // sync ke Firebase → HP pakai URL Worker ini
     _tampilStatusWA();
     alert('✅ URL Worker tersimpan!\n\nSekarang PDF akan dikirim sebagai lampiran via Worker ini.');
 }
@@ -5886,16 +5782,13 @@ async function inisialisasiFirebase() {
         return;
     }
     try {
+        // Cegah double-init jika sudah ada
         if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
         fbDb = firebase.database();
         tampilStatusSync('🔄 Menghubungkan ke server...', '#888');
 
-        // Muat data tamu dari Firebase
+        // Muat data dari Firebase (source of truth)
         await fbMuatSemua();
-
-        // Muat konfigurasi (token Fonnte, routing WA, URL Worker) dari Firebase
-        // → ini yang membuat HP bisa kirim WA otomatis sama seperti laptop
-        await fbMuatKonfigurasi();
 
         // Pasang listener real-time agar perangkat lain auto-sinkron
         fbPasangListener();
@@ -6117,253 +6010,83 @@ function _tampilNotifUpdate() {
     document.body.appendChild(bar);
 }
 
-// ================================================================
-//  PWA AUTO-INSTALL — Otomatis saat pertama kali dibuka di HP
-// ================================================================
+// ── Tombol Install (Add to Home Screen) ──
+let _deferredPrompt = null;
 
-let _deferredPrompt  = null;   // Event beforeinstallprompt yang ditangkap
-let _splashInstall   = null;   // Elemen overlay splash install
-
-function _sudahInstallPWA() {
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-    if (window.navigator.standalone === true) return true;
-    return false;
-}
-
-function _adalahMobile() {
-    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-}
-
-// ── Tampilkan splash fullscreen "Sedang menyiapkan…" ──
-function _tampilSplashInstall() {
-    if (_splashInstall) return;
-    if (_sudahInstallPWA()) return;
-    if (!_adalahMobile()) return;
-    if (localStorage.getItem('pwa_installed') === '1') return;
-
-    _splashInstall = document.createElement('div');
-    _splashInstall.id = '_pwaInstallSplash';
-    _splashInstall.style.cssText = `
-        position: fixed; inset: 0; z-index: 2147483647;
-        background: linear-gradient(160deg, #0d0221 0%, #050014 50%, #000510 100%);
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        text-align: center; padding: 30px; cursor: pointer;
-        font-family: Arial, sans-serif;
-        animation: _splashFadeIn 0.4s ease both;
-    `;
-    _splashInstall.innerHTML = `
-        <style>
-            @keyframes _splashFadeIn { from { opacity:0 } to { opacity:1 } }
-            @keyframes _splashPulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-            @keyframes _splashSpin   { to { transform:rotate(360deg) } }
-            ._spl-ring {
-                width:60px; height:60px;
-                border:4px solid rgba(212,168,32,.25);
-                border-top-color:#d4a820;
-                border-radius:50%;
-                animation:_splashSpin 1s linear infinite;
-                margin-bottom:22px;
-            }
-            ._spl-title {
-                font-size:1.15rem; font-weight:800;
-                color:#f5e07a; letter-spacing:.08em;
-                text-transform:uppercase; margin-bottom:8px;
-            }
-            ._spl-sub {
-                font-size:.82rem; color:rgba(180,210,255,.75);
-                line-height:1.5; margin-bottom:28px;
-            }
-            ._spl-btn {
-                background:linear-gradient(135deg,#d4a820,#f5e07a);
-                color:#0d1f45; border:none;
-                padding:14px 38px; border-radius:50px;
-                font-size:1rem; font-weight:900;
-                letter-spacing:.06em; cursor:pointer;
-                animation:_splashPulse 2s ease-in-out infinite;
-                box-shadow:0 0 28px rgba(212,168,32,.55);
-            }
-            ._spl-skip {
-                margin-top:16px; font-size:.72rem;
-                color:rgba(255,255,255,.35); cursor:pointer;
-                text-decoration:underline;
-            }
-        </style>
-        <div class="_spl-ring" id="_splRing"></div>
-        <div class="_spl-title">📲 Install Aplikasi</div>
-        <div class="_spl-sub">
-            Buku Tamu Digital<br>Inspektorat Kab. Tulang Bawang Barat<br><br>
-            Tap tombol di bawah untuk memasang<br>aplikasi ke layar utama HP
-        </div>
-        <button class="_spl-btn" id="_splBtn">⬇ PASANG SEKARANG</button>
-        <div class="_spl-skip" id="_splSkip">Lewati, buka di browser saja</div>
-    `;
-    document.body.appendChild(_splashInstall);
-
-    // Sembunyikan spinner setelah prompt siap
-    _cekDanSembunyikanSpinner();
-
-    // Tombol PASANG
-    document.getElementById('_splBtn').addEventListener('touchstart', _eksekusiInstall, { passive: true });
-    document.getElementById('_splBtn').addEventListener('click', _eksekusiInstall);
-
-    // Tombol Lewati
-    document.getElementById('_splSkip').addEventListener('touchstart', _tutupSplash, { passive: true });
-    document.getElementById('_splSkip').addEventListener('click', _tutupSplash);
-}
-
-function _cekDanSembunyikanSpinner() {
-    const ring = document.getElementById('_splRing');
-    if (!ring) return;
-    // Jika prompt sudah siap → sembunyikan spinner
-    if (_deferredPrompt) { ring.style.display = 'none'; return; }
-    // Belum siap → cek setiap 200ms maks 5 detik
-    let coba = 0;
-    const iv = setInterval(() => {
-        coba++;
-        if (_deferredPrompt || coba > 25) {
-            clearInterval(iv);
-            if (ring) ring.style.display = 'none';
-        }
-    }, 200);
-}
-
-async function _eksekusiInstall(e) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    if (!_deferredPrompt) {
-        // Prompt belum siap (mungkin Chrome belum anggap installable)
-        _tutupSplash();
-        return;
-    }
-    try {
-        _deferredPrompt.prompt(); // WAJIB sinkron di dalam handler gesture
-        const { outcome } = await _deferredPrompt.userChoice;
-        console.log('[PWA] outcome:', outcome);
-        if (outcome === 'accepted') {
-            localStorage.setItem('pwa_installed', '1');
-        }
-    } catch(err) {
-        console.warn('[PWA] prompt gagal:', err);
-    } finally {
-        _deferredPrompt = null;
-        _tutupSplash();
-    }
-}
-
-function _tutupSplash() {
-    localStorage.setItem('pwa_installed', '1'); // jangan tanya lagi
-    if (_splashInstall) {
-        _splashInstall.style.opacity = '0';
-        _splashInstall.style.transition = 'opacity .3s ease';
-        setTimeout(() => { if (_splashInstall) { _splashInstall.remove(); _splashInstall = null; } }, 320);
-    }
-}
-
-// ── Tangkap event beforeinstallprompt sedini mungkin ──
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredPrompt = e;
-    console.log('[PWA] beforeinstallprompt ditangkap ✓');
 
-    // Jika splash sudah tampil → spinner bisa disembunyikan sekarang
-    const ring = document.getElementById('_splRing');
-    if (ring) ring.style.display = 'none';
+    // Tampilkan tombol install setelah 3 detik
+    setTimeout(() => _tampilTombolInstall(), 3000);
 });
 
-// ── Jalankan saat halaman load ──
-window.addEventListener('load', () => {
-    if (_sudahInstallPWA()) return;
-    if (!_adalahMobile()) return;
-    if (localStorage.getItem('pwa_installed') === '1') return;
+function _tampilTombolInstall() {
+    if (!_deferredPrompt) return;
+    // Jangan tampilkan jika sudah di-install
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
 
-    // Tampilkan splash install setelah 800ms (welcome page sudah tampil)
-    setTimeout(_tampilSplashInstall, 800);
-
-    // Tampilkan popup pengingat fullscreen (jika belum PWA)
-    setTimeout(_tampilPopupFullscreen, 400);
-});
-
-// ── Popup pengingat tap untuk fullscreen ──
-function _tampilPopupFullscreen() {
-    if (_sudahInstallPWA()) return;
-    if (localStorage.getItem('fs_hint_done') === '1') return;
-
-    const pop = document.createElement('div');
-    pop.id = '_fsHintPop';
-    pop.style.cssText = `
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%,-60%);
-        z-index: 2147483646;
-        background: linear-gradient(145deg, #0d1f45ee, #1a3a6eee);
-        border: 2px solid #d4a820;
-        border-radius: 18px;
-        padding: 24px 22px 20px;
-        text-align: center;
-        max-width: 280px; width: 88%;
-        box-shadow: 0 8px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(212,168,32,.25);
-        font-family: Arial, sans-serif;
-        animation: _fsPop .35s cubic-bezier(.22,1,.36,1) both;
-        backdrop-filter: blur(6px);
+    const bar = document.createElement('div');
+    bar.id = '_pwaInstallBar';
+    bar.style.cssText = `
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 999998;
+        background: linear-gradient(135deg, #0d1f45, #1a3a6e);
+        color: white; padding: 14px 20px;
+        display: flex; align-items: center; gap: 12px;
+        border-top: 2px solid #d4a820;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.40);
+        animation: slideUpBar 0.4s cubic-bezier(0.22,1,0.36,1) both;
     `;
-    pop.innerHTML = `
-        <style>
-            @keyframes _fsPop {
-                from { opacity:0; transform:translate(-50%,-55%) scale(.88); }
-                to   { opacity:1; transform:translate(-50%,-60%) scale(1); }
-            }
-        </style>
-        <div style="font-size:2.2rem; margin-bottom:10px;">⛶</div>
-        <div style="font-weight:800; color:#f5e07a; font-size:.98rem;
-                    letter-spacing:.04em; margin-bottom:8px;">
-            MODE LAYAR PENUH
+    bar.innerHTML = `
+        <img src="/icons/icon-72.png" style="width:42px;height:42px;border-radius:10px;flex-shrink:0;" onerror="this.style.display='none'"/>
+        <div style="flex:1;min-width:0;">
+            <div style="font-weight:bold;font-size:0.92em;color:#f5e07a;">📲 Install Aplikasi</div>
+            <div style="font-size:0.76em;opacity:0.80;margin-top:2px;">Tambahkan Buku Tamu ke layar utama</div>
         </div>
-        <div style="color:rgba(200,220,255,.85); font-size:.80rem;
-                    line-height:1.6; margin-bottom:18px;">
-            Tap di mana saja atau tekan tombol di bawah untuk menyembunyikan address bar
-        </div>
-        <button id="_fsBtnOk" style="
-            background: linear-gradient(135deg,#d4a820,#f5e07a);
-            color:#0d1f45; border:none;
-            padding:11px 32px; border-radius:50px;
-            font-size:.90rem; font-weight:900;
-            cursor:pointer; width:100%;
-            letter-spacing:.04em;">
-            ⛶ &nbsp;TAP LAYAR PENUH
+        <button id="_btnInstallPWA" style="
+            background: linear-gradient(135deg,#d4a820,#f5e07a); color:#0d1f45;
+            border:none; padding:9px 18px; border-radius:20px;
+            font-weight:bold; cursor:pointer; font-size:0.88em; white-space:nowrap;">
+            Install
         </button>
-        <div id="_fsBtnSkip" style="
-            margin-top:11px; font-size:.70rem;
-            color:rgba(255,255,255,.35); cursor:pointer;
-            text-decoration:underline;">
-            Lewati
-        </div>
+        <button onclick="document.getElementById('_pwaInstallBar').remove()" style="
+            background:rgba(255,255,255,0.12);border:none;color:white;
+            width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1em;flex-shrink:0;">
+            ✕
+        </button>
     `;
-    document.body.appendChild(pop);
 
-    function _tutupFsHint() {
-        localStorage.setItem('fs_hint_done', '1');
-        pop.style.opacity = '0';
-        pop.style.transition = 'opacity .25s ease';
-        setTimeout(() => pop.remove(), 260);
+    // Tambah animasi CSS
+    if (!document.getElementById('_pwaBarStyle')) {
+        const st = document.createElement('style');
+        st.id = '_pwaBarStyle';
+        st.textContent = `@keyframes slideUpBar {
+            from { transform: translateY(100%); opacity:0; }
+            to   { transform: translateY(0);    opacity:1; }
+        }`;
+        document.head.appendChild(st);
     }
 
-    document.getElementById('_fsBtnOk').addEventListener('click', () => {
-        mintaFullscreen();
-        _tutupFsHint();
-    });
-    document.getElementById('_fsBtnSkip').addEventListener('click', _tutupFsHint);
+    document.body.appendChild(bar);
 
-    // Tutup otomatis setelah 8 detik
-    setTimeout(_tutupFsHint, 8000);
+    document.getElementById('_btnInstallPWA').addEventListener('click', async () => {
+        bar.remove();
+        _deferredPrompt.prompt();
+        const { outcome } = await _deferredPrompt.userChoice;
+        console.log('[PWA] Install outcome:', outcome);
+        _deferredPrompt = null;
+    });
 }
 
-// ── Setelah berhasil install ──
+// ── Deteksi sudah berjalan sebagai standalone (sudah di-install) ──
 window.addEventListener('appinstalled', () => {
-    console.log('[PWA] Berhasil di-install ✓');
+    console.log('[PWA] Aplikasi berhasil di-install!');
     _deferredPrompt = null;
-    localStorage.setItem('pwa_installed', '1');
-    _tutupSplash();
+    const bar = document.getElementById('_pwaInstallBar');
+    if (bar) bar.remove();
 });
 
-// ── Cegah pull-to-refresh browser ──
+// ── Cegah pull-to-refresh browser (agar terasa native) ──
 document.addEventListener('touchstart', function(e) {
     if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
@@ -6373,6 +6096,7 @@ document.addEventListener('touchmove', function(e) {
     const touchY = e.touches[0].clientY;
     const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
     if (scrollTop === 0 && touchY > _lastTouchY) {
+        // Sudah di posisi paling atas dan swipe ke bawah — cegah refresh
         if (e.cancelable) e.preventDefault();
     }
     _lastTouchY = touchY;
