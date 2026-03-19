@@ -978,8 +978,9 @@
         .op-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(5, 8, 30, 0.88);
-            /* backdrop-filter dihapus — sangat berat di HP */
+            background: rgba(5, 8, 30, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             animation: opFadeIn 0.35s ease both;
         }
         @keyframes opFadeIn {
@@ -993,6 +994,8 @@
             z-index: 1;
             width: 100%;
             max-width: 680px;
+            min-height: 70dvh;
+            min-height: 70vh;
             max-height: 96dvh;
             max-height: 96vh;
             display: flex;
