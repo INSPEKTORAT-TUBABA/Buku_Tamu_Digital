@@ -4395,7 +4395,13 @@ async function konfirmasiDanSimpanPDF(sIndex) {
 
     // Pindahkan ke dataFinal di Firebase (hapus dari dataSementara, push ke dataFinal)
     const newFbKey = await fbPindahKeFinal(fbKeySementara, data);
-    if (newFbKey) data._fbKey = newFbKey; else delete data._fbKey;
+    if (newFbKey) {
+        data._fbKey = newFbKey;        // pakai key baru di dataFinal
+    } else if (fbKeySementara) {
+        data._fbKey = fbKeySementara;  // fallback: key lama di dataSementara masih valid
+    } else {
+        delete data._fbKey;
+    }
 
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
