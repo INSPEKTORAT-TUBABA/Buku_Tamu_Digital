@@ -1396,14 +1396,42 @@
             text-shadow: 0 1px 2px rgba(255,255,255,0.8);
         }
 
-        /* Footer hint — transparan total */
+        /* Footer hint */
         .si-footer {
-            display: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px 4px;
         }
         .si-hint {
             font-size: 0.74em;
             color: #555;
             letter-spacing: 0.02em;
+            text-align: center;
+        }
+        /* Tombol Lanjut khusus step uraian */
+        #siBtnLanjutUraian {
+            display: none;
+            width: 100%;
+            padding: 12px 0;
+            background: linear-gradient(135deg, #0d1f45, #1a3a6e);
+            color: #f5e07a;
+            border: none;
+            border-radius: 24px;
+            font-size: 1em;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            box-shadow: 0 3px 12px rgba(13,31,69,.35);
+            transition: transform .15s, box-shadow .15s;
+        }
+        #siBtnLanjutUraian:active {
+            transform: scale(0.97);
+            box-shadow: 0 1px 6px rgba(13,31,69,.25);
+        }
+        #siBtnLanjutUraian.aktif {
+            display: block;
         }
 
         /* ── Pratinjau TTD di ringkasan ── */
@@ -1783,9 +1811,9 @@
                 <div id="field-uraian" class="hidden">
                     <label>📝 Uraian Keperluan <span class="required">*</span></label>
                     <textarea id="uraian" required rows="3"
-                        oninput="_debouncedValidateUraian(); _debouncedAutoStepUraian();"
+                        oninput="_debouncedValidateUraian(); _onInputUraian();"
                         onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
-                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah selesai mengetik (min. 10 karakter)</small>
+                    <small style="color:#888;font-size:0.75em;">Minimal 10 karakter, lalu tekan tombol <strong>Lanjut</strong></small>
                 </div>
 
                 <div id="field-nomorHp" class="hidden">
@@ -1865,8 +1893,11 @@
             </div>
             <!-- Body: #stepInputArea akan dipindahkan ke sini oleh JS -->
             <div class="si-body" id="siBody"></div>
-            <!-- Footer hint -->
+            <!-- Footer hint + tombol lanjut -->
             <div class="si-footer">
+                <button type="button" id="siBtnLanjutUraian" onclick="stepUraian()">
+                    ➡️ Lanjut
+                </button>
                 <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
             </div>
         </div>
@@ -2926,7 +2957,7 @@ const _SI_META = {
     'fieldDesa':          { icon:'🏘️', title:'Desa / Kelurahan',      step:4, hint:'Pilih desa atau kelurahan Anda' },
     'field-pihakDitemui': { icon:'👥', title:'Pihak yang Ditemui',    step:5, hint:'Pilih pihak yang ingin Anda temui' },
     'field-jenisLayanan': { icon:'📋', title:'Jenis Layanan',          step:6, hint:'Pilih jenis layanan yang dibutuhkan' },
-    'field-uraian':       { icon:'📝', title:'Uraian Keperluan',       step:7, hint:'Minimal 10 karakter — lanjut otomatis setelah selesai' },
+    'field-uraian':       { icon:'📝', title:'Uraian Keperluan',       step:7, hint:'Minimal 10 karakter, lalu tekan tombol Lanjut' },
     'field-nomorHp':      { icon:'📱', title:'Nomor WhatsApp',         step:8, hint:'Awali dengan 08 — lanjut otomatis setelah valid' },
     'field-tandaTangan':  { icon:'✍️', title:'Tanda Tangan',           step:9, hint:'Tanda tangani di area yang tersedia' },
 };
@@ -2971,6 +3002,21 @@ function _tampilStepIsian(fieldId) {
     if (counterEl) counterEl.textContent = meta.step + ' / ' + _SI_TOTAL;
     if (barEl)     barEl.style.width     = Math.round(meta.step / _SI_TOTAL * 100) + '%';
     if (hintEl)    hintEl.textContent    = meta.hint;
+
+    // Tampilkan/sembunyikan tombol Lanjut Uraian
+    const btnLanjutUraian = document.getElementById('siBtnLanjutUraian');
+    if (btnLanjutUraian) {
+        if (fieldId === 'field-uraian') {
+            btnLanjutUraian.classList.add('aktif');
+            // Set opacity awal berdasarkan isi saat ini
+            const uraianVal = (document.getElementById('uraian')?.value || '').trim();
+            const cukup = uraianVal.length >= 10;
+            btnLanjutUraian.style.opacity = cukup ? '1' : '0.4';
+            btnLanjutUraian.style.pointerEvents = cukup ? 'auto' : 'none';
+        } else {
+            btnLanjutUraian.classList.remove('aktif');
+        }
+    }
 
     // Tampilkan backdrop & modal
     backdrop.style.display = 'block';
@@ -3353,13 +3399,18 @@ function autoStepNama() {
 }
 
 function autoStepUraian() {
-    if (isEditMode || _stepUraianDone || _editBebasMode) return;
-    clearTimeout(_timerUraian);
+    // Nonaktif — diganti tombol Lanjut manual (lihat _onInputUraian)
+}
+
+// Aktifkan visual tombol Lanjut saat uraian sudah cukup panjang
+function _onInputUraian() {
+    if (isEditMode || _editBebasMode) return;
     const uraian = document.getElementById('uraian');
-    if (uraian.value.trim().length < 10) return;
-    _timerUraian = setTimeout(() => {
-        if (!_stepUraianDone) stepUraian();
-    }, 1200);
+    const btn = document.getElementById('siBtnLanjutUraian');
+    if (!btn) return;
+    const cukup = uraian.value.trim().length >= 10;
+    btn.style.opacity = cukup ? '1' : '0.4';
+    btn.style.pointerEvents = cukup ? 'auto' : 'none';
 }
 
 function autoStepNomorHp() {
@@ -3966,19 +4017,16 @@ async function simpanDariEditBebas() {
     const savedIndex       = editingIndex;
     const savedSementara   = editingSementara;
 
-    // ── Semua valid — jalankan simpan via simpanData() (await penuh termasuk fbSimpan) ──
+    // ── Semua valid — jalankan simpan via simpanData() ──
     _editBebasMode = false;
     isEditMode = true;
-    const ok = await simpanData();  // fbSimpan/fbUpdate sudah selesai di sini
+    const ok = await simpanData();
     isEditMode = false;
 
     if (!ok) {
         _editBebasMode = true;
         return;
     }
-
-    // ── Pastikan lsSave terakhir mencerminkan _fbKey yang sudah di-set ──
-    await lsSave();
 
     // ── Tutup floating buttons, pulihkan UI ──
     const floatBtns = document.getElementById('floatingEditBtns');
@@ -3993,19 +4041,12 @@ async function simpanDariEditBebas() {
 
     // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
     showData(); // update tabel internal dulu
-
-    // Ambil index yang valid — gunakan savedIndex jika data bukan sementara
-    // Data di dataBukuTamu[savedIndex] sekarang sudah memiliki _fbKey yang ter-update
-    const pdfIndex = (!savedSementara && savedIndex >= 0 && savedIndex < dataBukuTamu.length)
-        ? savedIndex
-        : dataBukuTamu.length - 1;
-
+    const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        // Tunggu sebentar agar Firebase selesai menulis sebelum membuat PDF + notifikasi
-        setTimeout(() => { exportDetailPerTamuPDF(pdfIndex); }, 300);
+        exportDetailPerTamuPDF(pdfIndex);
     }
     // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
-    setTimeout(() => { goToWelcome(); }, 1100);
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 function selesaiEditBebas() {
@@ -4194,31 +4235,15 @@ async function simpanData() {
             formData._sementara = true;
             formData._fbKey = fbKey;
             dataTamuSementara[editingIndex] = formData;
-            if (fbKey) {
-                await fbUpdate(fbKey, formData, true);
-            } else {
-                // Belum ada di Firebase → simpan sebagai entri baru
-                const newFbKey = await fbSimpan(formData, true);
-                if (newFbKey) dataTamuSementara[editingIndex]._fbKey = newFbKey;
-            }
+            if (fbKey) await fbUpdate(fbKey, formData, true);
         } else {
-            const localIdx = editingIndex; // simpan index sebelum resetFormComplete mereset
-            const fbKey = dataBukuTamu[localIdx]?._fbKey || null;
+            const fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
             formData._fbKey = fbKey;
-            dataBukuTamu[localIdx] = formData;
-            if (fbKey) {
-                await fbUpdate(fbKey, formData, false);
-            } else {
-                // Belum ada di Firebase → simpan sebagai entri baru dan set _fbKey
-                const newFbKey = await fbSimpan(formData, false);
-                if (newFbKey) dataBukuTamu[localIdx]._fbKey = newFbKey;
-            }
+            dataBukuTamu[editingIndex] = formData;
+            if (fbKey) await fbUpdate(fbKey, formData, false);
         }
     } else {
         dataBukuTamu.push(formData);
-        // Simpan ke Firebase dan assign _fbKey (konsisten dengan alur sementara)
-        const newFbKey = await fbSimpan(formData, false);
-        if (newFbKey) dataBukuTamu[dataBukuTamu.length - 1]._fbKey = newFbKey;
     }
     updateDataCounter();
     await lsSave();
@@ -4412,12 +4437,12 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
-    await lsSave(); // simpan setelah _fbKey ter-assign
-    // Unduh PDF detail per tamu — delay agar Firebase selesai menulis & _fbKey tersedia
+    await lsSave();
+    // Unduh PDF detail per tamu
     const finalIndex = dataBukuTamu.length - 1;
-    setTimeout(() => { exportDetailPerTamuPDF(finalIndex); }, 300);
-    // Kembali ke halaman selamat datang setelah PDF selesai
-    setTimeout(() => { goToWelcome(); }, 1100);
+    exportDetailPerTamuPDF(finalIndex);
+    // Kembali ke halaman selamat datang
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 async function hapusSementara(sIndex) {
