@@ -676,18 +676,21 @@
 
         /* ── Area input aktif (satu field per waktu) ── */
         #stepInputArea {
-            background: #fffef8;
-            padding: 18px 20px 14px;
-            border-bottom: 1px solid rgba(212,168,32,0.2);
-            min-height: 88px;
+            background: linear-gradient(180deg, #0d1833 0%, #0a1428 100%);
+            padding: 18px 16px 16px;
+            border-bottom: 1px solid rgba(212,168,32,0.25);
+            min-height: 100px;
+            position: relative;
         }
         #stepInputArea > div { margin: 0; }
         #stepInputArea label {
             display: block;
-            font-weight: bold;
-            font-size: 0.93em;
-            color: #0d1f45;
-            margin-bottom: 7px;
+            font-weight: 700;
+            font-size: 0.88em;
+            color: rgba(200,220,255,0.75);
+            margin-bottom: 8px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
         .sf-enter {
             animation: sfSlideIn 0.38s cubic-bezier(0.22,1,0.36,1);
@@ -697,25 +700,144 @@
             to   { opacity:1; transform: translateY(0); }
         }
 
-        /* ── Tombol Lanjut ── */
+        /* ── INPUT GLOW — Style Search Bar dengan Cahaya Semua Sisi ── */
+        .input-glow-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-radius: 14px;
+            padding: 2px;
+            background: linear-gradient(135deg,
+                rgba(212,168,32,0.7) 0%,
+                rgba(100,180,255,0.5) 25%,
+                rgba(180,100,255,0.5) 50%,
+                rgba(100,180,255,0.5) 75%,
+                rgba(212,168,32,0.7) 100%
+            );
+            background-size: 200% 200%;
+            animation: glowBorder 4s linear infinite;
+            box-shadow:
+                0 0 12px 3px rgba(212,168,32,0.35),
+                0 0 28px 6px rgba(100,160,255,0.20),
+                0 0 5px 1px rgba(180,100,255,0.25),
+                inset 0 0 12px rgba(212,168,32,0.08);
+        }
+        @keyframes glowBorder {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .input-glow-wrap:focus-within {
+            box-shadow:
+                0 0 18px 5px rgba(212,168,32,0.55),
+                0 0 40px 10px rgba(100,160,255,0.30),
+                0 0 8px 2px rgba(180,100,255,0.40),
+                inset 0 0 20px rgba(212,168,32,0.12);
+            animation-duration: 1.5s;
+        }
+        .input-glow-inner {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #0f1e3a 0%, #0b1628 100%);
+            border-radius: 12px;
+            padding: 10px 14px;
+            min-height: 48px;
+        }
+        .input-glow-icon {
+            font-size: 1.1em;
+            flex-shrink: 0;
+            opacity: 0.65;
+        }
+        /* Override input/select/textarea di dalam wrap */
+        .input-glow-inner input,
+        .input-glow-inner select,
+        .input-glow-inner textarea {
+            flex: 1;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            color: #f0f4ff !important;
+            font-size: 1.0em !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            caret-color: #f5e07a;
+        }
+        .input-glow-inner input::placeholder,
+        .input-glow-inner textarea::placeholder {
+            color: rgba(160,190,255,0.40) !important;
+            font-style: italic;
+        }
+        .input-glow-inner select option {
+            background: #0d1f45;
+            color: #f0f4ff;
+        }
+        .input-glow-inner textarea {
+            resize: none;
+            min-height: 72px;
+            line-height: 1.5;
+        }
+
+        /* ── Tombol Lanjut — versi baru lebih indah ── */
         .btn-lanjut {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 26px;
-            background: linear-gradient(135deg, #0d1f45, #1a3a6e);
-            color: #f5e07a;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding: 10px 28px;
+            background: linear-gradient(135deg, #d4a820 0%, #f5e07a 50%, #d4a820 100%);
+            background-size: 200% 100%;
+            color: #0d1f45;
             border: none;
-            border-radius: 20px;
-            font-size: 0.87em;
-            font-weight: bold;
+            border-radius: 50px;
+            font-size: 0.88em;
+            font-weight: 900;
             cursor: pointer;
-            letter-spacing: 0.04em;
-            box-shadow: 0 2px 8px rgba(13,31,69,.28);
-            transition: transform .15s, box-shadow .15s;
+            letter-spacing: 0.06em;
+            box-shadow:
+                0 0 14px 4px rgba(212,168,32,0.45),
+                0 4px 14px rgba(13,31,69,.35);
+            transition: all .2s ease;
+            animation: btnLanjutPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes btnLanjutPulse {
+            0%, 100% { box-shadow: 0 0 14px 4px rgba(212,168,32,0.45), 0 4px 14px rgba(13,31,69,.35); }
+            50%       { box-shadow: 0 0 22px 7px rgba(212,168,32,0.70), 0 4px 18px rgba(13,31,69,.40); }
         }
         .btn-lanjut:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(13,31,69,.38);
+            transform: translateY(-2px) scale(1.03);
+            background-position: 100% 0;
+            box-shadow: 0 0 28px 8px rgba(212,168,32,0.65), 0 6px 20px rgba(13,31,69,.45);
+        }
+        .btn-lanjut:active { transform: scale(0.97); }
+
+        /* ── Tombol Hapus Tanda Tangan ── */
+        .btn-hapus-ttd {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            margin-left: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #6b1a1a 0%, #c0392b 100%);
+            color: #fff;
+            border: 1px solid rgba(255,100,100,0.35);
+            border-radius: 50px;
+            font-size: 0.85em;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            box-shadow: 0 0 10px 2px rgba(192,57,43,0.30), 0 3px 10px rgba(0,0,0,.30);
+            transition: all .2s ease;
+        }
+        .btn-hapus-ttd:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 18px 5px rgba(192,57,43,0.50), 0 5px 14px rgba(0,0,0,.35);
         }
 
         /* ══════════════════════════════════════════
@@ -1675,19 +1797,29 @@
                 <!-- Banner mode edit bebas -->
                 <div id="field-nama">
                     <label>👤 Nama Lengkap <span class="required">*</span></label>
-                    <input id="nama" required type="text" placeholder="Minimal 5 huruf"
-                        oninput="_debouncedValidateNama(); _debouncedAutoStepNama();"
-                        onkeydown="if(event.key==='Enter'){event.preventDefault();stepNama();}"/>
-                    <small id="namaHint" style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah selesai mengetik</small>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">🔍</span>
+                            <input id="nama" required type="text" placeholder="Minimal 5 huruf..."
+                                oninput="_debouncedValidateNama(); _debouncedAutoStepNama();"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();stepNama();}"/>
+                        </div>
+                    </div>
+                    <small id="namaHint" style="color:rgba(160,190,255,0.45);font-size:0.75em;margin-top:5px;display:block;">Lanjut otomatis setelah selesai mengetik</small>
                 </div>
 
                 <div id="field-asal" class="hidden">
                     <label>🏠 Asal / Instansi <span class="required">*</span></label>
-                    <select id="asal" required onchange="asalChanged();">
-                        <option value="">-- Pilih Asal --</option>
-                        <option value="INSTANSI">INSTANSI / UNIT KERJA</option>
-                        <option value="MASYARAKAT">MASYARAKAT</option>
-                    </select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">🔍</span>
+                            <select id="asal" required onchange="asalChanged();">
+                                <option value="">-- Pilih Asal --</option>
+                                <option value="INSTANSI">INSTANSI / UNIT KERJA</option>
+                                <option value="MASYARAKAT">MASYARAKAT</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hidden" id="daftarInstansi">
@@ -1782,27 +1914,47 @@
 
                 <div id="field-uraian" class="hidden">
                     <label>📝 Uraian Keperluan <span class="required">*</span></label>
-                    <textarea id="uraian" required rows="3"
-                        oninput="_debouncedValidateUraian(); _debouncedAutoStepUraian();"
-                        onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
-                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah selesai mengetik (min. 10 karakter)</small>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">✍️</span>
+                            <textarea id="uraian" required rows="3"
+                                placeholder="Tuliskan uraian keperluan... (min. 10 karakter)"
+                                oninput="_debouncedValidateUraian();"
+                                onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
+                        </div>
+                    </div>
+                    <br>
+                    <button type="button" class="btn-lanjut" onclick="stepUraian()">Lanjut ➜</button>
                 </div>
 
                 <div id="field-nomorHp" class="hidden">
                     <label>📱 Nomor WhatsApp <span class="required">*</span></label>
-                    <small style="color:#555; display:block; margin-bottom:4px;">Awali dengan <strong>08</strong> (contoh: 081234567890)</small>
-                    <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
-                        pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
-                        oninput="validateNomorHp(this); _debouncedAutoStepHp();"
-                        onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
-                    <small id="nomorHpInfo" style="color:#dc3545; display:block; min-height:1.2em;"></small>
-                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah nomor valid</small>
+                    <small style="color:rgba(160,190,255,0.55); display:block; margin-bottom:8px; font-size:0.78em;">Awali dengan <strong style="color:#f5e07a;">08</strong> (contoh: 081234567890)</small>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">📞</span>
+                            <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
+                                pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
+                                oninput="validateNomorHp(this);"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
+                        </div>
+                    </div>
+                    <small id="nomorHpInfo" style="color:#ff8080; display:block; min-height:1.2em; margin-top:4px;"></small>
+                    <button type="button" class="btn-lanjut" onclick="stepNomorHp()">Lanjut ➜</button>
                 </div>
 
                 <div id="field-tandaTangan" class="hidden">
                     <label>✍️ Tanda Tangan <span class="required">*</span></label>
                     <div class="warning" id="signatureWarning" style="display:none;">⚠️ Tanda tangan terlalu pendek (min 2 cm)</div>
-                    <canvas id="signature-pad" width="900" height="25"></canvas>
+                    <div class="input-glow-wrap" style="border-radius:16px; padding:3px;">
+                        <div class="input-glow-inner" style="border-radius:13px; padding:6px; display:block;">
+                            <canvas id="signature-pad" width="900" height="25"></canvas>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:0; align-items:center; margin-top:2px;">
+                        <button type="button" class="btn-hapus-ttd" onclick="clearSignature()">🗑️ Hapus</button>
+                        <button type="button" class="btn-lanjut" id="btnLanjutTTD" style="display:none;" onclick="stepTandaTangan()">Lanjut ➜</button>
+                    </div>
                 </div>
 
                 <!-- Tombol Aksi setelah TTD selesai -->
@@ -2668,9 +2820,9 @@ function stopDrawing() {
                 ctx2.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
                 if (!isEditMode && !_editBebasMode) {
                     tampilJawabTTD(signatureDataURL);
-                    _tutupStepIsian(() => {
-                        setTimeout(() => bukaKamera(), 400);
-                    });
+                    // Tampilkan tombol Lanjut di field-tandaTangan — tidak otomatis ke kamera
+                    const btnLanjutTTD = document.getElementById('btnLanjutTTD');
+                    if (btnLanjutTTD) btnLanjutTTD.style.display = 'inline-flex';
                 } else {
                     document.getElementById('field-aksi').classList.remove('hidden');
                 }
@@ -2717,6 +2869,9 @@ function clearSignature() {
     signatureDataURL = null;
     document.getElementById('signatureWarning').style.display = 'none';
     document.getElementById('field-aksi').classList.add('hidden');
+    // Sembunyikan tombol Lanjut TTD
+    const btnLanjutTTD = document.getElementById('btnLanjutTTD');
+    if (btnLanjutTTD) btnLanjutTTD.style.display = 'none';
     if (!isEditMode) {
         // Hapus baris TTD dan sembunyikan separator dokumentasi
         const bubTTD = document.querySelector('.ps-row[data-field="tandaTangan"]');
@@ -3138,6 +3293,22 @@ function stepNomorHp() {
     }
 }
 
+function stepTandaTangan() {
+    if (isEditMode) return;
+    const strokeLengthCm = totalStrokeLength / PIXELS_PER_CM;
+    if (!hasSignature || strokeLengthCm < MIN_STROKE_LENGTH_CM) {
+        document.getElementById('signatureWarning').style.display = 'block';
+        return;
+    }
+    // Sembunyikan tombol Lanjut TTD
+    const btnLanjutTTD = document.getElementById('btnLanjutTTD');
+    if (btnLanjutTTD) btnLanjutTTD.style.display = 'none';
+    // Buka kamera setelah TTD
+    _tutupStepIsian(() => {
+        setTimeout(() => bukaKamera(), 400);
+    });
+}
+
 function asalChanged() {
    if (isEditMode) {
         const asal = document.getElementById('asal').value;
@@ -3353,26 +3524,11 @@ function autoStepNama() {
 }
 
 function autoStepUraian() {
-    if (isEditMode || _stepUraianDone || _editBebasMode) return;
-    clearTimeout(_timerUraian);
-    const uraian = document.getElementById('uraian');
-    if (uraian.value.trim().length < 10) return;
-    _timerUraian = setTimeout(() => {
-        if (!_stepUraianDone) stepUraian();
-    }, 1200);
+    // Otomatis berpindah dinonaktifkan — gunakan tombol Lanjut
 }
 
 function autoStepNomorHp() {
-    if (isEditMode || _stepHpDone || _editBebasMode) return;
-    clearTimeout(_timerHp);
-    const input = document.getElementById('nomorHp');
-    const cleaned = input.value.trim();
-    const ok = cleaned.startsWith('08') && cleaned.length >= 11 &&
-               cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    if (!ok) return;
-    _timerHp = setTimeout(() => {
-        if (!_stepHpDone) stepNomorHp();
-    }, 700);
+    // Otomatis berpindah dinonaktifkan — gunakan tombol Lanjut
 }
 
 
@@ -6445,31 +6601,25 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 (function() {
     const scroller = document.getElementById('pageScroller');
     if (!scroller) return;
-
     function terapkanTinggi(vv) {
-        // Gunakan tinggi visual viewport (area yg terlihat di luar keyboard)
         const tinggiVisible = vv.height;
         const offsetTop = vv.offsetTop || 0;
         scroller.style.position = 'fixed';
         scroller.style.top    = offsetTop + 18 + 'px';
         scroller.style.bottom = 'auto';
-        scroller.style.height = (tinggiVisible - 36) + 'px';   // 18px atas + 18px bawah (bingkai)
+        scroller.style.height = (tinggiVisible - 36) + 'px';
         scroller.style.overflowY = 'auto';
     }
-
     function resetTinggi() {
         scroller.style.position = '';
         scroller.style.top    = '18px';
         scroller.style.bottom = '18px';
         scroller.style.height = '';
     }
-
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', function() {
-            // Jika tinggi viewport mengecil = keyboard muncul
             if (window.visualViewport.height < window.innerHeight * 0.75) {
                 terapkanTinggi(window.visualViewport);
-                // Scroll ke elemen yang sedang difokus agar tetap terlihat
                 const focused = document.activeElement;
                 if (focused && focused !== document.body) {
                     setTimeout(function() {
@@ -6480,23 +6630,20 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
                 resetTinggi();
             }
         });
-
         window.visualViewport.addEventListener('scroll', function() {
             if (window.visualViewport.height < window.innerHeight * 0.75) {
                 terapkanTinggi(window.visualViewport);
             }
         });
     } else {
-        // Fallback untuk browser lama: pakai focus/blur pada input & textarea
-        function onFocus() {
+        document.addEventListener('focusin', function() {
             setTimeout(function() {
                 const el = document.activeElement;
                 if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 350);
-        }
-        document.addEventListener('focusin', onFocus, true);
+        }, true);
     }
 })();
 </script>
