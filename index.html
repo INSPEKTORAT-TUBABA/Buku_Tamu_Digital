@@ -1643,10 +1643,10 @@
 <div id="floatingEditBtns" style="
     display: none;
     position: fixed;
-    right: 26px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 100001;
+    z-index: 99990;
     flex-direction: column;
     gap: 10px;
     align-items: center;
@@ -3835,12 +3835,6 @@ function editDariOverlay() {
         _editBebasMode = true;
         _toggleTombolFoto();
 
-        // ── Tangkap nilai asal / kecamatan / desa SEBELUM stepInputArea dipindah balik ──
-        // (nilainya bisa hilang saat DOM dimanipulasi jika dibaca terlambat)
-        const _capturedAsal = document.getElementById('asal').value;
-        const _capturedKec  = document.getElementById('kecamatan').value;
-        const _capturedDesa = document.getElementById('desa').value;
-
         // ── Tutup overlay step isian, kembalikan #stepInputArea ke form, lalu jalankan edit ──
         _tutupStepIsian(() => {
 
@@ -3871,31 +3865,24 @@ function editDariOverlay() {
                 });
             }
 
-            // Pulihkan nilai asal dari hasil capture SEBELUM DOM dimanipulasi
-            const asalEl = document.getElementById('asal');
-            if (asalEl && _capturedAsal) asalEl.value = _capturedAsal;
-
             // Tampilkan/sembunyikan field kondisional sesuai asal
-            const asal = _capturedAsal;
+            const asal = document.getElementById('asal').value;
             if (asal === 'INSTANSI') {
                 document.getElementById('daftarMasyarakat').classList.add('hidden');
                 document.getElementById('fieldDesa').classList.add('hidden');
             } else if (asal === 'MASYARAKAT') {
                 document.getElementById('daftarInstansi').classList.add('hidden');
-                // Pulihkan kecamatan
-                const kecEl = document.getElementById('kecamatan');
-                if (kecEl && _capturedKec) kecEl.value = _capturedKec;
-                // Rebuild desa dropdown lalu pulihkan pilihan yang tersimpan
-                if (_capturedKec && dataDesa[_capturedKec]) {
+                const kec = document.getElementById('kecamatan').value;
+                if (kec && dataDesa[kec]) {
                     const desaEl = document.getElementById('desa');
+                    const curDesa = desaEl.value;
                     desaEl.innerHTML = '<option value="">-- Pilih Desa/Kelurahan --</option>';
-                    dataDesa[_capturedKec].forEach(d => {
+                    dataDesa[kec].forEach(d => {
                         const o = document.createElement('option');
                         o.value = d; o.textContent = d;
                         desaEl.appendChild(o);
                     });
-                    // Gunakan nilai yang sudah dicapture, bukan hasil DOM yang bisa salah
-                    desaEl.value = _capturedDesa;
+                    desaEl.value = curDesa;
                 }
                 document.getElementById('fieldDesa').classList.remove('hidden');
             } else {
@@ -6369,7 +6356,7 @@ document.addEventListener('touchmove', function(e) {
     if (scrollTop === 0 && touchY > _lastTouchY) {
         if (e.cancelable) e.preventDefault();
     }
-    _lastTouchY = touchY; 
+    _lastTouchY = touchY;
 }, { passive: false });
 
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
