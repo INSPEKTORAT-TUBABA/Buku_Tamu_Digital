@@ -50,40 +50,9 @@
     <!-- Splash screen warna (iOS) -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 
-    <!-- Izinkan Fullscreen API -->
-    <meta http-equiv="Permissions-Policy" content="fullscreen=*"/>
     <!-- Cegah zoom ganda saat tap (iOS) -->
     <meta name="format-detection" content="telephone=no"/>
     <style>
-
-        /* ── Overlay tap-to-fullscreen (auto-dismiss setelah gesture pertama) ── */
-        #_fsOverlay {
-            position: fixed; inset: 0; z-index: 2147483647;
-            background: transparent;
-            cursor: pointer;
-        }
-        /* Hint kecil di bagian atas agar user tahu perlu tap */
-        #_fsOverlay::after {
-            content: '⛶  Tap untuk layar penuh';
-            position: absolute;
-            top: 10px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.65);
-            color: #f5e07a;
-            font-family: Arial, sans-serif;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            padding: 6px 16px;
-            border-radius: 20px;
-            border: 1px solid rgba(212,168,32,0.5);
-            white-space: nowrap;
-            pointer-events: none;
-            animation: _fsBlink 1.5s ease-in-out infinite;
-        }
-        @keyframes _fsBlink {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.4; }
-        }
 
         *, *::before, *::after { box-sizing: border-box; }
         html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
@@ -2556,12 +2525,8 @@ function mintaFullscreen() {
              || el.mozRequestFullScreen
              || el.msRequestFullscreen;
     if (req) {
-        req.call(el).then(() => {
-            // Berhasil fullscreen — kunci orientasi portrait jika bisa
-            try {
-                screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait').catch(()=>{});
-            } catch(e) {}
-        }).catch(() => {
+        req.call(el).catch(() => {
+            // Fallback jika API fullscreen tidak diizinkan: scroll address bar hilang
             window.scrollTo(0, 1);
         });
     } else {
@@ -2572,11 +2537,7 @@ function mintaFullscreen() {
 // Jaga fullscreen tetap aktif jika keluar (mis. notifikasi)
 document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && !_sudahInstallPWA()) {
-        setTimeout(() => window.scrollTo(0, 1), 200);
-    }
-});
-document.addEventListener('webkitfullscreenchange', () => {
-    if (!document.webkitFullscreenElement && !_sudahInstallPWA()) {
+        // Keluar dari fullscreen karena interupsi — scroll fallback
         setTimeout(() => window.scrollTo(0, 1), 200);
     }
 });
@@ -2586,36 +2547,7 @@ document.addEventListener('webkitfullscreenchange', () => {
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
 
-    // ── Buat overlay fullscreen yang muncul sebelum konten apapun ──
-    // Overlay ini transparan, hanya untuk "menangkap" gesture pertama user
-    // agar requestFullscreen() bisa dipanggil secara sinkron di dalam event handler
-    const overlay = document.createElement('div');
-    overlay.id = '_fsOverlay';
-    overlay.style.cssText = `
-        position: fixed; inset: 0; z-index: 2147483647;
-        background: transparent;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: none;
-    `;
-
-    function _aktifkanFS(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        overlay.remove();
-        mintaFullscreen();
-    }
-
-    overlay.addEventListener('click',      _aktifkanFS, { once: true });
-    overlay.addEventListener('touchend',   _aktifkanFS, { once: true, passive: false });
-
-    // Pasang overlay setelah DOM siap
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => document.body.appendChild(overlay));
-    } else {
-        document.body.appendChild(overlay);
-    }
-
-    // Fallback lama — scroll trick (kompatibilitas maksimal)
+    // Saat load: scroll address bar agar tersembunyi (metode paling kompatibel)
     window.addEventListener('load', () => {
         document.body.style.minHeight = (window.screen.height + 1) + 'px';
         setTimeout(() => { window.scrollTo(0, 1); }, 300);
@@ -4034,16 +3966,19 @@ async function simpanDariEditBebas() {
     const savedIndex       = editingIndex;
     const savedSementara   = editingSementara;
 
-    // ── Semua valid — jalankan simpan via simpanData() ──
+    // ── Semua valid — jalankan simpan via simpanData() (await penuh termasuk fbSimpan) ──
     _editBebasMode = false;
     isEditMode = true;
-    const ok = await simpanData();
+    const ok = await simpanData();  // fbSimpan/fbUpdate sudah selesai di sini
     isEditMode = false;
 
     if (!ok) {
         _editBebasMode = true;
         return;
     }
+
+    // ── Pastikan lsSave terakhir mencerminkan _fbKey yang sudah di-set ──
+    await lsSave();
 
     // ── Tutup floating buttons, pulihkan UI ──
     const floatBtns = document.getElementById('floatingEditBtns');
@@ -4058,12 +3993,19 @@ async function simpanDariEditBebas() {
 
     // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
     showData(); // update tabel internal dulu
-    const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
+
+    // Ambil index yang valid — gunakan savedIndex jika data bukan sementara
+    // Data di dataBukuTamu[savedIndex] sekarang sudah memiliki _fbKey yang ter-update
+    const pdfIndex = (!savedSementara && savedIndex >= 0 && savedIndex < dataBukuTamu.length)
+        ? savedIndex
+        : dataBukuTamu.length - 1;
+
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        exportDetailPerTamuPDF(pdfIndex);
+        // Tunggu sebentar agar Firebase selesai menulis sebelum membuat PDF + notifikasi
+        setTimeout(() => { exportDetailPerTamuPDF(pdfIndex); }, 300);
     }
     // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
-    setTimeout(() => { goToWelcome(); }, 800);
+    setTimeout(() => { goToWelcome(); }, 1100);
 }
 
 function selesaiEditBebas() {
@@ -4252,15 +4194,31 @@ async function simpanData() {
             formData._sementara = true;
             formData._fbKey = fbKey;
             dataTamuSementara[editingIndex] = formData;
-            if (fbKey) await fbUpdate(fbKey, formData, true);
+            if (fbKey) {
+                await fbUpdate(fbKey, formData, true);
+            } else {
+                // Belum ada di Firebase → simpan sebagai entri baru
+                const newFbKey = await fbSimpan(formData, true);
+                if (newFbKey) dataTamuSementara[editingIndex]._fbKey = newFbKey;
+            }
         } else {
-            const fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
+            const localIdx = editingIndex; // simpan index sebelum resetFormComplete mereset
+            const fbKey = dataBukuTamu[localIdx]?._fbKey || null;
             formData._fbKey = fbKey;
-            dataBukuTamu[editingIndex] = formData;
-            if (fbKey) await fbUpdate(fbKey, formData, false);
+            dataBukuTamu[localIdx] = formData;
+            if (fbKey) {
+                await fbUpdate(fbKey, formData, false);
+            } else {
+                // Belum ada di Firebase → simpan sebagai entri baru dan set _fbKey
+                const newFbKey = await fbSimpan(formData, false);
+                if (newFbKey) dataBukuTamu[localIdx]._fbKey = newFbKey;
+            }
         }
     } else {
         dataBukuTamu.push(formData);
+        // Simpan ke Firebase dan assign _fbKey (konsisten dengan alur sementara)
+        const newFbKey = await fbSimpan(formData, false);
+        if (newFbKey) dataBukuTamu[dataBukuTamu.length - 1]._fbKey = newFbKey;
     }
     updateDataCounter();
     await lsSave();
@@ -4454,12 +4412,12 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
-    await lsSave();
-    // Unduh PDF detail per tamu
+    await lsSave(); // simpan setelah _fbKey ter-assign
+    // Unduh PDF detail per tamu — delay agar Firebase selesai menulis & _fbKey tersedia
     const finalIndex = dataBukuTamu.length - 1;
-    exportDetailPerTamuPDF(finalIndex);
-    // Kembali ke halaman selamat datang
-    setTimeout(() => { goToWelcome(); }, 800);
+    setTimeout(() => { exportDetailPerTamuPDF(finalIndex); }, 300);
+    // Kembali ke halaman selamat datang setelah PDF selesai
+    setTimeout(() => { goToWelcome(); }, 1100);
 }
 
 async function hapusSementara(sIndex) {
