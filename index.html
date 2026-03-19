@@ -6438,6 +6438,67 @@ document.addEventListener('touchmove', function(e) {
 }, { passive: false });
 
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
+
+// ══════════════════════════════════════════════════════
+// KEYBOARD VIRTUAL HP — pageScroller menyesuaikan tinggi
+// ══════════════════════════════════════════════════════
+(function() {
+    const scroller = document.getElementById('pageScroller');
+    if (!scroller) return;
+
+    function terapkanTinggi(vv) {
+        // Gunakan tinggi visual viewport (area yg terlihat di luar keyboard)
+        const tinggiVisible = vv.height;
+        const offsetTop = vv.offsetTop || 0;
+        scroller.style.position = 'fixed';
+        scroller.style.top    = offsetTop + 18 + 'px';
+        scroller.style.bottom = 'auto';
+        scroller.style.height = (tinggiVisible - 36) + 'px';   // 18px atas + 18px bawah (bingkai)
+        scroller.style.overflowY = 'auto';
+    }
+
+    function resetTinggi() {
+        scroller.style.position = '';
+        scroller.style.top    = '18px';
+        scroller.style.bottom = '18px';
+        scroller.style.height = '';
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function() {
+            // Jika tinggi viewport mengecil = keyboard muncul
+            if (window.visualViewport.height < window.innerHeight * 0.75) {
+                terapkanTinggi(window.visualViewport);
+                // Scroll ke elemen yang sedang difokus agar tetap terlihat
+                const focused = document.activeElement;
+                if (focused && focused !== document.body) {
+                    setTimeout(function() {
+                        focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 150);
+                }
+            } else {
+                resetTinggi();
+            }
+        });
+
+        window.visualViewport.addEventListener('scroll', function() {
+            if (window.visualViewport.height < window.innerHeight * 0.75) {
+                terapkanTinggi(window.visualViewport);
+            }
+        });
+    } else {
+        // Fallback untuk browser lama: pakai focus/blur pada input & textarea
+        function onFocus() {
+            setTimeout(function() {
+                const el = document.activeElement;
+                if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 350);
+        }
+        document.addEventListener('focusin', onFocus, true);
+    }
+})();
 </script>
 </div><!-- /pageScroller -->
 </body>
