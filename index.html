@@ -3991,10 +3991,27 @@ async function simpanDariEditBebas() {
     // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
     showData(); // update tabel internal dulu
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
+
+    // ── Pastikan _fbKey tersedia sebelum PDF/WA dikirim ──
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        exportDetailPerTamuPDF(pdfIndex);
+        (async () => {
+            const editedData = dataBukuTamu[pdfIndex];
+            if (!editedData._fbKey) {
+                for (let att = 1; att <= 3 && !editedData._fbKey; att++) {
+                    if (att > 1) await new Promise(r => setTimeout(r, 1500 * (att - 1)));
+                    if (!fbDb) {
+                        try {
+                            if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+                            fbDb = firebase.database();
+                        } catch(e) { continue; }
+                    }
+                    const k = await fbSimpanKeDataFinal(editedData);
+                    if (k) { editedData._fbKey = k; break; }
+                }
+            }
+            exportDetailPerTamuPDF(pdfIndex);
+        })();
     }
-    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
     setTimeout(() => { goToWelcome(); }, 800);
 }
 
@@ -4393,25 +4410,65 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     const fbKeySementara = data._fbKey || null;
     delete data._sementara;
 
-    // Pindahkan ke dataFinal di Firebase (hapus dari dataSementara, push ke dataFinal)
+    // ── Langkah 1: Pindahkan ke dataFinal di Firebase ──
     const newFbKey = await fbPindahKeFinal(fbKeySementara, data);
     if (newFbKey) {
-        data._fbKey = newFbKey;        // pakai key baru di dataFinal
+        data._fbKey = newFbKey;        // sukses pindah ke dataFinal ✓
     } else if (fbKeySementara) {
-        data._fbKey = fbKeySementara;  // fallback: key lama di dataSementara masih valid
-    } else {
-        delete data._fbKey;
+        data._fbKey = fbKeySementara;  // pindah gagal, tapi key sementara masih ada
+    }
+    // Jika masih belum punya key, coba simpan langsung ke dataFinal
+    if (!data._fbKey && fbDb) {
+        const directKey = await fbSimpanKeDataFinal(data);
+        if (directKey) data._fbKey = directKey;
     }
 
+    // ── Langkah 2: Jika MASIH belum ada key, tunggu & retry (maks 3x) ──
+    // Ini menangani kondisi: Firebase lambat, koneksi putus sebentar, dll.
+    for (let attempt = 1; attempt <= 3 && !data._fbKey; attempt++) {
+        tampilStatusSync('⏳ Mencoba simpan ke server... (' + attempt + '/3)', '#e67e22');
+        await new Promise(r => setTimeout(r, 1500 * attempt)); // tunggu 1.5s, 3s, 4.5s
+        if (!fbDb) {
+            // Coba inisialisasi ulang Firebase
+            try {
+                if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+                fbDb = firebase.database();
+            } catch(e) { continue; }
+        }
+        const retryKey = await fbSimpanKeDataFinal(data);
+        if (retryKey) {
+            data._fbKey = retryKey;
+            break;
+        }
+    }
+
+    // ── Langkah 3: Simpan ke array lokal & localStorage ──
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
-    // Unduh PDF detail per tamu
+
+    // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
     const finalIndex = dataBukuTamu.length - 1;
     exportDetailPerTamuPDF(finalIndex);
-    // Kembali ke halaman selamat datang
     setTimeout(() => { goToWelcome(); }, 800);
+}
+
+// ── Helper: simpan langsung ke dataFinal, return key atau null ──
+async function fbSimpanKeDataFinal(formData) {
+    if (!fbDb) return null;
+    try {
+        const dataKirim = await _fbKompresData(formData);
+        _fbOnWrites++;
+        const ref = fbDb.ref('bukuTamu/dataFinal').push();
+        await ref.set(dataKirim);
+        tampilStatusSync('✅ Data tersimpan di server', '#27ae60');
+        return ref.key;
+    } catch(e) {
+        _fbOnWrites = Math.max(0, _fbOnWrites - 1);
+        console.warn('[fbSimpanKeDataFinal] error:', e);
+        return null;
+    }
 }
 
 async function hapusSementara(sIndex) {
