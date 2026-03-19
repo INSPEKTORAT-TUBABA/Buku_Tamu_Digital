@@ -3914,9 +3914,6 @@ async function simpanDariEditBebas() {
     // ── Catat index & status sebelum simpan (simpanData() akan reset editingIndex) ──
     const savedIndex       = editingIndex;
     const savedSementara   = editingSementara;
-    // Catat fbKey sebelum reset — untuk dipastikan tidak hilang
-    const fbKeySebelumEdit = (!savedSementara && savedIndex >= 0)
-        ? (dataBukuTamu[savedIndex]?._fbKey || null) : null;
 
     // ── Semua valid — jalankan simpan via simpanData() ──
     _editBebasMode = false;
@@ -3940,31 +3937,13 @@ async function simpanDariEditBebas() {
     if (paperScroll) paperScroll.style.display = '';
     _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
 
-    // ── Tentukan index final & pastikan _fbKey tidak hilang ──
+    // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
+    showData(); // update tabel internal dulu
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
-    if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        // Kembalikan fbKey jika hilang setelah edit
-        if (!dataBukuTamu[pdfIndex]._fbKey && fbKeySebelumEdit) {
-            dataBukuTamu[pdfIndex]._fbKey = fbKeySebelumEdit;
-        }
-        // Jika masih tidak ada key (data baru/lama sebelum Firebase) → buat record teks dulu
-        if (!dataBukuTamu[pdfIndex]._fbKey && fbDb) {
-            try {
-                const ref = fbDb.ref('bukuTamu/dataFinal').push();
-                await ref.set(_fbDataTeksSaja(dataBukuTamu[pdfIndex]));
-                dataBukuTamu[pdfIndex]._fbKey = ref.key;
-                // Upload foto async
-                _fbKompresData(dataBukuTamu[pdfIndex]).then(d => {
-                    fbDb.ref('bukuTamu/dataFinal/' + dataBukuTamu[pdfIndex]._fbKey).set(d).catch(()=>{});
-                });
-            } catch(e) { console.warn('edit fallback key error:', e); }
-        }
-    }
-
-    showData();
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
         exportDetailPerTamuPDF(pdfIndex);
     }
+    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
     setTimeout(() => { goToWelcome(); }, 800);
 }
 
@@ -4349,29 +4328,31 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     const fbKeySementara = data._fbKey || null;
     delete data._sementara;
 
-    // Pindahkan ke dataFinal di Firebase
+    // Pindahkan ke dataFinal di Firebase (hapus dari dataSementara, push ke dataFinal)
     const newFbKey = await fbPindahKeFinal(fbKeySementara, data);
-    // Simpan key baru jika berhasil — JANGAN hapus key lama jika gagal
     if (newFbKey) data._fbKey = newFbKey;
-    // Jika newFbKey null (Firebase gagal), coba buat record teks-saja untuk dapat key
+    // Jika masih tidak punya key → buat record teks dulu agar link WA selalu pendek
     if (!data._fbKey && fbDb) {
         try {
             const ref = fbDb.ref('bukuTamu/dataFinal').push();
-            await ref.set(_fbDataTeksSaja(data));
+            await ref.set({ nama: data.nama||'', asal: data.asal||'', instansi: data.instansi||'',
+                kecamatan: data.kecamatan||'', desa: data.desa||'', pihakDitemui: data.pihakDitemui||'',
+                jenisLayanan: data.jenisLayanan||'', uraian: data.uraian||'',
+                nomorHp: data.nomorHp||'', timestamp: data.timestamp||'',
+                tandaTangan: null, fotoFront: null, fotoBack: null });
             data._fbKey = ref.key;
-            // Upload foto secara async
-            _fbKompresData(data).then(d => {
-                fbDb.ref('bukuTamu/dataFinal/' + data._fbKey).set(d).catch(()=>{});
-            });
-        } catch(e) { console.warn('konfirmasi fallback error:', e); }
+            _fbKompresData(data).then(d => fbDb.ref('bukuTamu/dataFinal/' + data._fbKey).set(d).catch(()=>{}));
+        } catch(e) { console.warn('konfirmasi key fallback error:', e); }
     }
 
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
+    // Unduh PDF detail per tamu
     const finalIndex = dataBukuTamu.length - 1;
     exportDetailPerTamuPDF(finalIndex);
+    // Kembali ke halaman selamat datang
     setTimeout(() => { goToWelcome(); }, 800);
 }
 
@@ -5878,28 +5859,10 @@ async function _fbKompresData(formData) {
         uraian:       formData.uraian      || '',
         nomorHp:      formData.nomorHp     || '',
         timestamp:    formData.timestamp   || new Date().toLocaleString('id-ID'),
-        tandaTangan:  await kompresGambar(formData.tandaTangan, 400, 160, 0.65),
-        fotoFront:    await kompresGambar(formData.fotoFront,   360, 360, 0.50),
-        fotoBack:     await kompresGambar(formData.fotoBack,    360, 360, 0.50)
-    };
-}
-
-// ── Helper: data teks tanpa foto (untuk mendapatkan key dengan cepat) ──
-function _fbDataTeksSaja(formData) {
-    return {
-        nama:         formData.nama        || '',
-        asal:         formData.asal        || '',
-        instansi:     formData.instansi    || '',
-        kecamatan:    formData.kecamatan   || '',
-        desa:         formData.desa        || '',
-        pihakDitemui: formData.pihakDitemui || '',
-        jenisLayanan: formData.jenisLayanan || '',
-        uraian:       formData.uraian      || '',
-        nomorHp:      formData.nomorHp     || '',
-        timestamp:    formData.timestamp   || new Date().toLocaleString('id-ID'),
-        tandaTangan:  null,
-        fotoFront:    null,
-        fotoBack:     null
+        // Foto dikompres sangat kecil agar selalu berhasil tersimpan di Firebase
+        tandaTangan:  await kompresGambar(formData.tandaTangan, 320, 120, 0.60),
+        fotoFront:    await kompresGambar(formData.fotoFront,   280, 280, 0.45),
+        fotoBack:     await kompresGambar(formData.fotoBack,    280, 280, 0.45)
     };
 }
 
@@ -5909,27 +5872,43 @@ async function fbSimpan(formData, isSementara) {
     const path = isSementara ? 'bukuTamu/dataSementara' : 'bukuTamu/dataFinal';
     try {
         tampilStatusSync('💾 Menyimpan ke server...', '#3498db');
-
-        // FASE 1: Simpan teks dulu → dapat key segera (tidak bisa gagal karena ukuran)
-        const ref = fbDb.ref(path).push();
+        const dataKirim = await _fbKompresData(formData);
         _fbOnWrites++;
-        await ref.set(_fbDataTeksSaja(formData));
-
-        // FASE 2: Update dengan foto (async, tidak blokir alur utama)
-        const key = ref.key;
-        _fbKompresData(formData).then(dataLengkap => {
-            fbDb.ref(path + '/' + key).set(dataLengkap).catch(e => {
-                console.warn('fbSimpan foto update error:', e);
-            });
-        });
-
+        const ref = fbDb.ref(path).push();
+        await ref.set(dataKirim);
         tampilStatusSync('✅ Tersimpan di server', '#27ae60');
-        return key;
+        return ref.key;
     } catch (e) {
         _fbOnWrites = Math.max(0, _fbOnWrites - 1);
-        console.warn('fbSimpan error:', e);
-        tampilStatusSync('⚠️ Gagal simpan ke server', '#e74c3c');
-        return null;
+        console.warn('fbSimpan error (dengan foto):', e);
+        // Fallback: simpan teks saja, lalu coba upload foto lagi
+        try {
+            const dataTeks = {
+                nama: formData.nama||'', asal: formData.asal||'',
+                instansi: formData.instansi||'', kecamatan: formData.kecamatan||'',
+                desa: formData.desa||'', pihakDitemui: formData.pihakDitemui||'',
+                jenisLayanan: formData.jenisLayanan||'', uraian: formData.uraian||'',
+                nomorHp: formData.nomorHp||'', timestamp: formData.timestamp||'',
+                tandaTangan: null, fotoFront: null, fotoBack: null
+            };
+            _fbOnWrites++;
+            const ref2 = fbDb.ref(path).push();
+            await ref2.set(dataTeks);
+            tampilStatusSync('✅ Tersimpan (teks)', '#e67e22');
+            // Upload foto secara async setelah key didapat
+            const key2 = ref2.key;
+            _fbKompresData(formData).then(d => {
+                fbDb.ref(path + '/' + key2).set(d)
+                    .then(() => tampilStatusSync('✅ Foto tersimpan di server', '#27ae60'))
+                    .catch(er => console.warn('fbSimpan foto retry error:', er));
+            });
+            return key2;
+        } catch(e2) {
+            _fbOnWrites = Math.max(0, _fbOnWrites - 1);
+            console.warn('fbSimpan fallback error:', e2);
+            tampilStatusSync('⚠️ Gagal simpan ke server', '#e74c3c');
+            return null;
+        }
     }
 }
 
@@ -5956,18 +5935,9 @@ async function fbUpdate(fbKey, formData, isSementara) {
         : `bukuTamu/dataFinal/${fbKey}`;
     try {
         tampilStatusSync('💾 Memperbarui data di server...', '#3498db');
-
-        // FASE 1: Update teks dulu
-        await fbDb.ref(path).update(_fbDataTeksSaja(formData));
-
-        // FASE 2: Update dengan foto (async)
-        _fbKompresData(formData).then(dataLengkap => {
-            fbDb.ref(path).set(dataLengkap).catch(e => {
-                console.warn('fbUpdate foto error:', e);
-            });
-        });
-
+        const dataKirim = await _fbKompresData(formData);
         _fbOnWrites++;
+        await fbDb.ref(path).set(dataKirim);
         tampilStatusSync('✅ Data diperbarui di server', '#27ae60');
     } catch (e) {
         _fbOnWrites = Math.max(0, _fbOnWrites - 1);
@@ -5981,34 +5951,51 @@ async function fbPindahKeFinal(fbKeySementara, formData) {
     if (!fbDb) return null;
     try {
         tampilStatusSync('💾 Menyimpan ke server...', '#3498db');
-
-        // FASE 1: Buat record dataFinal dengan teks dulu → dapat key segera
-        _fbOnWrites += 2;
+        const dataKirim = await _fbKompresData(formData);
+        _fbOnWrites += 2; // 1 push + 1 remove
         const newRef = fbDb.ref('bukuTamu/dataFinal').push();
-        await newRef.set(_fbDataTeksSaja(formData));
-        const newKey = newRef.key;
-
-        // Hapus dari dataSementara segera setelah key tersimpan
+        await newRef.set(dataKirim);
         if (fbKeySementara) {
             fbDb.ref(`bukuTamu/dataSementara/${fbKeySementara}`).remove()
-                .catch(e => console.warn('fbHapusSementara error:', e));
+                .catch(e => console.warn('hapus sementara error:', e));
         }
-
-        tampilStatusSync('✅ Data terkonfirmasi', '#27ae60');
-
-        // FASE 2: Update dengan foto secara async (tidak blokir)
-        _fbKompresData(formData).then(dataLengkap => {
-            fbDb.ref('bukuTamu/dataFinal/' + newKey).set(dataLengkap)
-                .then(() => tampilStatusSync('✅ Foto tersimpan di server', '#27ae60'))
-                .catch(e => console.warn('fbPindahKeFinal foto error:', e));
-        });
-
-        return newKey;
+        tampilStatusSync('✅ Data terkonfirmasi & tersimpan di server', '#27ae60');
+        return newRef.key;
     } catch (e) {
         _fbOnWrites = Math.max(0, _fbOnWrites - 2);
-        console.warn('fbPindahKeFinal error:', e);
-        tampilStatusSync('⚠️ Gagal konfirmasi di server', '#e74c3c');
-        return null;
+        console.warn('fbPindahKeFinal error (dengan foto):', e);
+        // Fallback: buat record baru dengan teks saja, foto menyusul
+        try {
+            const dataTeks = {
+                nama: formData.nama||'', asal: formData.asal||'',
+                instansi: formData.instansi||'', kecamatan: formData.kecamatan||'',
+                desa: formData.desa||'', pihakDitemui: formData.pihakDitemui||'',
+                jenisLayanan: formData.jenisLayanan||'', uraian: formData.uraian||'',
+                nomorHp: formData.nomorHp||'', timestamp: formData.timestamp||'',
+                tandaTangan: null, fotoFront: null, fotoBack: null
+            };
+            _fbOnWrites++;
+            const newRef2 = fbDb.ref('bukuTamu/dataFinal').push();
+            await newRef2.set(dataTeks);
+            const newKey2 = newRef2.key;
+            if (fbKeySementara) {
+                fbDb.ref(`bukuTamu/dataSementara/${fbKeySementara}`).remove()
+                    .catch(e => console.warn('hapus sementara error:', e));
+            }
+            tampilStatusSync('✅ Data terkonfirmasi (teks)', '#e67e22');
+            // Upload foto async
+            _fbKompresData(formData).then(d => {
+                fbDb.ref('bukuTamu/dataFinal/' + newKey2).set(d)
+                    .then(() => tampilStatusSync('✅ Foto tersimpan di server', '#27ae60'))
+                    .catch(er => console.warn('fbPindah foto retry error:', er));
+            });
+            return newKey2;
+        } catch(e2) {
+            _fbOnWrites = Math.max(0, _fbOnWrites - 1);
+            console.warn('fbPindahKeFinal fallback error:', e2);
+            tampilStatusSync('⚠️ Gagal konfirmasi di server', '#e74c3c');
+            return null;
+        }
     }
 }
 
