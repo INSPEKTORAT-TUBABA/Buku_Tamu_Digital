@@ -104,8 +104,6 @@
                 0 0 22px 6px rgba(212, 168, 32, 0.30);
             pointer-events: none;
             z-index: 99999;
-            /* Promote ke layer GPU sendiri agar tidak memicu repaint seluruh halaman */
-            will-change: transform;
         }
 
         /* Layer 2 – garis dalam halus */
@@ -120,7 +118,6 @@
             pointer-events: none;
             z-index: 99998;
             border-radius: 2px;
-            will-change: transform;
         }
 
         /* ── Ornamen sudut dekoratif ── */
@@ -189,19 +186,9 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            will-change: contents; /* hint browser: layer terpisah */
         }
 
-        #logoCanvas3D {
-            position: relative;
-            display: block;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 16px auto;
-            opacity: 0;
-            border-radius: 8px;
-            will-change: transform; /* GL canvas di layer GPU sendiri */
-        }        /* Nebula overlay layers */
+        /* Nebula overlay layers */
         #welcomePage::before {
             content: '';
             position: absolute;
@@ -300,24 +287,6 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ── Matikan animasi berat di HP kecil / prefers-reduced-motion ── */
-        @media (max-width: 600px) {
-            #welcomePage::before { animation: none !important; }
-            .welcome-title       { animation: none !important; text-shadow: 0 0 10px rgba(100,180,255,0.4); }
-            .welcome-subtitle strong { animation: none !important; filter: drop-shadow(0 0 15px rgba(212,168,32,0.4)); }
-            .btn-start           { animation: none !important; }
-            /* Matikan drop-shadow animasi (titleShine) di HP — filter animasi sangat mahal */
-            @keyframes titleShine {
-                from { filter: none; }
-                to   { filter: none; }
-            }
-            /* Kurangi drop-shadow logo 3D di HP */
-            #logoCanvas3D { filter: drop-shadow(0 0 8px rgba(212,168,32,0.4)); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-        }
-
         /* Logo glow ring */
         /* Logo glow ring */
         #logoCanvas3D {
@@ -339,7 +308,8 @@
             border-radius: 50px;
             cursor: pointer;
             letter-spacing: clamp(0.04em, 1vw, 0.08em);
-            /* backdrop-filter dihapus — sangat berat di HP */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             box-shadow:
                 0 0 0 1px rgba(212,168,32,0.20),
                 0 8px 32px rgba(13,31,69,0.50),
@@ -407,8 +377,6 @@
                 0 20px 60px rgba(13,31,69,0.12),
                 0 0 0 1px rgba(212,168,32,0.35);
             overflow: hidden;
-            /* Isolasi repaint agar tidak menyebar ke seluruh halaman */
-            contain: layout style;
         }
 
         #mainApp::before {
@@ -885,11 +853,12 @@
             from {
                 opacity: 0;
                 transform: translateX(18px);
-                /* filter: blur dihapus — sangat mahal di HP */
+                filter: blur(3px);
             }
             to {
                 opacity: 1;
                 transform: translateX(0);
+                filter: blur(0);
             }
         }
 
@@ -978,9 +947,9 @@
         .op-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(5, 8, 30, 0.75);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             animation: opFadeIn 0.35s ease both;
         }
         @keyframes opFadeIn {
@@ -994,9 +963,6 @@
             z-index: 1;
             width: 100%;
             max-width: 680px;
-            /* Paksa panel selalu mengisi 85% layar dari bawah */
-            height: 85dvh;
-            height: 85vh;
             max-height: 96dvh;
             max-height: 96vh;
             display: flex;
@@ -1079,7 +1045,6 @@
         /* ── Body ── */
         .op-body {
             flex: 1;
-            min-height: 0; /* penting: tanpa ini flex child tidak bisa scroll di beberapa browser */
             overflow-y: auto;
             padding: 14px 14px 10px;
             -webkit-overflow-scrolling: touch;
@@ -1464,8 +1429,8 @@
             to   { opacity:1; transform: scale(1); }
         }
     </style>
-    <!-- Three.js untuk logo 3D berputar — defer agar tidak block parse HTML -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <!-- Three.js untuk logo 3D berputar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Firebase dimuat dengan defer karena tidak dibutuhkan segera -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" defer></script>
@@ -1485,7 +1450,17 @@
         document.head.appendChild(s1);
     }
     </script>
-    <!-- style #logoCanvas3D sudah dipindahkan ke blok CSS utama -->
+    <style>
+        #logoCanvas3D {
+            position: relative;
+            display: block;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 16px auto;
+            opacity: 0;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 
 <body>
@@ -1542,9 +1517,8 @@
         if (!c3) return;
         const isMobile = window.innerWidth < 600;
 
-        // HP: matikan antialias & batasi pixelRatio ke 1 agar hemat GPU
-        const logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: !isMobile, alpha: true });
-        logoR.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+        const logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: true, alpha: true });
+        logoR.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         logoR.setSize(SIZE, SIZE);
         logoR.setClearColor(0x000000, 0);
 
@@ -1630,9 +1604,8 @@
             rg.translate(0, 0, -(HD*0.70));
             logoGrp.add(new THREE.Mesh(rg, edgD));
 
-            // Bintang background — kurangi di HP
-            const starCount3D = isMobile ? 300 : 1000;
-            const sv = new Float32Array(starCount3D * 3);
+            // Bintang background
+            const sv = new Float32Array(1000 * 3);
             for (let i = 0; i < sv.length; i++) sv[i] = (Math.random()-0.5)*150;
             const sgg = new THREE.BufferGeometry();
             sgg.setAttribute('position', new THREE.BufferAttribute(sv, 3));
@@ -1647,16 +1620,8 @@
             logoGrp.rotation.x = 0.12;
             let logoAng = 0, logoLast = performance.now(), logoGT2 = 0;
             let _logoRAF = null;
-            // HP: throttle ke 30fps agar tidak berebut CPU dengan canvas bintang
-            const _logoFrameInterval = isMobile ? 33 : 0;
-            let _logoLastRender = 0;
 
             (function logoRender(now) {
-                if (isMobile && now - _logoLastRender < _logoFrameInterval) {
-                    _logoRAF = requestAnimationFrame(logoRender);
-                    return;
-                }
-                _logoLastRender = now;
                 const dt = (now - logoLast) / 1000; logoLast = now;
                 logoAng += dt * (Math.PI * 2 / 22);
                 logoGT2 += dt;
@@ -1673,6 +1638,58 @@
     }
 })();
 </script>
+
+<!-- ══ FLOATING EDIT BUTTONS OVERLAY — dipindah ke body agar tidak ter-clip ══ -->
+<div id="floatingEditBtns" style="
+    display: none;
+    position: fixed;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 99990;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+">
+    <button type="button" onclick="simpanDariEditBebas()" style="
+        width: 62px; height: 62px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a6e2a, #27ae60);
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.45);
+        font-size: 0.68em;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(39,174,96,0.45), 0 0 0 3px rgba(39,174,96,0.18);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2px;
+        transition: all 0.2s;
+    " onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+        <span style="font-size:1.5em;">💾</span>
+        <span>Simpan</span>
+    </button>
+    <button type="button" onclick="batalEditBebas()" style="
+        width: 62px; height: 62px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7b0000, #c0392b);
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.25);
+        font-size: 0.68em;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(120,0,0,0.35), 0 0 0 3px rgba(192,57,43,0.18);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2px;
+        transition: all 0.2s;
+    " onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+        <span style="font-size:1.5em;">✕</span>
+        <span>Batal</span>
+    </button>
+</div>
 
 <!-- Scroller di dalam bingkai emas -->
 <div id="pageScroller">
@@ -1909,59 +1926,6 @@
 
     <div id="editModeButtons" style="display:none;"><!-- placeholder lama, tidak dipakai --></div>
 
-    <!-- ══ FLOATING EDIT BUTTONS OVERLAY ══ -->
-    <div id="floatingEditBtns" style="
-        display: none;
-        position: fixed;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 99990;
-        display: none;
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
-    ">
-        <button type="button" onclick="simpanDariEditBebas()" style="
-            width: 62px; height: 62px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1a6e2a, #27ae60);
-            color: #fff;
-            border: 2px solid rgba(255,255,255,0.45);
-            font-size: 0.68em;
-            font-weight: 800;
-            letter-spacing: 0.03em;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(39,174,96,0.45), 0 0 0 3px rgba(39,174,96,0.18);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 2px;
-            transition: all 0.2s;
-        " onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-            <span style="font-size:1.5em;">💾</span>
-            <span>Simpan</span>
-        </button>
-        <button type="button" onclick="batalEditBebas()" style="
-            width: 62px; height: 62px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #7b0000, #c0392b);
-            color: #fff;
-            border: 2px solid rgba(255,255,255,0.25);
-            font-size: 0.68em;
-            font-weight: 800;
-            letter-spacing: 0.03em;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(120,0,0,0.35), 0 0 0 3px rgba(192,57,43,0.18);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 2px;
-            transition: all 0.2s;
-        " onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-            <span style="font-size:1.5em;">✕</span>
-            <span>Batal</span>
-        </button>
-    </div>
-
     <div id="mainNavigation">
         <button onclick="showData()" id="btnData" style="display:none;">📊 Lihat Data (<span id="dataCount">0</span>)</button>
         <button onclick="exportData()" id="btnExport" style="display:none;">📑 Export Tabel Ringkasan</button>
@@ -2141,9 +2105,7 @@ resizeSpaceCanvas();
 window.addEventListener('resize', resizeSpaceCanvas);
 
 // ── Bintang ──
-// HP: kurangi jumlah bintang & nonaktifkan glow untuk hemat GPU
-const _isMobileDevice = window.innerWidth < 600;
-const STAR_COUNT  = _isMobileDevice ? 60 : 220;
+const STAR_COUNT  = window.innerWidth < 600 ? 100 : 320;
 const stars = Array.from({ length: STAR_COUNT }, () => ({
     x: Math.random(),
     y: Math.random(),
@@ -2155,7 +2117,7 @@ const stars = Array.from({ length: STAR_COUNT }, () => ({
     alpha: 0.3 + Math.random() * 0.7,
     twinkleSpeed: 0.4 + Math.random() * 2.0,
     twinklePhase: Math.random() * Math.PI * 2,
-    glow: _isMobileDevice ? false : Math.random() > 0.85,  // nonaktifkan glow di HP
+    glow: Math.random() > 0.85,  // bintang besar dengan glow
 }));
 
 // ── Planet kecil ──
@@ -2194,20 +2156,9 @@ const shimmer = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 let animTime = 0;
-let _spaceRunning = false; // flag untuk menghentikan loop
 
 function drawSpace() {
-    if (!_spaceRunning) return; // berhenti jika flag dimatikan
     const W = canvas.width, H = canvas.height;
-    // Di HP: throttle ke ~30fps agar hemat baterai
-    if (_isMobileDevice) {
-        const now = performance.now();
-        if (!drawSpace._lastTime || now - drawSpace._lastTime < 33) {
-            requestAnimationFrame(drawSpace);
-            return;
-        }
-        drawSpace._lastTime = now;
-    }
     animTime += 0.016;
 
     // Clear
@@ -2228,8 +2179,7 @@ function drawSpace() {
             ctx.arc(sx, sy, s.r * 5, 0, Math.PI * 2);
             ctx.fill();
         }
-        // Di HP: skip shadowBlur (sangat mahal di GPU mobile)
-        ctx.shadowBlur  = (s.glow && !_isMobileDevice) ? 12 : 0;
+        ctx.shadowBlur = s.glow ? 12 : 4;
         ctx.shadowColor = `hsla(${s.hue},${s.sat}%,${s.bright}%,${alpha * 0.8})`;
         ctx.fillStyle   = `hsla(${s.hue},${s.sat}%,${s.bright}%,${alpha})`;
         ctx.beginPath();
@@ -2238,8 +2188,7 @@ function drawSpace() {
     }
     ctx.shadowBlur = 0;
 
-    // ── Planet (skip di HP untuk hemat GPU) ──
-    if (!_isMobileDevice) {
+    // ── Planet ──
     for (const p of PLANETS) {
         const px = p.x * W, py = p.y * H;
         // Glow halo
@@ -2270,7 +2219,6 @@ function drawSpace() {
             ctx.restore();
         }
     }
-    } // end if (!_isMobileDevice) — planet
 
     // ── Meteor ──
     for (let i = meteors.length - 1; i >= 0; i--) {
@@ -2311,16 +2259,11 @@ function drawSpace() {
     requestAnimationFrame(drawSpace);
 }
 
-function _startSpaceAnim() {
-    if (_spaceRunning) return;
-    _spaceRunning = true;
-    requestAnimationFrame(drawSpace);
-}
-function _stopSpaceAnim() {
-    _spaceRunning = false;
-}
+let _spaceRAF = null;
+function _startSpaceAnim() { if(!_spaceRAF) { _spaceRAF = requestAnimationFrame(function loop(){ drawSpace(); _spaceRAF = requestAnimationFrame(loop); }); } }
+function _stopSpaceAnim()  { if(_spaceRAF) { cancelAnimationFrame(_spaceRAF); _spaceRAF = null; } }
 
-_startSpaceAnim(); // mulai animasi welcome page
+drawSpace();
 
 function sembunyikanWelcome() {
     var wp = document.getElementById('welcomePage');
@@ -2341,7 +2284,7 @@ function tampilkanWelcome() {
     wp.style.zIndex = '';
     wp.style.pointerEvents = '';
     if (window._startLogoAnim) window._startLogoAnim();
-    _startSpaceAnim();
+    drawSpace();
 }
 
 // ── Cek apakah URL mengandung ?tamu= (link dari WA) ──
@@ -2512,8 +2455,6 @@ async function buatDataUntukStorage(arr) {
 }
 
 async function lsSave() {
-    // Jalankan kompresi di background agar tidak membekukan UI
-    await new Promise(resolve => setTimeout(resolve, 0));
     try {
         const compressed = await buatDataUntukStorage(dataBukuTamu);
         localStorage.setItem(LS_KEY_FINAL, JSON.stringify(compressed));
@@ -2615,15 +2556,9 @@ document.addEventListener('fullscreenchange', () => {
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     signatureCanvas = document.getElementById('signature-pad');
-    // willReadFrequently: hint ke browser bahwa getImageData sering dipanggil → hemat overhead
-    ctx2 = signatureCanvas.getContext('2d', { willReadFrequently: true });
+    ctx2 = signatureCanvas.getContext('2d');
     attachSignatureEvents();
-    // Debounce resize agar tidak jalan setiap pixel perubahan ukuran keyboard
-    let _resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(resizeCanvas, 150);
-    });
+    window.addEventListener('resize', resizeCanvas);
 });
 
 function attachSignatureEvents() {
@@ -3558,8 +3493,7 @@ async function _runFaceDetectionLoop() {
         if (overlay) { const c = overlay.getContext('2d'); c.clearRect(0,0,overlay.width,overlay.height); }
         const status = document.getElementById('faceStatus');
         if (status) status.style.display = 'none';
-        // Throttle: cek lagi setelah 500ms (tidak perlu 60fps untuk ini)
-        _faceDetectRAF = setTimeout(() => requestAnimationFrame(_runFaceDetectionLoop), 500);
+        _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
         return;
     }
 
@@ -3607,8 +3541,7 @@ async function _runFaceDetectionLoop() {
 
     _updateFaceStatus(_faceFound);
     _setCaptureEnabled(_faceFound);
-    // Throttle: proses deteksi wajah hanya 2x per detik (hemat CPU/baterai)
-    _faceDetectRAF = setTimeout(() => requestAnimationFrame(_runFaceDetectionLoop), 500);
+    _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
 }
 
 async function initCamera(facing) {
@@ -3676,7 +3609,7 @@ async function capture() {
     ctxCap.fillStyle = '#ffffff';
     ctxCap.fillRect(0, 0, canvas.width, canvas.height);
     ctxCap.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
     // Mode target tunggal (edit mode — hanya depan atau belakang)
     if (_fotoTarget === 'depan') {
@@ -4058,7 +3991,7 @@ async function simpanDariEditBebas() {
     showData(); // update tabel internal dulu
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        exportDetailPerTamuPDF(pdfIndex);
+        exportDetailPerTamuPDF(pdfIndex, true); // skip WA saat edit
     }
     // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
     setTimeout(() => { goToWelcome(); }, 800);
@@ -4931,7 +4864,7 @@ async function doExport(filter) {
 }
 
 // ===== EXPORT DETAIL PER TAMU PDF =====
-async function exportDetailPerTamuPDF(index) {
+async function exportDetailPerTamuPDF(index, skipWA = false) {
     // Muat jsPDF secara lazy jika belum ada
     if (!window.jspdf) { await new Promise(res => _muatJsPDF(res)); }
     if (dataBukuTamu.length===0 || index<0 || index>=dataBukuTamu.length) {
@@ -5082,7 +5015,7 @@ async function exportDetailPerTamuPDF(index) {
         // Kirim otomatis ke WhatsApp jika nomor tujuan sudah dikonfigurasi
         // Ambil nomor dari config/localStorage lalu kirim ke WA
         const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
-        if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
+        if (!skipWA && _nomorWaTujuan && _nomorWaTujuan.length >= 10) {
             setTimeout(() => { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
         }
     }
@@ -5271,7 +5204,7 @@ function recenterSignature() {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = signatureCanvas.width;
     tempCanvas.height = signatureCanvas.height;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    const tempCtx = tempCanvas.getContext('2d');
     tempCtx.drawImage(signatureCanvas, 0, 0);
     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     const data = imageData.data;
@@ -6350,7 +6283,7 @@ function _tampilPopupFullscreen() {
         box-shadow: 0 8px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(212,168,32,.25);
         font-family: Arial, sans-serif;
         animation: _fsPop .35s cubic-bezier(.22,1,.36,1) both;
-        /* backdrop-filter dihapus — berat di HP */
+        backdrop-filter: blur(6px);
     `;
     pop.innerHTML = `
         <style>
@@ -6417,13 +6350,7 @@ document.addEventListener('touchstart', function(e) {
 }, { passive: false });
 
 let _lastTouchY = 0;
-let _touchMoveRAF = false;
 document.addEventListener('touchmove', function(e) {
-    // Throttle via flag agar tidak jalan setiap pixel gerakan jari
-    if (_touchMoveRAF) return;
-    _touchMoveRAF = true;
-    requestAnimationFrame(() => { _touchMoveRAF = false; });
-
     const touchY = e.touches[0].clientY;
     const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
     if (scrollTop === 0 && touchY > _lastTouchY) {
