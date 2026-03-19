@@ -1903,10 +1903,14 @@
             <div class="si-body" id="siBody"></div>
             <!-- Footer hint + tombol lanjut -->
             <div class="si-footer">
-                <button type="button" id="siBtnLanjutUraian" onclick="stepUraian()">
+                <button type="button" id="siBtnLanjutUraian"
+                    ontouchstart="event.preventDefault(); stepUraian();"
+                    onclick="stepUraian()">
                     ➡️ Lanjut
                 </button>
-                <button type="button" id="siBtnLanjutHp" onclick="stepNomorHp()">
+                <button type="button" id="siBtnLanjutHp"
+                    ontouchstart="event.preventDefault(); stepNomorHp();"
+                    onclick="stepNomorHp()">
                     ➡️ Lanjut
                 </button>
                 <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
@@ -3061,8 +3065,8 @@ function _tampilStepIsian(fieldId) {
             btnLanjutUraian.classList.add('aktif');
             const uraianVal = (document.getElementById('uraian')?.value || '').trim();
             const cukup = uraianVal.length >= 10;
-            btnLanjutUraian.style.opacity = cukup ? '1' : '0.4';
-            btnLanjutUraian.style.pointerEvents = cukup ? 'auto' : 'none';
+            btnLanjutUraian.style.opacity = cukup ? '1' : '0.55';
+            btnLanjutUraian.style.pointerEvents = 'auto'; // selalu aktif agar satu tap bereaksi
         } else {
             btnLanjutUraian.classList.remove('aktif');
         }
@@ -3075,8 +3079,8 @@ function _tampilStepIsian(fieldId) {
             const cleaned = (document.getElementById('nomorHp')?.value || '').trim();
             const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
                           cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-            btnLanjutHp.style.opacity = valid ? '1' : '0.4';
-            btnLanjutHp.style.pointerEvents = valid ? 'auto' : 'none';
+            btnLanjutHp.style.opacity = valid ? '1' : '0.55';
+            btnLanjutHp.style.pointerEvents = 'auto'; // selalu aktif agar satu tap bereaksi
         } else {
             btnLanjutHp.classList.remove('aktif');
         }
@@ -3238,7 +3242,12 @@ function stepNomorHp() {
     const cleaned = input.value.trim();
     const ok = cleaned.startsWith('08') && cleaned.length >= 11 &&
                cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    if (!ok) { input.classList.add('error'); return; }
+    if (!ok) {
+        input.classList.add('error');
+        const btn = document.getElementById('siBtnLanjutHp');
+        if (btn) { btn.style.transform = 'scale(0.95)'; setTimeout(() => { btn.style.transform = ''; }, 150); }
+        return;
+    }
     _stepHpDone = true;
     clearTimeout(_timerHp);
     if (!_editBebasMode) {
@@ -3435,7 +3444,12 @@ function stepUraian() {
     if (isEditMode) return;
     const uraian = document.getElementById('uraian');
     const panjang = uraian.value.trim().length;
-    if (panjang < 10) { uraian.classList.add('error'); return; }
+    if (panjang < 10) {
+        uraian.classList.add('error');
+        const btn = document.getElementById('siBtnLanjutUraian');
+        if (btn) { btn.style.transform = 'scale(0.95)'; setTimeout(() => { btn.style.transform = ''; }, 150); }
+        return;
+    }
     _stepUraianDone = true;
     clearTimeout(_timerUraian);
     if (!_editBebasMode) {
@@ -3473,8 +3487,10 @@ function _onInputUraian() {
     const btn = document.getElementById('siBtnLanjutUraian');
     if (!btn) return;
     const cukup = uraian.value.trim().length >= 10;
-    btn.style.opacity = cukup ? '1' : '0.4';
-    btn.style.pointerEvents = cukup ? 'auto' : 'none';
+    // Hanya ubah opacity (visual feedback) — pointerEvents SELALU aktif
+    // agar satu tap langsung bereaksi tanpa perlu double-tap di mobile
+    btn.style.opacity = cukup ? '1' : '0.55';
+    btn.style.pointerEvents = 'auto';
 }
 
 function autoStepNomorHp() {
@@ -3490,8 +3506,9 @@ function _onInputNomorHp() {
     const cleaned = input.value.trim();
     const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
                   cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    btn.style.opacity = valid ? '1' : '0.4';
-    btn.style.pointerEvents = valid ? 'auto' : 'none';
+    // Hanya ubah opacity (visual feedback) — pointerEvents SELALU aktif
+    btn.style.opacity = valid ? '1' : '0.55';
+    btn.style.pointerEvents = 'auto';
 }
 
 
@@ -4316,15 +4333,31 @@ async function simpanData() {
             formData._sementara = true;
             formData._fbKey = fbKey;
             dataTamuSementara[editingIndex] = formData;
-            if (fbKey) await fbUpdate(fbKey, formData, true);
+            if (fbKey) {
+                await fbUpdate(fbKey, formData, true);
+            } else {
+                // Data belum ada di Firebase → simpan baru & set _fbKey
+                const newKey = await fbSimpan(formData, true);
+                if (newKey) dataTamuSementara[editingIndex]._fbKey = newKey;
+            }
         } else {
-            const fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
+            const localIdx = editingIndex; // simpan sebelum resetFormComplete mereset
+            const fbKey = dataBukuTamu[localIdx]?._fbKey || null;
             formData._fbKey = fbKey;
-            dataBukuTamu[editingIndex] = formData;
-            if (fbKey) await fbUpdate(fbKey, formData, false);
+            dataBukuTamu[localIdx] = formData;
+            if (fbKey) {
+                await fbUpdate(fbKey, formData, false);
+            } else {
+                // Data belum ada di Firebase → simpan baru & set _fbKey
+                const newKey = await fbSimpan(formData, false);
+                if (newKey) dataBukuTamu[localIdx]._fbKey = newKey;
+            }
         }
     } else {
+        // Data baru (bukan edit) — simpan ke Firebase & set _fbKey
         dataBukuTamu.push(formData);
+        const newKey = await fbSimpan(formData, false);
+        if (newKey) dataBukuTamu[dataBukuTamu.length - 1]._fbKey = newKey;
     }
     updateDataCounter();
     await lsSave();
@@ -5152,7 +5185,14 @@ async function exportDetailPerTamuPDF(index) {
         // Ambil nomor dari config/localStorage lalu kirim ke WA
         const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
         if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
-            setTimeout(() => { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
+            setTimeout(() => {
+                // Ambil ulang data terbaru dari array — pastikan _fbKey sudah ter-set
+                // (fbSimpan/fbUpdate async mungkin baru selesai setelah renderKonten dipanggil)
+                const dataFresh = (index >= 0 && index < dataBukuTamu.length)
+                    ? dataBukuTamu[index]
+                    : data;
+                kirimPdfKeWA(pdfBlobWA, dataFresh, _nomorWaTujuan, pdfFileName);
+            }, 600);
         }
     }
 
