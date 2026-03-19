@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual" name="viewport"/>
     <title>Buku Tamu Digital - Inspektorat Daerah Tubaba</title>
 
     <!-- ═══════════════════════════════════════════
@@ -1288,6 +1288,10 @@
             justify-content: center;
             padding: 0 12px 12px;
             pointer-events: none;
+            /* Transisi halus saat keyboard muncul/hilang */
+            transition: bottom 0.15s ease;
+            /* Pastikan elemen tidak ter-clip saat keyboard naik */
+            will-change: bottom;
         }
         #stepIsianModal.aktif {
             display: flex;
@@ -2548,6 +2552,21 @@ const MIN_STROKE_LENGTH_CM = 2;
 // ================================================================
 //  FULLSCREEN — Sembunyikan address bar sepenuhnya di HP
 // ================================================================
+// ── Helper: cek apakah ada input/textarea yang sedang fokus (keyboard terbuka) ──
+function _adaFocusInput() {
+    const el = document.activeElement;
+    return !!(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'));
+}
+
+// ── scrollTo aman — skip jika keyboard sedang terbuka ──
+function _scrollToSafe(x, y, delay) {
+    if (delay) {
+        setTimeout(() => { if (!_adaFocusInput()) window.scrollTo(x, y); }, delay);
+    } else {
+        if (!_adaFocusInput()) window.scrollTo(x, y);
+    }
+}
+
 function mintaFullscreen() {
     // Harus dipanggil langsung dari handler user gesture (sync)
     const el = document.documentElement;
@@ -2556,32 +2575,34 @@ function mintaFullscreen() {
              || el.mozRequestFullScreen
              || el.msRequestFullscreen;
     if (req) {
-        req.call(el).catch(() => {
-            // Fallback jika API fullscreen tidak diizinkan: scroll address bar hilang
-            window.scrollTo(0, 1);
+        req.call(el).then(() => {
+            try { screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
+        }).catch(() => {
+            _scrollToSafe(0, 1);
         });
     } else {
-        window.scrollTo(0, 1);
+        _scrollToSafe(0, 1);
     }
 }
 
-// Jaga fullscreen tetap aktif jika keluar (mis. notifikasi)
+// Jaga fullscreen tetap aktif jika keluar (mis. notifikasi) — hanya jika tidak ada keyboard
 document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && !_sudahInstallPWA()) {
-        // Keluar dari fullscreen karena interupsi — scroll fallback
-        setTimeout(() => window.scrollTo(0, 1), 200);
+        _scrollToSafe(0, 1, 200);
+    }
+});
+document.addEventListener('webkitfullscreenchange', () => {
+    if (!document.webkitFullscreenElement && !_sudahInstallPWA()) {
+        _scrollToSafe(0, 1, 200);
     }
 });
 
 (function _fullscreenOtomatis() {
-    // Jika sudah PWA standalone → sudah fullscreen, tidak perlu
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
-
-    // Saat load: scroll address bar agar tersembunyi (metode paling kompatibel)
     window.addEventListener('load', () => {
         document.body.style.minHeight = (window.screen.height + 1) + 'px';
-        setTimeout(() => { window.scrollTo(0, 1); }, 300);
+        _scrollToSafe(0, 1, 300);
     });
 })();
 
@@ -2931,7 +2952,10 @@ function aktifkanField(id) {
     el.classList.add('sf-enter');
     setTimeout(() => {
         const f = el.querySelector('input,select,textarea');
-        if (f) setTimeout(() => f.focus(), 50);
+        if (f) {
+            // Gunakan preventScroll agar fokus tidak trigger scroll yang tutup keyboard
+            setTimeout(() => f.focus({ preventScroll: true }), 50);
+        }
     }, 100);
     if (id === 'field-tandaTangan') resizeCanvas();
 
@@ -2987,8 +3011,25 @@ function _tampilStepIsian(fieldId) {
     }
 
     // Pindahkan #stepInputArea ke dalam .si-body (elemen asli, bukan klon)
+    // Simpan elemen yang sedang fokus sebelum memindahkan DOM
     if (area.parentNode !== siBody) {
+        const prevFocus = document.activeElement;
+        const prevValue = (prevFocus && (prevFocus.tagName === 'INPUT' || prevFocus.tagName === 'TEXTAREA'))
+            ? prevFocus.value : null;
         siBody.appendChild(area);
+        // Kembalikan fokus ke field yang sama setelah DOM move
+        if (prevFocus && area.contains(prevFocus)) {
+            requestAnimationFrame(() => {
+                try {
+                    prevFocus.focus({ preventScroll: true });
+                    if (prevValue !== null) {
+                        // Pastikan cursor di akhir
+                        const len = prevFocus.value.length;
+                        prevFocus.setSelectionRange(len, len);
+                    }
+                } catch(e) {}
+            });
+        }
     }
 
     // Update header modal
@@ -5293,6 +5334,8 @@ function recenterSignature() {
 <script>
 function smoothScrollTo(element) {
     if (!element) return;
+    // Jangan scroll jika keyboard sedang terbuka (ada input fokus)
+    if (_adaFocusInput()) return;
     const rect = element.getBoundingClientRect();
     const offset = 80;
     const targetY = rect.top + window.scrollY - offset;
@@ -5308,8 +5351,12 @@ document.addEventListener('DOMContentLoaded', () => {
         'input, textarea, select, button:not(.btn-capture):not(.btn-cancel)'
     );
     focusable.forEach(field => {
-        field.addEventListener('focus', () => { scrollToFieldWhenFocused(field); });
-        // DIHAPUS: listener 'input' pada textarea menyebabkan reflow tiap ketikan
+        field.addEventListener('focus', () => {
+            // Hanya scroll jika bukan dalam modal step (modal sudah fixed bottom)
+            const modal = document.getElementById('stepIsianModal');
+            const inModal = modal && modal.classList.contains('aktif') && modal.contains(field);
+            if (!inModal) scrollToFieldWhenFocused(field);
+        });
     });
     const ttdField = document.getElementById('field-tandaTangan');
     if (ttdField) {
@@ -5320,17 +5367,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         observer.observe(ttdField, { attributes: true, attributeFilter: ['class'] });
     }
-    let prevHeight = window.innerHeight;
-    window.addEventListener('resize', () => {
-        const currHeight = window.innerHeight;
-        if (currHeight < prevHeight * 0.82) {
-            const active = document.activeElement;
-            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-                scrollToFieldWhenFocused(active);
-            }
+
+    // ── Angkat modal step saat keyboard muncul menggunakan visualViewport ──
+    function _sesuaikanModalDenganKeyboard() {
+        const modal = document.getElementById('stepIsianModal');
+        if (!modal) return;
+        if (window.visualViewport) {
+            const vv = window.visualViewport;
+            const offsetBottom = window.innerHeight - vv.height - vv.offsetTop;
+            // Angkat modal sebesar tinggi keyboard
+            modal.style.bottom = Math.max(0, Math.round(offsetBottom)) + 'px';
         }
-        prevHeight = currHeight;
-    });
+    }
+
+    function _resetModalBottom() {
+        const modal = document.getElementById('stepIsianModal');
+        if (modal) modal.style.bottom = '';
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', _sesuaikanModalDenganKeyboard);
+        window.visualViewport.addEventListener('scroll', _sesuaikanModalDenganKeyboard);
+    } else {
+        // Fallback untuk browser lama — hanya resize canvas, tidak scroll
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+    }
 });
 </script>
 <script>
