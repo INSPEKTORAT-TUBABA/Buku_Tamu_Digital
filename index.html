@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
     <title>Buku Tamu Digital - Inspektorat Daerah Tubaba</title>
 
     <!-- ═══════════════════════════════════════════
@@ -104,6 +104,8 @@
                 0 0 22px 6px rgba(212, 168, 32, 0.30);
             pointer-events: none;
             z-index: 99999;
+            /* Promote ke layer GPU sendiri agar tidak memicu repaint seluruh halaman */
+            will-change: transform;
         }
 
         /* Layer 2 – garis dalam halus */
@@ -118,6 +120,7 @@
             pointer-events: none;
             z-index: 99998;
             border-radius: 2px;
+            will-change: transform;
         }
 
         /* ── Ornamen sudut dekoratif ── */
@@ -186,9 +189,19 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
+            will-change: contents; /* hint browser: layer terpisah */
         }
 
-        /* Nebula overlay layers */
+        #logoCanvas3D {
+            position: relative;
+            display: block;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 16px auto;
+            opacity: 0;
+            border-radius: 8px;
+            will-change: transform; /* GL canvas di layer GPU sendiri */
+        }        /* Nebula overlay layers */
         #welcomePage::before {
             content: '';
             position: absolute;
@@ -287,6 +300,24 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* ── Matikan animasi berat di HP kecil / prefers-reduced-motion ── */
+        @media (max-width: 600px) {
+            #welcomePage::before { animation: none !important; }
+            .welcome-title       { animation: none !important; text-shadow: 0 0 10px rgba(100,180,255,0.4); }
+            .welcome-subtitle strong { animation: none !important; filter: drop-shadow(0 0 15px rgba(212,168,32,0.4)); }
+            .btn-start           { animation: none !important; }
+            /* Matikan drop-shadow animasi (titleShine) di HP — filter animasi sangat mahal */
+            @keyframes titleShine {
+                from { filter: none; }
+                to   { filter: none; }
+            }
+            /* Kurangi drop-shadow logo 3D di HP */
+            #logoCanvas3D { filter: drop-shadow(0 0 8px rgba(212,168,32,0.4)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+
         /* Logo glow ring */
         /* Logo glow ring */
         #logoCanvas3D {
@@ -308,8 +339,7 @@
             border-radius: 50px;
             cursor: pointer;
             letter-spacing: clamp(0.04em, 1vw, 0.08em);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            /* backdrop-filter dihapus — sangat berat di HP */
             box-shadow:
                 0 0 0 1px rgba(212,168,32,0.20),
                 0 8px 32px rgba(13,31,69,0.50),
@@ -377,6 +407,8 @@
                 0 20px 60px rgba(13,31,69,0.12),
                 0 0 0 1px rgba(212,168,32,0.35);
             overflow: hidden;
+            /* Isolasi repaint agar tidak menyebar ke seluruh halaman */
+            contain: layout style;
         }
 
         #mainApp::before {
@@ -853,12 +885,11 @@
             from {
                 opacity: 0;
                 transform: translateX(18px);
-                filter: blur(3px);
+                /* filter: blur dihapus — sangat mahal di HP */
             }
             to {
                 opacity: 1;
                 transform: translateX(0);
-                filter: blur(0);
             }
         }
 
@@ -947,9 +978,8 @@
         .op-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(5, 8, 30, 0.82);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
+            background: rgba(5, 8, 30, 0.88);
+            /* backdrop-filter dihapus — sangat berat di HP */
             animation: opFadeIn 0.35s ease both;
         }
         @keyframes opFadeIn {
@@ -1288,10 +1318,6 @@
             justify-content: center;
             padding: 0 12px 12px;
             pointer-events: none;
-            /* Transisi halus saat keyboard muncul/hilang */
-            transition: bottom 0.15s ease;
-            /* Pastikan elemen tidak ter-clip saat keyboard naik */
-            will-change: bottom;
         }
         #stepIsianModal.aktif {
             display: flex;
@@ -1400,46 +1426,14 @@
             text-shadow: 0 1px 2px rgba(255,255,255,0.8);
         }
 
-        /* Footer hint */
+        /* Footer hint — transparan total */
         .si-footer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px 4px;
+            display: none;
         }
         .si-hint {
             font-size: 0.74em;
             color: #555;
             letter-spacing: 0.02em;
-            text-align: center;
-        }
-        /* Tombol Lanjut khusus step uraian */
-        /* Tombol Lanjut — step uraian & nomorHp */
-        #siBtnLanjutUraian,
-        #siBtnLanjutHp {
-            display: none;
-            width: 100%;
-            padding: 12px 0;
-            background: linear-gradient(135deg, #0d1f45, #1a3a6e);
-            color: #f5e07a;
-            border: none;
-            border-radius: 24px;
-            font-size: 1em;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            cursor: pointer;
-            box-shadow: 0 3px 12px rgba(13,31,69,.35);
-            transition: transform .15s, box-shadow .15s;
-        }
-        #siBtnLanjutUraian:active,
-        #siBtnLanjutHp:active {
-            transform: scale(0.97);
-            box-shadow: 0 1px 6px rgba(13,31,69,.25);
-        }
-        #siBtnLanjutUraian.aktif,
-        #siBtnLanjutHp.aktif {
-            display: block;
         }
 
         /* ── Pratinjau TTD di ringkasan ── */
@@ -1465,8 +1459,8 @@
             to   { opacity:1; transform: scale(1); }
         }
     </style>
-    <!-- Three.js untuk logo 3D berputar -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js untuk logo 3D berputar — defer agar tidak block parse HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <!-- Firebase dimuat dengan defer karena tidak dibutuhkan segera -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" defer></script>
@@ -1486,17 +1480,7 @@
         document.head.appendChild(s1);
     }
     </script>
-    <style>
-        #logoCanvas3D {
-            position: relative;
-            display: block;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 16px auto;
-            opacity: 0;
-            border-radius: 8px;
-        }
-    </style>
+    <!-- style #logoCanvas3D sudah dipindahkan ke blok CSS utama -->
 </head>
 
 <body>
@@ -1553,8 +1537,9 @@
         if (!c3) return;
         const isMobile = window.innerWidth < 600;
 
-        const logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: true, alpha: true });
-        logoR.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // HP: matikan antialias & batasi pixelRatio ke 1 agar hemat GPU
+        const logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: !isMobile, alpha: true });
+        logoR.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
         logoR.setSize(SIZE, SIZE);
         logoR.setClearColor(0x000000, 0);
 
@@ -1640,8 +1625,9 @@
             rg.translate(0, 0, -(HD*0.70));
             logoGrp.add(new THREE.Mesh(rg, edgD));
 
-            // Bintang background
-            const sv = new Float32Array(1000 * 3);
+            // Bintang background — kurangi di HP
+            const starCount3D = isMobile ? 300 : 1000;
+            const sv = new Float32Array(starCount3D * 3);
             for (let i = 0; i < sv.length; i++) sv[i] = (Math.random()-0.5)*150;
             const sgg = new THREE.BufferGeometry();
             sgg.setAttribute('position', new THREE.BufferAttribute(sv, 3));
@@ -1656,8 +1642,16 @@
             logoGrp.rotation.x = 0.12;
             let logoAng = 0, logoLast = performance.now(), logoGT2 = 0;
             let _logoRAF = null;
+            // HP: throttle ke 30fps agar tidak berebut CPU dengan canvas bintang
+            const _logoFrameInterval = isMobile ? 33 : 0;
+            let _logoLastRender = 0;
 
             (function logoRender(now) {
+                if (isMobile && now - _logoLastRender < _logoFrameInterval) {
+                    _logoRAF = requestAnimationFrame(logoRender);
+                    return;
+                }
+                _logoLastRender = now;
                 const dt = (now - logoLast) / 1000; logoLast = now;
                 logoAng += dt * (Math.PI * 2 / 22);
                 logoGT2 += dt;
@@ -1819,9 +1813,9 @@
                 <div id="field-uraian" class="hidden">
                     <label>📝 Uraian Keperluan <span class="required">*</span></label>
                     <textarea id="uraian" required rows="3"
-                        oninput="_debouncedValidateUraian(); _onInputUraian();"
+                        oninput="_debouncedValidateUraian(); _debouncedAutoStepUraian();"
                         onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
-                    <small style="color:#888;font-size:0.75em;">Minimal 10 karakter, lalu tekan tombol <strong>Lanjut</strong></small>
+                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah selesai mengetik (min. 10 karakter)</small>
                 </div>
 
                 <div id="field-nomorHp" class="hidden">
@@ -1829,10 +1823,10 @@
                     <small style="color:#555; display:block; margin-bottom:4px;">Awali dengan <strong>08</strong> (contoh: 081234567890)</small>
                     <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
                         pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
-                        oninput="validateNomorHp(this); _onInputNomorHp();"
+                        oninput="validateNomorHp(this); _debouncedAutoStepHp();"
                         onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
                     <small id="nomorHpInfo" style="color:#dc3545; display:block; min-height:1.2em;"></small>
-                    <small style="color:#888;font-size:0.75em;">Masukkan nomor yang valid, lalu tekan tombol <strong>Lanjut</strong></small>
+                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah nomor valid</small>
                 </div>
 
                 <div id="field-tandaTangan" class="hidden">
@@ -1901,18 +1895,8 @@
             </div>
             <!-- Body: #stepInputArea akan dipindahkan ke sini oleh JS -->
             <div class="si-body" id="siBody"></div>
-            <!-- Footer hint + tombol lanjut -->
+            <!-- Footer hint -->
             <div class="si-footer">
-                <button type="button" id="siBtnLanjutUraian"
-                    ontouchstart="event.preventDefault(); stepUraian();"
-                    onclick="stepUraian()">
-                    ➡️ Lanjut
-                </button>
-                <button type="button" id="siBtnLanjutHp"
-                    ontouchstart="event.preventDefault(); stepNomorHp();"
-                    onclick="stepNomorHp()">
-                    ➡️ Lanjut
-                </button>
                 <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
             </div>
         </div>
@@ -2152,7 +2136,9 @@ resizeSpaceCanvas();
 window.addEventListener('resize', resizeSpaceCanvas);
 
 // ── Bintang ──
-const STAR_COUNT  = window.innerWidth < 600 ? 100 : 320;
+// HP: kurangi jumlah bintang & nonaktifkan glow untuk hemat GPU
+const _isMobileDevice = window.innerWidth < 600;
+const STAR_COUNT  = _isMobileDevice ? 60 : 220;
 const stars = Array.from({ length: STAR_COUNT }, () => ({
     x: Math.random(),
     y: Math.random(),
@@ -2164,7 +2150,7 @@ const stars = Array.from({ length: STAR_COUNT }, () => ({
     alpha: 0.3 + Math.random() * 0.7,
     twinkleSpeed: 0.4 + Math.random() * 2.0,
     twinklePhase: Math.random() * Math.PI * 2,
-    glow: Math.random() > 0.85,  // bintang besar dengan glow
+    glow: _isMobileDevice ? false : Math.random() > 0.85,  // nonaktifkan glow di HP
 }));
 
 // ── Planet kecil ──
@@ -2203,9 +2189,20 @@ const shimmer = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 let animTime = 0;
+let _spaceRunning = false; // flag untuk menghentikan loop
 
 function drawSpace() {
+    if (!_spaceRunning) return; // berhenti jika flag dimatikan
     const W = canvas.width, H = canvas.height;
+    // Di HP: throttle ke ~30fps agar hemat baterai
+    if (_isMobileDevice) {
+        const now = performance.now();
+        if (!drawSpace._lastTime || now - drawSpace._lastTime < 33) {
+            requestAnimationFrame(drawSpace);
+            return;
+        }
+        drawSpace._lastTime = now;
+    }
     animTime += 0.016;
 
     // Clear
@@ -2226,7 +2223,8 @@ function drawSpace() {
             ctx.arc(sx, sy, s.r * 5, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.shadowBlur = s.glow ? 12 : 4;
+        // Di HP: skip shadowBlur (sangat mahal di GPU mobile)
+        ctx.shadowBlur  = (s.glow && !_isMobileDevice) ? 12 : 0;
         ctx.shadowColor = `hsla(${s.hue},${s.sat}%,${s.bright}%,${alpha * 0.8})`;
         ctx.fillStyle   = `hsla(${s.hue},${s.sat}%,${s.bright}%,${alpha})`;
         ctx.beginPath();
@@ -2235,7 +2233,8 @@ function drawSpace() {
     }
     ctx.shadowBlur = 0;
 
-    // ── Planet ──
+    // ── Planet (skip di HP untuk hemat GPU) ──
+    if (!_isMobileDevice) {
     for (const p of PLANETS) {
         const px = p.x * W, py = p.y * H;
         // Glow halo
@@ -2266,6 +2265,7 @@ function drawSpace() {
             ctx.restore();
         }
     }
+    } // end if (!_isMobileDevice) — planet
 
     // ── Meteor ──
     for (let i = meteors.length - 1; i >= 0; i--) {
@@ -2306,11 +2306,16 @@ function drawSpace() {
     requestAnimationFrame(drawSpace);
 }
 
-let _spaceRAF = null;
-function _startSpaceAnim() { if(!_spaceRAF) { _spaceRAF = requestAnimationFrame(function loop(){ drawSpace(); _spaceRAF = requestAnimationFrame(loop); }); } }
-function _stopSpaceAnim()  { if(_spaceRAF) { cancelAnimationFrame(_spaceRAF); _spaceRAF = null; } }
+function _startSpaceAnim() {
+    if (_spaceRunning) return;
+    _spaceRunning = true;
+    requestAnimationFrame(drawSpace);
+}
+function _stopSpaceAnim() {
+    _spaceRunning = false;
+}
 
-drawSpace();
+_startSpaceAnim(); // mulai animasi welcome page
 
 function sembunyikanWelcome() {
     var wp = document.getElementById('welcomePage');
@@ -2331,7 +2336,7 @@ function tampilkanWelcome() {
     wp.style.zIndex = '';
     wp.style.pointerEvents = '';
     if (window._startLogoAnim) window._startLogoAnim();
-    drawSpace();
+    _startSpaceAnim();
 }
 
 // ── Cek apakah URL mengandung ?tamu= (link dari WA) ──
@@ -2456,7 +2461,7 @@ const _debouncedValidateNama   = debounce(validateNama,   120);
 const _debouncedAutoStepNama   = debounce(autoStepNama,   120);
 const _debouncedValidateUraian = debounce(validateUraian, 120);
 const _debouncedAutoStepUraian = debounce(autoStepUraian, 120);
-// _debouncedAutoStepHp dihapus — diganti tombol Lanjut manual (_onInputNomorHp)
+const _debouncedAutoStepHp     = debounce(autoStepNomorHp, 120);
 
 // ===== GLOBAL VARIABLES =====
 const LS_KEY_FINAL     = 'bukuTamu_dataFinal_v1';
@@ -2502,6 +2507,8 @@ async function buatDataUntukStorage(arr) {
 }
 
 async function lsSave() {
+    // Jalankan kompresi di background agar tidak membekukan UI
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
         const compressed = await buatDataUntukStorage(dataBukuTamu);
         localStorage.setItem(LS_KEY_FINAL, JSON.stringify(compressed));
@@ -2563,21 +2570,6 @@ const MIN_STROKE_LENGTH_CM = 2;
 // ================================================================
 //  FULLSCREEN — Sembunyikan address bar sepenuhnya di HP
 // ================================================================
-// ── Helper: cek apakah ada input/textarea yang sedang fokus (keyboard terbuka) ──
-function _adaFocusInput() {
-    const el = document.activeElement;
-    return !!(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'));
-}
-
-// ── scrollTo aman — skip jika keyboard sedang terbuka ──
-function _scrollToSafe(x, y, delay) {
-    if (delay) {
-        setTimeout(() => { if (!_adaFocusInput()) window.scrollTo(x, y); }, delay);
-    } else {
-        if (!_adaFocusInput()) window.scrollTo(x, y);
-    }
-}
-
 function mintaFullscreen() {
     // Harus dipanggil langsung dari handler user gesture (sync)
     const el = document.documentElement;
@@ -2586,43 +2578,47 @@ function mintaFullscreen() {
              || el.mozRequestFullScreen
              || el.msRequestFullscreen;
     if (req) {
-        req.call(el).then(() => {
-            try { screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
-        }).catch(() => {
-            _scrollToSafe(0, 1);
+        req.call(el).catch(() => {
+            // Fallback jika API fullscreen tidak diizinkan: scroll address bar hilang
+            window.scrollTo(0, 1);
         });
     } else {
-        _scrollToSafe(0, 1);
+        window.scrollTo(0, 1);
     }
 }
 
-// Jaga fullscreen tetap aktif jika keluar (mis. notifikasi) — hanya jika tidak ada keyboard
+// Jaga fullscreen tetap aktif jika keluar (mis. notifikasi)
 document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && !_sudahInstallPWA()) {
-        _scrollToSafe(0, 1, 200);
-    }
-});
-document.addEventListener('webkitfullscreenchange', () => {
-    if (!document.webkitFullscreenElement && !_sudahInstallPWA()) {
-        _scrollToSafe(0, 1, 200);
+        // Keluar dari fullscreen karena interupsi — scroll fallback
+        setTimeout(() => window.scrollTo(0, 1), 200);
     }
 });
 
 (function _fullscreenOtomatis() {
+    // Jika sudah PWA standalone → sudah fullscreen, tidak perlu
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
+
+    // Saat load: scroll address bar agar tersembunyi (metode paling kompatibel)
     window.addEventListener('load', () => {
         document.body.style.minHeight = (window.screen.height + 1) + 'px';
-        _scrollToSafe(0, 1, 300);
+        setTimeout(() => { window.scrollTo(0, 1); }, 300);
     });
 })();
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     signatureCanvas = document.getElementById('signature-pad');
-    ctx2 = signatureCanvas.getContext('2d');
+    // willReadFrequently: hint ke browser bahwa getImageData sering dipanggil → hemat overhead
+    ctx2 = signatureCanvas.getContext('2d', { willReadFrequently: true });
     attachSignatureEvents();
-    window.addEventListener('resize', resizeCanvas);
+    // Debounce resize agar tidak jalan setiap pixel perubahan ukuran keyboard
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimer);
+        _resizeTimer = setTimeout(resizeCanvas, 150);
+    });
 });
 
 function attachSignatureEvents() {
@@ -2963,10 +2959,7 @@ function aktifkanField(id) {
     el.classList.add('sf-enter');
     setTimeout(() => {
         const f = el.querySelector('input,select,textarea');
-        if (f) {
-            // Gunakan preventScroll agar fokus tidak trigger scroll yang tutup keyboard
-            setTimeout(() => f.focus({ preventScroll: true }), 50);
-        }
+        if (f) setTimeout(() => f.focus(), 50);
     }, 100);
     if (id === 'field-tandaTangan') resizeCanvas();
 
@@ -2992,8 +2985,8 @@ const _SI_META = {
     'fieldDesa':          { icon:'🏘️', title:'Desa / Kelurahan',      step:4, hint:'Pilih desa atau kelurahan Anda' },
     'field-pihakDitemui': { icon:'👥', title:'Pihak yang Ditemui',    step:5, hint:'Pilih pihak yang ingin Anda temui' },
     'field-jenisLayanan': { icon:'📋', title:'Jenis Layanan',          step:6, hint:'Pilih jenis layanan yang dibutuhkan' },
-    'field-uraian':       { icon:'📝', title:'Uraian Keperluan',       step:7, hint:'Minimal 10 karakter, lalu tekan tombol Lanjut' },
-    'field-nomorHp':      { icon:'📱', title:'Nomor WhatsApp',         step:8, hint:'Awali dengan 08, lalu tekan tombol Lanjut' },
+    'field-uraian':       { icon:'📝', title:'Uraian Keperluan',       step:7, hint:'Minimal 10 karakter — lanjut otomatis setelah selesai' },
+    'field-nomorHp':      { icon:'📱', title:'Nomor WhatsApp',         step:8, hint:'Awali dengan 08 — lanjut otomatis setelah valid' },
     'field-tandaTangan':  { icon:'✍️', title:'Tanda Tangan',           step:9, hint:'Tanda tangani di area yang tersedia' },
 };
 const _SI_TOTAL = 9;
@@ -3022,25 +3015,8 @@ function _tampilStepIsian(fieldId) {
     }
 
     // Pindahkan #stepInputArea ke dalam .si-body (elemen asli, bukan klon)
-    // Simpan elemen yang sedang fokus sebelum memindahkan DOM
     if (area.parentNode !== siBody) {
-        const prevFocus = document.activeElement;
-        const prevValue = (prevFocus && (prevFocus.tagName === 'INPUT' || prevFocus.tagName === 'TEXTAREA'))
-            ? prevFocus.value : null;
         siBody.appendChild(area);
-        // Kembalikan fokus ke field yang sama setelah DOM move
-        if (prevFocus && area.contains(prevFocus)) {
-            requestAnimationFrame(() => {
-                try {
-                    prevFocus.focus({ preventScroll: true });
-                    if (prevValue !== null) {
-                        // Pastikan cursor di akhir
-                        const len = prevFocus.value.length;
-                        prevFocus.setSelectionRange(len, len);
-                    }
-                } catch(e) {}
-            });
-        }
     }
 
     // Update header modal
@@ -3054,37 +3030,6 @@ function _tampilStepIsian(fieldId) {
     if (counterEl) counterEl.textContent = meta.step + ' / ' + _SI_TOTAL;
     if (barEl)     barEl.style.width     = Math.round(meta.step / _SI_TOTAL * 100) + '%';
     if (hintEl)    hintEl.textContent    = meta.hint;
-
-    // Tampilkan/sembunyikan tombol Lanjut Uraian & NomorHp
-    const btnLanjutUraian = document.getElementById('siBtnLanjutUraian');
-    const btnLanjutHp     = document.getElementById('siBtnLanjutHp');
-
-    // Tombol Lanjut Uraian
-    if (btnLanjutUraian) {
-        if (fieldId === 'field-uraian') {
-            btnLanjutUraian.classList.add('aktif');
-            const uraianVal = (document.getElementById('uraian')?.value || '').trim();
-            const cukup = uraianVal.length >= 10;
-            btnLanjutUraian.style.opacity = cukup ? '1' : '0.55';
-            btnLanjutUraian.style.pointerEvents = 'auto'; // selalu aktif agar satu tap bereaksi
-        } else {
-            btnLanjutUraian.classList.remove('aktif');
-        }
-    }
-
-    // Tombol Lanjut NomorHp
-    if (btnLanjutHp) {
-        if (fieldId === 'field-nomorHp') {
-            btnLanjutHp.classList.add('aktif');
-            const cleaned = (document.getElementById('nomorHp')?.value || '').trim();
-            const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
-                          cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-            btnLanjutHp.style.opacity = valid ? '1' : '0.55';
-            btnLanjutHp.style.pointerEvents = 'auto'; // selalu aktif agar satu tap bereaksi
-        } else {
-            btnLanjutHp.classList.remove('aktif');
-        }
-    }
 
     // Tampilkan backdrop & modal
     backdrop.style.display = 'block';
@@ -3242,12 +3187,7 @@ function stepNomorHp() {
     const cleaned = input.value.trim();
     const ok = cleaned.startsWith('08') && cleaned.length >= 11 &&
                cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    if (!ok) {
-        input.classList.add('error');
-        const btn = document.getElementById('siBtnLanjutHp');
-        if (btn) { btn.style.transform = 'scale(0.95)'; setTimeout(() => { btn.style.transform = ''; }, 150); }
-        return;
-    }
+    if (!ok) { input.classList.add('error'); return; }
     _stepHpDone = true;
     clearTimeout(_timerHp);
     if (!_editBebasMode) {
@@ -3444,12 +3384,7 @@ function stepUraian() {
     if (isEditMode) return;
     const uraian = document.getElementById('uraian');
     const panjang = uraian.value.trim().length;
-    if (panjang < 10) {
-        uraian.classList.add('error');
-        const btn = document.getElementById('siBtnLanjutUraian');
-        if (btn) { btn.style.transform = 'scale(0.95)'; setTimeout(() => { btn.style.transform = ''; }, 150); }
-        return;
-    }
+    if (panjang < 10) { uraian.classList.add('error'); return; }
     _stepUraianDone = true;
     clearTimeout(_timerUraian);
     if (!_editBebasMode) {
@@ -3477,38 +3412,26 @@ function autoStepNama() {
 }
 
 function autoStepUraian() {
-    // Nonaktif — diganti tombol Lanjut manual (lihat _onInputUraian)
-}
-
-// Aktifkan visual tombol Lanjut saat uraian sudah cukup panjang
-function _onInputUraian() {
-    if (isEditMode || _editBebasMode) return;
+    if (isEditMode || _stepUraianDone || _editBebasMode) return;
+    clearTimeout(_timerUraian);
     const uraian = document.getElementById('uraian');
-    const btn = document.getElementById('siBtnLanjutUraian');
-    if (!btn) return;
-    const cukup = uraian.value.trim().length >= 10;
-    // Hanya ubah opacity (visual feedback) — pointerEvents SELALU aktif
-    // agar satu tap langsung bereaksi tanpa perlu double-tap di mobile
-    btn.style.opacity = cukup ? '1' : '0.55';
-    btn.style.pointerEvents = 'auto';
+    if (uraian.value.trim().length < 10) return;
+    _timerUraian = setTimeout(() => {
+        if (!_stepUraianDone) stepUraian();
+    }, 1200);
 }
 
 function autoStepNomorHp() {
-    // Nonaktif — diganti tombol Lanjut manual (lihat _onInputNomorHp)
-}
-
-// Aktifkan visual tombol Lanjut saat nomor HP sudah valid
-function _onInputNomorHp() {
-    if (isEditMode || _editBebasMode) return;
+    if (isEditMode || _stepHpDone || _editBebasMode) return;
+    clearTimeout(_timerHp);
     const input = document.getElementById('nomorHp');
-    const btn = document.getElementById('siBtnLanjutHp');
-    if (!btn) return;
     const cleaned = input.value.trim();
-    const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
-                  cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    // Hanya ubah opacity (visual feedback) — pointerEvents SELALU aktif
-    btn.style.opacity = valid ? '1' : '0.55';
-    btn.style.pointerEvents = 'auto';
+    const ok = cleaned.startsWith('08') && cleaned.length >= 11 &&
+               cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
+    if (!ok) return;
+    _timerHp = setTimeout(() => {
+        if (!_stepHpDone) stepNomorHp();
+    }, 700);
 }
 
 
@@ -3630,7 +3553,8 @@ async function _runFaceDetectionLoop() {
         if (overlay) { const c = overlay.getContext('2d'); c.clearRect(0,0,overlay.width,overlay.height); }
         const status = document.getElementById('faceStatus');
         if (status) status.style.display = 'none';
-        _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
+        // Throttle: cek lagi setelah 500ms (tidak perlu 60fps untuk ini)
+        _faceDetectRAF = setTimeout(() => requestAnimationFrame(_runFaceDetectionLoop), 500);
         return;
     }
 
@@ -3678,7 +3602,8 @@ async function _runFaceDetectionLoop() {
 
     _updateFaceStatus(_faceFound);
     _setCaptureEnabled(_faceFound);
-    _faceDetectRAF = requestAnimationFrame(_runFaceDetectionLoop);
+    // Throttle: proses deteksi wajah hanya 2x per detik (hemat CPU/baterai)
+    _faceDetectRAF = setTimeout(() => requestAnimationFrame(_runFaceDetectionLoop), 500);
 }
 
 async function initCamera(facing) {
@@ -3746,7 +3671,7 @@ async function capture() {
     ctxCap.fillStyle = '#ffffff';
     ctxCap.fillRect(0, 0, canvas.width, canvas.height);
     ctxCap.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
 
     // Mode target tunggal (edit mode — hanya depan atau belakang)
     if (_fotoTarget === 'depan') {
@@ -3933,19 +3858,16 @@ function tutupOverlay() {
 async function simpanDetailDariOverlay() {
     // Tutup overlay dengan animasi
     tutupOverlay();
-    // Tunggu animasi tutup selesai (320ms) sebelum menyimpan
-    await new Promise(res => setTimeout(res, 320));
-
-    // 1. Simpan ke data sementara (termasuk fbSimpan untuk mendapat _fbKey)
-    const ok = await simpanDataSementara();
-    if (!ok) return;
-
-    // 2. Ambil index terakhir di sementara
-    const sIndex = dataTamuSementara.length - 1;
-    if (sIndex < 0) return;
-
-    // 3. Pindah ke dataBukuTamu, lsSave, export PDF (dengan _fbKey), lalu goToWelcome
-    await konfirmasiDanSimpanPDF(sIndex);
+    setTimeout(async () => {
+        // 1. Simpan ke data sementara
+        const ok = await simpanDataSementara();
+        if (!ok) return;
+        // 2. Ambil index terakhir di sementara
+        const sIndex = dataTamuSementara.length - 1;
+        if (sIndex < 0) return;
+        // 3. Pindah ke dataBukuTamu, unduh PDF, tampilkan tabel DATA BUKU TAMU
+        await konfirmasiDanSimpanPDF(sIndex);
+    }, 320);
 }
 
 function editDariOverlay() {
@@ -4102,14 +4024,13 @@ async function simpanDariEditBebas() {
     }
 
     // ── Catat index & status sebelum simpan (simpanData() akan reset editingIndex) ──
-    const savedIndex     = editingIndex;
-    const savedSementara = editingSementara;
+    const savedIndex       = editingIndex;
+    const savedSementara   = editingSementara;
 
-    // ── Semua valid — jalankan simpan via simpanData()
-    //    simpanData() sudah memanggil fbSimpan/fbUpdate (async penuh) dan lsSave() ──
+    // ── Semua valid — jalankan simpan via simpanData() ──
     _editBebasMode = false;
     isEditMode = true;
-    const ok = await simpanData();   // ← await penuh: fbKey sudah di-set, lsSave sudah selesai
+    const ok = await simpanData();
     isEditMode = false;
 
     if (!ok) {
@@ -4128,23 +4049,14 @@ async function simpanDariEditBebas() {
     if (paperScroll) paperScroll.style.display = '';
     _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
 
-    // ── Pastikan localStorage mencerminkan _fbKey terbaru sebelum export PDF ──
-    await lsSave();
-
-    // ── Tampilkan tabel data & export PDF menggunakan data terbaru ──
-    showData();
-
-    // Tentukan index yang benar: gunakan savedIndex (data non-sementara yang baru di-edit)
-    // dataBukuTamu[savedIndex] sudah mengandung _fbKey yang valid setelah simpanData()
-    const pdfIndex = (!savedSementara && savedIndex >= 0 && savedIndex < dataBukuTamu.length)
-        ? savedIndex
-        : dataBukuTamu.length - 1;
-
+    // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
+    showData(); // update tabel internal dulu
+    const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        await exportDetailPerTamuPDF(pdfIndex);  // await agar PDF + notifikasi selesai dulu
+        exportDetailPerTamuPDF(pdfIndex);
     }
-
-    goToWelcome();
+    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 function selesaiEditBebas() {
@@ -4333,31 +4245,15 @@ async function simpanData() {
             formData._sementara = true;
             formData._fbKey = fbKey;
             dataTamuSementara[editingIndex] = formData;
-            if (fbKey) {
-                await fbUpdate(fbKey, formData, true);
-            } else {
-                // Data belum ada di Firebase → simpan baru & set _fbKey
-                const newKey = await fbSimpan(formData, true);
-                if (newKey) dataTamuSementara[editingIndex]._fbKey = newKey;
-            }
+            if (fbKey) await fbUpdate(fbKey, formData, true);
         } else {
-            const localIdx = editingIndex; // simpan sebelum resetFormComplete mereset
-            const fbKey = dataBukuTamu[localIdx]?._fbKey || null;
+            const fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
             formData._fbKey = fbKey;
-            dataBukuTamu[localIdx] = formData;
-            if (fbKey) {
-                await fbUpdate(fbKey, formData, false);
-            } else {
-                // Data belum ada di Firebase → simpan baru & set _fbKey
-                const newKey = await fbSimpan(formData, false);
-                if (newKey) dataBukuTamu[localIdx]._fbKey = newKey;
-            }
+            dataBukuTamu[editingIndex] = formData;
+            if (fbKey) await fbUpdate(fbKey, formData, false);
         }
     } else {
-        // Data baru (bukan edit) — simpan ke Firebase & set _fbKey
         dataBukuTamu.push(formData);
-        const newKey = await fbSimpan(formData, false);
-        if (newKey) dataBukuTamu[dataBukuTamu.length - 1]._fbKey = newKey;
     }
     updateDataCounter();
     await lsSave();
@@ -4551,15 +4447,12 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
-
-    // lsSave() setelah _fbKey sudah di-assign — data terbaru tersimpan ke localStorage
     await lsSave();
-
-    // Export PDF menggunakan data terbaru (termasuk _fbKey baru dari Firebase)
+    // Unduh PDF detail per tamu
     const finalIndex = dataBukuTamu.length - 1;
-    await exportDetailPerTamuPDF(finalIndex);  // await: PDF + notifikasi WA selesai dulu
-
-    goToWelcome();
+    exportDetailPerTamuPDF(finalIndex);
+    // Kembali ke halaman selamat datang
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 async function hapusSementara(sIndex) {
@@ -5185,14 +5078,7 @@ async function exportDetailPerTamuPDF(index) {
         // Ambil nomor dari config/localStorage lalu kirim ke WA
         const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
         if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
-            setTimeout(() => {
-                // Ambil ulang data terbaru dari array — pastikan _fbKey sudah ter-set
-                // (fbSimpan/fbUpdate async mungkin baru selesai setelah renderKonten dipanggil)
-                const dataFresh = (index >= 0 && index < dataBukuTamu.length)
-                    ? dataBukuTamu[index]
-                    : data;
-                kirimPdfKeWA(pdfBlobWA, dataFresh, _nomorWaTujuan, pdfFileName);
-            }, 600);
+            setTimeout(() => { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
         }
     }
 
@@ -5380,7 +5266,7 @@ function recenterSignature() {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = signatureCanvas.width;
     tempCanvas.height = signatureCanvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     tempCtx.drawImage(signatureCanvas, 0, 0);
     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     const data = imageData.data;
@@ -5417,8 +5303,6 @@ function recenterSignature() {
 <script>
 function smoothScrollTo(element) {
     if (!element) return;
-    // Jangan scroll jika keyboard sedang terbuka (ada input fokus)
-    if (_adaFocusInput()) return;
     const rect = element.getBoundingClientRect();
     const offset = 80;
     const targetY = rect.top + window.scrollY - offset;
@@ -5434,12 +5318,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'input, textarea, select, button:not(.btn-capture):not(.btn-cancel)'
     );
     focusable.forEach(field => {
-        field.addEventListener('focus', () => {
-            // Hanya scroll jika bukan dalam modal step (modal sudah fixed bottom)
-            const modal = document.getElementById('stepIsianModal');
-            const inModal = modal && modal.classList.contains('aktif') && modal.contains(field);
-            if (!inModal) scrollToFieldWhenFocused(field);
-        });
+        field.addEventListener('focus', () => { scrollToFieldWhenFocused(field); });
+        // DIHAPUS: listener 'input' pada textarea menyebabkan reflow tiap ketikan
     });
     const ttdField = document.getElementById('field-tandaTangan');
     if (ttdField) {
@@ -5450,33 +5330,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         observer.observe(ttdField, { attributes: true, attributeFilter: ['class'] });
     }
-
-    // ── Angkat modal step saat keyboard muncul menggunakan visualViewport ──
-    function _sesuaikanModalDenganKeyboard() {
-        const modal = document.getElementById('stepIsianModal');
-        if (!modal) return;
-        if (window.visualViewport) {
-            const vv = window.visualViewport;
-            const offsetBottom = window.innerHeight - vv.height - vv.offsetTop;
-            // Angkat modal sebesar tinggi keyboard
-            modal.style.bottom = Math.max(0, Math.round(offsetBottom)) + 'px';
+    let prevHeight = window.innerHeight;
+    window.addEventListener('resize', () => {
+        const currHeight = window.innerHeight;
+        if (currHeight < prevHeight * 0.82) {
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                scrollToFieldWhenFocused(active);
+            }
         }
-    }
-
-    function _resetModalBottom() {
-        const modal = document.getElementById('stepIsianModal');
-        if (modal) modal.style.bottom = '';
-    }
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', _sesuaikanModalDenganKeyboard);
-        window.visualViewport.addEventListener('scroll', _sesuaikanModalDenganKeyboard);
-    } else {
-        // Fallback untuk browser lama — hanya resize canvas, tidak scroll
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-        });
-    }
+        prevHeight = currHeight;
+    });
 });
 </script>
 <script>
@@ -6481,7 +6345,7 @@ function _tampilPopupFullscreen() {
         box-shadow: 0 8px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(212,168,32,.25);
         font-family: Arial, sans-serif;
         animation: _fsPop .35s cubic-bezier(.22,1,.36,1) both;
-        backdrop-filter: blur(6px);
+        /* backdrop-filter dihapus — berat di HP */
     `;
     pop.innerHTML = `
         <style>
@@ -6548,7 +6412,13 @@ document.addEventListener('touchstart', function(e) {
 }, { passive: false });
 
 let _lastTouchY = 0;
+let _touchMoveRAF = false;
 document.addEventListener('touchmove', function(e) {
+    // Throttle via flag agar tidak jalan setiap pixel gerakan jari
+    if (_touchMoveRAF) return;
+    _touchMoveRAF = true;
+    requestAnimationFrame(() => { _touchMoveRAF = false; });
+
     const touchY = e.touches[0].clientY;
     const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
     if (scrollTop === 0 && touchY > _lastTouchY) {
