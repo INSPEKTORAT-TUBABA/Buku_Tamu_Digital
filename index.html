@@ -1415,7 +1415,9 @@
             text-align: center;
         }
         /* Tombol Lanjut khusus step uraian */
-        #siBtnLanjutUraian {
+        /* Tombol Lanjut — step uraian & nomorHp */
+        #siBtnLanjutUraian,
+        #siBtnLanjutHp {
             display: none;
             width: 100%;
             padding: 12px 0;
@@ -1430,11 +1432,13 @@
             box-shadow: 0 3px 12px rgba(13,31,69,.35);
             transition: transform .15s, box-shadow .15s;
         }
-        #siBtnLanjutUraian:active {
+        #siBtnLanjutUraian:active,
+        #siBtnLanjutHp:active {
             transform: scale(0.97);
             box-shadow: 0 1px 6px rgba(13,31,69,.25);
         }
-        #siBtnLanjutUraian.aktif {
+        #siBtnLanjutUraian.aktif,
+        #siBtnLanjutHp.aktif {
             display: block;
         }
 
@@ -1825,10 +1829,10 @@
                     <small style="color:#555; display:block; margin-bottom:4px;">Awali dengan <strong>08</strong> (contoh: 081234567890)</small>
                     <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
                         pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
-                        oninput="validateNomorHp(this); _debouncedAutoStepHp();"
+                        oninput="validateNomorHp(this); _onInputNomorHp();"
                         onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
                     <small id="nomorHpInfo" style="color:#dc3545; display:block; min-height:1.2em;"></small>
-                    <small style="color:#888;font-size:0.75em;">Akan lanjut otomatis setelah nomor valid</small>
+                    <small style="color:#888;font-size:0.75em;">Masukkan nomor yang valid, lalu tekan tombol <strong>Lanjut</strong></small>
                 </div>
 
                 <div id="field-tandaTangan" class="hidden">
@@ -1900,6 +1904,9 @@
             <!-- Footer hint + tombol lanjut -->
             <div class="si-footer">
                 <button type="button" id="siBtnLanjutUraian" onclick="stepUraian()">
+                    ➡️ Lanjut
+                </button>
+                <button type="button" id="siBtnLanjutHp" onclick="stepNomorHp()">
                     ➡️ Lanjut
                 </button>
                 <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
@@ -2445,7 +2452,7 @@ const _debouncedValidateNama   = debounce(validateNama,   120);
 const _debouncedAutoStepNama   = debounce(autoStepNama,   120);
 const _debouncedValidateUraian = debounce(validateUraian, 120);
 const _debouncedAutoStepUraian = debounce(autoStepUraian, 120);
-const _debouncedAutoStepHp     = debounce(autoStepNomorHp, 120);
+// _debouncedAutoStepHp dihapus — diganti tombol Lanjut manual (_onInputNomorHp)
 
 // ===== GLOBAL VARIABLES =====
 const LS_KEY_FINAL     = 'bukuTamu_dataFinal_v1';
@@ -2982,7 +2989,7 @@ const _SI_META = {
     'field-pihakDitemui': { icon:'👥', title:'Pihak yang Ditemui',    step:5, hint:'Pilih pihak yang ingin Anda temui' },
     'field-jenisLayanan': { icon:'📋', title:'Jenis Layanan',          step:6, hint:'Pilih jenis layanan yang dibutuhkan' },
     'field-uraian':       { icon:'📝', title:'Uraian Keperluan',       step:7, hint:'Minimal 10 karakter, lalu tekan tombol Lanjut' },
-    'field-nomorHp':      { icon:'📱', title:'Nomor WhatsApp',         step:8, hint:'Awali dengan 08 — lanjut otomatis setelah valid' },
+    'field-nomorHp':      { icon:'📱', title:'Nomor WhatsApp',         step:8, hint:'Awali dengan 08, lalu tekan tombol Lanjut' },
     'field-tandaTangan':  { icon:'✍️', title:'Tanda Tangan',           step:9, hint:'Tanda tangani di area yang tersedia' },
 };
 const _SI_TOTAL = 9;
@@ -3044,18 +3051,34 @@ function _tampilStepIsian(fieldId) {
     if (barEl)     barEl.style.width     = Math.round(meta.step / _SI_TOTAL * 100) + '%';
     if (hintEl)    hintEl.textContent    = meta.hint;
 
-    // Tampilkan/sembunyikan tombol Lanjut Uraian
+    // Tampilkan/sembunyikan tombol Lanjut Uraian & NomorHp
     const btnLanjutUraian = document.getElementById('siBtnLanjutUraian');
+    const btnLanjutHp     = document.getElementById('siBtnLanjutHp');
+
+    // Tombol Lanjut Uraian
     if (btnLanjutUraian) {
         if (fieldId === 'field-uraian') {
             btnLanjutUraian.classList.add('aktif');
-            // Set opacity awal berdasarkan isi saat ini
             const uraianVal = (document.getElementById('uraian')?.value || '').trim();
             const cukup = uraianVal.length >= 10;
             btnLanjutUraian.style.opacity = cukup ? '1' : '0.4';
             btnLanjutUraian.style.pointerEvents = cukup ? 'auto' : 'none';
         } else {
             btnLanjutUraian.classList.remove('aktif');
+        }
+    }
+
+    // Tombol Lanjut NomorHp
+    if (btnLanjutHp) {
+        if (fieldId === 'field-nomorHp') {
+            btnLanjutHp.classList.add('aktif');
+            const cleaned = (document.getElementById('nomorHp')?.value || '').trim();
+            const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
+                          cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
+            btnLanjutHp.style.opacity = valid ? '1' : '0.4';
+            btnLanjutHp.style.pointerEvents = valid ? 'auto' : 'none';
+        } else {
+            btnLanjutHp.classList.remove('aktif');
         }
     }
 
@@ -3455,16 +3478,20 @@ function _onInputUraian() {
 }
 
 function autoStepNomorHp() {
-    if (isEditMode || _stepHpDone || _editBebasMode) return;
-    clearTimeout(_timerHp);
+    // Nonaktif — diganti tombol Lanjut manual (lihat _onInputNomorHp)
+}
+
+// Aktifkan visual tombol Lanjut saat nomor HP sudah valid
+function _onInputNomorHp() {
+    if (isEditMode || _editBebasMode) return;
     const input = document.getElementById('nomorHp');
+    const btn = document.getElementById('siBtnLanjutHp');
+    if (!btn) return;
     const cleaned = input.value.trim();
-    const ok = cleaned.startsWith('08') && cleaned.length >= 11 &&
-               cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
-    if (!ok) return;
-    _timerHp = setTimeout(() => {
-        if (!_stepHpDone) stepNomorHp();
-    }, 700);
+    const valid = cleaned.startsWith('08') && cleaned.length >= 11 &&
+                  cleaned.length <= 13 && /^[0-9]+$/.test(cleaned);
+    btn.style.opacity = valid ? '1' : '0.4';
+    btn.style.pointerEvents = valid ? 'auto' : 'none';
 }
 
 
@@ -3889,16 +3916,19 @@ function tutupOverlay() {
 async function simpanDetailDariOverlay() {
     // Tutup overlay dengan animasi
     tutupOverlay();
-    setTimeout(async () => {
-        // 1. Simpan ke data sementara
-        const ok = await simpanDataSementara();
-        if (!ok) return;
-        // 2. Ambil index terakhir di sementara
-        const sIndex = dataTamuSementara.length - 1;
-        if (sIndex < 0) return;
-        // 3. Pindah ke dataBukuTamu, unduh PDF, tampilkan tabel DATA BUKU TAMU
-        await konfirmasiDanSimpanPDF(sIndex);
-    }, 320);
+    // Tunggu animasi tutup selesai (320ms) sebelum menyimpan
+    await new Promise(res => setTimeout(res, 320));
+
+    // 1. Simpan ke data sementara (termasuk fbSimpan untuk mendapat _fbKey)
+    const ok = await simpanDataSementara();
+    if (!ok) return;
+
+    // 2. Ambil index terakhir di sementara
+    const sIndex = dataTamuSementara.length - 1;
+    if (sIndex < 0) return;
+
+    // 3. Pindah ke dataBukuTamu, lsSave, export PDF (dengan _fbKey), lalu goToWelcome
+    await konfirmasiDanSimpanPDF(sIndex);
 }
 
 function editDariOverlay() {
@@ -4055,13 +4085,14 @@ async function simpanDariEditBebas() {
     }
 
     // ── Catat index & status sebelum simpan (simpanData() akan reset editingIndex) ──
-    const savedIndex       = editingIndex;
-    const savedSementara   = editingSementara;
+    const savedIndex     = editingIndex;
+    const savedSementara = editingSementara;
 
-    // ── Semua valid — jalankan simpan via simpanData() ──
+    // ── Semua valid — jalankan simpan via simpanData()
+    //    simpanData() sudah memanggil fbSimpan/fbUpdate (async penuh) dan lsSave() ──
     _editBebasMode = false;
     isEditMode = true;
-    const ok = await simpanData();
+    const ok = await simpanData();   // ← await penuh: fbKey sudah di-set, lsSave sudah selesai
     isEditMode = false;
 
     if (!ok) {
@@ -4080,14 +4111,23 @@ async function simpanDariEditBebas() {
     if (paperScroll) paperScroll.style.display = '';
     _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
 
-    // ── Tampilkan tabel data & export PDF lalu kembali ke halaman selamat datang ──
-    showData(); // update tabel internal dulu
-    const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
+    // ── Pastikan localStorage mencerminkan _fbKey terbaru sebelum export PDF ──
+    await lsSave();
+
+    // ── Tampilkan tabel data & export PDF menggunakan data terbaru ──
+    showData();
+
+    // Tentukan index yang benar: gunakan savedIndex (data non-sementara yang baru di-edit)
+    // dataBukuTamu[savedIndex] sudah mengandung _fbKey yang valid setelah simpanData()
+    const pdfIndex = (!savedSementara && savedIndex >= 0 && savedIndex < dataBukuTamu.length)
+        ? savedIndex
+        : dataBukuTamu.length - 1;
+
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
-        exportDetailPerTamuPDF(pdfIndex);
+        await exportDetailPerTamuPDF(pdfIndex);  // await agar PDF + notifikasi selesai dulu
     }
-    // Kembali ke halaman selamat datang setelah PDF selesai disiapkan
-    setTimeout(() => { goToWelcome(); }, 800);
+
+    goToWelcome();
 }
 
 function selesaiEditBebas() {
@@ -4478,12 +4518,15 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
+
+    // lsSave() setelah _fbKey sudah di-assign — data terbaru tersimpan ke localStorage
     await lsSave();
-    // Unduh PDF detail per tamu
+
+    // Export PDF menggunakan data terbaru (termasuk _fbKey baru dari Firebase)
     const finalIndex = dataBukuTamu.length - 1;
-    exportDetailPerTamuPDF(finalIndex);
-    // Kembali ke halaman selamat datang
-    setTimeout(() => { goToWelcome(); }, 800);
+    await exportDetailPerTamuPDF(finalIndex);  // await: PDF + notifikasi WA selesai dulu
+
+    goToWelcome();
 }
 
 async function hapusSementara(sIndex) {
