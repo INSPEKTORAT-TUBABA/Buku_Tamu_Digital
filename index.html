@@ -6369,7 +6369,7 @@ document.addEventListener('touchmove', function(e) {
     if (scrollTop === 0 && touchY > _lastTouchY) {
         if (e.cancelable) e.preventDefault();
     }
-    _lastTouchY = touchY;
+    _lastTouchY = touchY; 
 }, { passive: false });
 
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
