@@ -47,6 +47,10 @@
         .ttd-box { text-align:center; margin-top:10px; }
         .ttd-box small { display:block; font-size:.74em; color:#666; margin-bottom:6px; font-weight:600; }
         .ttd-box img { max-width:320px; max-height:130px; object-fit:contain; border:2px solid rgba(212,168,32,.45); border-radius:6px; background:#fff; }
+        .ttd-nama-wrap { display:inline-block; margin-top:10px; text-align:center; }
+        .ttd-nama-line { border-top: 1.5px solid #0d1f45; width:280px; max-width:90vw; margin:0 auto 5px; }
+        .ttd-nama { font-size:.95em; font-weight:800; color:#0d1f45; letter-spacing:.03em; }
+        .ttd-nama-label { font-size:.72em; color:#888; margin-top:2px; font-style:italic; }
         .foto-empty { background:#f8f8f4; border:2px dashed rgba(212,168,32,.4); border-radius:8px; padding:28px 20px; color:#aaa; font-size:.88em; text-align:center; font-style:italic; margin:6px 0; }
         .detail-footer { background:#f0ead8; border:1px solid rgba(212,168,32,.25); border-top:none; padding:12px 18px; text-align:center; font-size:.72em; color:#888; border-radius:0 0 10px 10px; }
         #loadingBox, #errorBox { text-align:center; padding:50px 20px; }
@@ -131,7 +135,7 @@ function renderDetail(data) {
     }
 
     var ttdHtml = ttd
-        ? '<div class="ttd-box"><small>TANDA TANGAN</small><img src="'+ttd+'" alt="Tanda Tangan" loading="lazy"></div>'
+        ? '<div class="ttd-box"><small>TANDA TANGAN</small><img src="'+ttd+'" alt="Tanda Tangan" loading="lazy"><div class="ttd-nama-wrap"><div class="ttd-nama-line"></div><div class="ttd-nama">'+escHtml(data.nama || '-')+'</div><div class="ttd-nama-label">( Nama Lengkap )</div></div></div>'
         : '<div class="foto-empty" style="margin-top:10px;">Tidak ada tanda tangan tersedia</div>';
 
     var nomorHp = (data.nomorHp || '').replace(/^C\s*/, '');
