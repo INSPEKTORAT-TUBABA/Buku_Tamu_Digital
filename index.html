@@ -6804,42 +6804,68 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 })();
 
 // ══════════════════════════════════════════════════════
-// FIX: TOMBOL LANJUT — 1x klik di HP (blur paksa sebelum action)
+// FIX: TOMBOL LANJUT — 1x tap di HP, langsung jalan
 // ══════════════════════════════════════════════════════
+// Masalah: di Android saat keyboard aktif, klik pertama
+// hanya dismiss keyboard, klik kedua baru trigger onclick.
+// Solusi: tangkap touchend langsung, blur input, lalu
+// panggil fungsi target SEGERA — tanpa menunggu event click.
 (function() {
-    // Menggunakan pointerdown (lebih cepat dari touchstart) +
-    // blur paksa agar keyboard turun SEBELUM event click terpicu.
-    // Ini memastikan hanya 1x tap sudah pindah step.
     function pasangHandlerLanjut(btn) {
-        btn._lanjutHandlerPasang = true;
-        btn.addEventListener('pointerdown', function(e) {
-            const aktif = document.activeElement;
-            if (aktif && aktif !== document.body && aktif !== btn) {
-                aktif.blur();
-            }
-        }, { passive: true });
-        // Fallback untuk browser lama yang tidak support PointerEvents
-        btn.addEventListener('touchstart', function(e) {
-            if (!btn._lanjutHandlerPasang) return;
-            const aktif = document.activeElement;
-            if (aktif && aktif !== document.body && aktif !== btn) {
-                aktif.blur();
-            }
-        }, { passive: true });
+        if (btn._lanjutTouchPasang) return;
+        btn._lanjutTouchPasang = true;
+
+        // Ambil nama fungsi dari atribut onclick
+        var onclickAttr = btn.getAttribute('onclick') || '';
+
+        btn.addEventListener('touchend', function(e) {
+            // Hanya proses single touch
+            if (e.changedTouches.length !== 1) return;
+
+            // Cek apakah touch mulai & selesai di tombol ini (bukan swipe)
+            var touch = e.changedTouches[0];
+            var rect  = btn.getBoundingClientRect();
+            var inBtn = touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top  && touch.clientY <= rect.bottom;
+            if (!inBtn) return;
+
+            // Cegah ghost click browser
+            e.preventDefault();
+
+            // Blur paksa agar keyboard turun
+            var aktif = document.activeElement;
+            if (aktif && aktif !== document.body) aktif.blur();
+
+            // Jalankan fungsi step langsung
+            try { eval(onclickAttr); } catch(err) { console.warn('[LanjutFix]', err); }
+        }, { passive: false });
     }
 
-    // Pasang ke semua .btn-lanjut yang sudah ada
     function pasangSemua() {
         document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
-            if (!btn._lanjutHandlerPasang) pasangHandlerLanjut(btn);
+            pasangHandlerLanjut(btn);
         });
     }
 
-    document.addEventListener('DOMContentLoaded', pasangSemua);
+    // Pasang saat DOM siap
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', pasangSemua);
+    } else {
+        pasangSemua();
+    }
 
-    // MutationObserver: pasang juga ke btn-lanjut yang muncul kemudian
-    var obs = new MutationObserver(function() { pasangSemua(); });
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Pasang juga ke tombol yang muncul kemudian (dinamis)
+    new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(node) {
+                if (node.nodeType !== 1) return;
+                if (node.classList && node.classList.contains('btn-lanjut')) {
+                    pasangHandlerLanjut(node);
+                }
+                node.querySelectorAll && node.querySelectorAll('.btn-lanjut').forEach(pasangHandlerLanjut);
+            });
+        });
+    }).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 </div><!-- /pageScroller -->
