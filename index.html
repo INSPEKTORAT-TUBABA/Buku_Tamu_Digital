@@ -824,38 +824,68 @@
             font-size: 0.74em;
         }
 
-        /* ── Tombol Lanjut — versi baru lebih indah ── */
+        /* ── Tombol Lanjut — menempel di bawah border form, tanpa jarak ── */
+
+        /* Wrapper: menyatukan input-glow-wrap + tombol jadi satu blok */
+        .input-btn-group {
+            display: flex;
+            flex-direction: column;
+            /* border-radius bawah mengikuti tombol */
+        }
+        .input-btn-group .input-glow-wrap {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            /* Hilangkan shadow bawah agar tidak ada celah visual */
+            box-shadow:
+                0 0 18px 6px rgba(70,170,255,0.32),
+                0 0 38px 12px rgba(100,200,255,0.18),
+                0 0 0 rgba(80,160,230,0) !important;
+        }
+        .input-btn-group .input-glow-wrap .input-glow-inner {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-bottom-color: transparent !important;
+        }
+        .input-btn-group .btn-lanjut {
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            margin-top: 0 !important;
+            width: 100%;
+            justify-content: center;
+        }
+
         .btn-lanjut {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            margin-top: 12px;
-            padding: 10px 28px;
+            margin-top: 0;
+            padding: 11px 28px;
             background: linear-gradient(135deg, #d4a820 0%, #f5e07a 50%, #d4a820 100%);
             background-size: 200% 100%;
             color: #0d1f45;
-            border: none;
-            border-radius: 50px;
+            border: 2.5px solid rgba(212,168,32,0.75);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
             font-size: 0.88em;
             font-weight: 900;
             cursor: pointer;
             letter-spacing: 0.06em;
             box-shadow:
-                0 0 14px 4px rgba(212,168,32,0.45),
-                0 4px 14px rgba(13,31,69,.35);
+                0 6px 18px rgba(212,168,32,0.45),
+                0 4px 14px rgba(13,31,69,.28);
             transition: all .2s ease;
             animation: btnLanjutPulse 2.5s ease-in-out infinite;
         }
         @keyframes btnLanjutPulse {
-            0%, 100% { box-shadow: 0 0 14px 4px rgba(212,168,32,0.45), 0 4px 14px rgba(13,31,69,.35); }
-            50%       { box-shadow: 0 0 22px 7px rgba(212,168,32,0.70), 0 4px 18px rgba(13,31,69,.40); }
+            0%, 100% { box-shadow: 0 6px 18px rgba(212,168,32,0.45), 0 4px 14px rgba(13,31,69,.28); }
+            50%       { box-shadow: 0 8px 26px rgba(212,168,32,0.70), 0 4px 18px rgba(13,31,69,.38); }
         }
         .btn-lanjut:hover {
-            transform: translateY(-2px) scale(1.03);
             background-position: 100% 0;
-            box-shadow: 0 0 28px 8px rgba(212,168,32,0.65), 0 6px 20px rgba(13,31,69,.45);
+            box-shadow: 0 10px 28px rgba(212,168,32,0.65), 0 6px 20px rgba(13,31,69,.42);
+            filter: brightness(1.06);
         }
-        .btn-lanjut:active { transform: scale(0.97); }
+        .btn-lanjut:active { transform: scaleY(0.97); }
 
         /* ── Tombol Hapus Tanda Tangan ── */
         .btn-hapus-ttd {
@@ -1577,6 +1607,10 @@
         .si-body small {
             text-shadow: 0 1px 2px rgba(255,255,255,0.8);
         }
+        /* input-btn-group di dalam modal: tombol warna tetap menyatu */
+        .si-body .input-btn-group .input-glow-wrap {
+            box-shadow: none !important;
+        }
 
         /* Footer hint — transparan total */
         .si-footer {
@@ -1999,45 +2033,52 @@
 
                 <div id="field-uraian" class="hidden">
                     <label>📝 Uraian Keperluan <span class="required">*</span></label>
-                    <div class="input-glow-wrap">
-                        <div class="input-glow-inner">
-                            <span class="input-glow-icon">✍️</span>
-                            <textarea id="uraian" required rows="3"
-                                placeholder="Tuliskan uraian keperluan... (min. 10 karakter)"
-                                oninput="_debouncedValidateUraian();"
-                                onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
+                    <div class="input-btn-group">
+                        <div class="input-glow-wrap">
+                            <div class="input-glow-inner">
+                                <span class="input-glow-icon">✍️</span>
+                                <textarea id="uraian" required rows="3"
+                                    placeholder="Tuliskan uraian keperluan... (min. 10 karakter)"
+                                    oninput="_debouncedValidateUraian();"
+                                    onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
+                            </div>
                         </div>
+                        <button type="button" class="btn-lanjut" onclick="stepUraian()">Lanjut ➜</button>
                     </div>
-                    <br>
-                    <button type="button" class="btn-lanjut" onclick="stepUraian()">Lanjut ➜</button>
                 </div>
 
                 <div id="field-nomorHp" class="hidden">
                     <label>📱 Nomor WhatsApp <span class="required">*</span></label>
                     <small style="color:rgba(30,90,170,0.60); display:block; margin-bottom:8px; font-size:0.78em;">Awali dengan <strong style="color:#f5e07a;">08</strong> (contoh: 081234567890)</small>
-                    <div class="input-glow-wrap">
-                        <div class="input-glow-inner">
-                            <span class="input-glow-icon">📞</span>
-                            <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
-                                pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
-                                oninput="validateNomorHp(this);"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
+                    <div class="input-btn-group">
+                        <div class="input-glow-wrap">
+                            <div class="input-glow-inner">
+                                <span class="input-glow-icon">📞</span>
+                                <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
+                                    pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
+                                    oninput="validateNomorHp(this);"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
+                            </div>
                         </div>
+                        <button type="button" class="btn-lanjut" onclick="stepNomorHp()">Lanjut ➜</button>
                     </div>
-                    <small id="nomorHpInfo" style="color:#c0280a; display:block; min-height:1.2em; margin-top:4px;"></small>
-                    <button type="button" class="btn-lanjut" onclick="stepNomorHp()">Lanjut ➜</button>
+                    <small id="nomorHpInfo" style="color:#c0280a; display:block; min-height:1em; margin-top:4px;"></small>
                 </div>
 
                 <div id="field-tandaTangan" class="hidden">
                     <label>✍️ Tanda Tangan <span class="required">*</span></label>
                     <div class="warning" id="signatureWarning" style="display:none;">⚠️ Tanda tangan terlalu pendek (min 2 cm)</div>
-                    <div class="input-glow-wrap" style="border-radius:16px; padding:3px;">
-                        <div class="input-glow-inner" style="border-radius:13px; padding:6px; display:block;">
-                            <canvas id="signature-pad" width="900" height="25"></canvas>
+                    <div class="input-btn-group">
+                        <div class="input-glow-wrap" style="border-radius:16px 16px 0 0; padding:3px 3px 0 3px;">
+                            <div class="input-glow-inner" style="border-radius:13px 13px 0 0; padding:6px; display:block;">
+                                <canvas id="signature-pad" width="900" height="25"></canvas>
+                            </div>
                         </div>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:0; align-items:center; margin-top:2px;">
                         <button type="button" class="btn-lanjut" id="btnLanjutTTD" style="display:none;" onclick="stepTandaTangan()">Lanjut ➜</button>
+                    </div>
+                    <!-- Tombol Hapus TTD — selalu tampil di bawah, tidak tertutup -->
+                    <div style="margin-top:6px; text-align:left;">
+                        <button type="button" class="btn-hapus-ttd" onclick="clearSignature()">🗑️ Hapus Tanda Tangan</button>
                     </div>
                 </div>
 
