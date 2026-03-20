@@ -5607,6 +5607,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         prevHeight = currHeight;
     });
+
+    // ── Fix klik 1x tombol Lanjut di HP ──
+    // Saat keyboard aktif, klik pertama hanya dismiss keyboard (blur).
+    // Dengan touchstart + blur paksa + preventDefault, step langsung jalan di klik pertama.
+    document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+        btn.addEventListener('touchstart', function(e) {
+            // Paksa blur input aktif agar keyboard turun SEBELUM onclick
+            if (document.activeElement && document.activeElement !== document.body) {
+                document.activeElement.blur();
+            }
+        }, { passive: true });
+    });
 });
 </script>
 <script>
@@ -6714,12 +6726,24 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
         window.visualViewport.addEventListener('resize', function() {
             if (window.visualViewport.height < window.innerHeight * 0.75) {
                 terapkanTinggi(window.visualViewport);
-                const focused = document.activeElement;
-                if (focused && focused !== document.body) {
-                    setTimeout(function() {
-                        focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 150);
-                }
+                // Scroll tombol Lanjut ke atas agar tidak tertutup keyboard
+                setTimeout(function() {
+                    const btns = document.querySelectorAll('.btn-lanjut:not([style*="display:none"]):not(.hidden)');
+                    let visibleBtn = null;
+                    btns.forEach(function(b) {
+                        if (b.offsetParent !== null && getComputedStyle(b).display !== 'none') {
+                            visibleBtn = b;
+                        }
+                    });
+                    if (visibleBtn) {
+                        visibleBtn.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    } else {
+                        const focused = document.activeElement;
+                        if (focused && focused !== document.body) {
+                            focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                }, 150);
             } else {
                 resetTinggi();
             }
