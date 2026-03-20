@@ -2099,7 +2099,7 @@
                                 style="display:none; font-size:15px; background:#6610f2; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
                             📷 Foto Suasana
                         </button>
-                        <button type="button" onclick="clearSignature()"
+                        <button type="button" id="btnHapusTTD" onclick="clearSignature()"
                                 style="font-size:15px; background:#dc3545; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
                             🗑️ Hapus TTD
                         </button>
@@ -3666,10 +3666,17 @@ function _toggleTombolFoto() {
         normal.style.display   = 'none';
         depan.style.display    = '';
         belakang.style.display = '';
+        // Sembunyikan tombol Lanjut dan Hapus TTD di mode edit
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) { btn.style.display = 'none'; });
+        const btnHapusTTD = document.getElementById('btnHapusTTD');
+        if (btnHapusTTD) btnHapusTTD.style.display = 'none';
     } else {
         normal.style.display   = '';
         depan.style.display    = 'none';
         belakang.style.display = 'none';
+        // Tampilkan kembali tombol Hapus TTD di mode normal
+        const btnHapusTTD = document.getElementById('btnHapusTTD');
+        if (btnHapusTTD) btnHapusTTD.style.display = '';
     }
 }
 
