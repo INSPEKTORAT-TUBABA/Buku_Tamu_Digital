@@ -430,6 +430,23 @@
             box-shadow: 0 0 0 3px rgba(212,168,32,0.15) !important;
         }
 
+        /* ── Di dalam glow-wrap: batalkan border & box-shadow bawaan ── */
+        .input-glow-inner input:focus,
+        .input-glow-inner select:focus,
+        .input-glow-inner textarea:focus {
+            outline: none !important;
+            border: none !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+        }
+        /* Pastikan border default input di dalam wrap juga hilang ── */
+        .input-glow-inner input,
+        .input-glow-inner select,
+        .input-glow-inner textarea {
+            border: none !important;
+            background-color: transparent !important;
+        }
+
         #formSection,
         #dataSection {
             padding: 16px 20px 28px 20px;
@@ -676,21 +693,28 @@
 
         /* ── Area input aktif (satu field per waktu) ── */
         #stepInputArea {
-            background: linear-gradient(180deg, #0d1833 0%, #0a1428 100%);
-            padding: 18px 16px 16px;
-            border-bottom: 1px solid rgba(212,168,32,0.25);
-            min-height: 100px;
+            background: linear-gradient(180deg,
+                rgba(220, 238, 255, 0.92) 0%,
+                rgba(200, 228, 252, 0.88) 100%
+            );
+            padding: 22px 18px 20px;
+            border-bottom: 1px solid rgba(100,180,255,0.25);
+            min-height: 140px;
             position: relative;
+            box-shadow:
+                inset 0 2px 18px rgba(130,200,255,0.22),
+                inset 0 -1px 8px rgba(100,170,240,0.12);
         }
         #stepInputArea > div { margin: 0; }
         #stepInputArea label {
             display: block;
-            font-weight: 700;
-            font-size: 0.88em;
-            color: rgba(200,220,255,0.75);
-            margin-bottom: 8px;
-            letter-spacing: 0.06em;
+            font-weight: 800;
+            font-size: 0.86em;
+            color: #1a4a7a;
+            margin-bottom: 10px;
+            letter-spacing: 0.07em;
             text-transform: uppercase;
+            text-shadow: 0 1px 3px rgba(100,180,255,0.25);
         }
         .sf-enter {
             animation: sfSlideIn 0.38s cubic-bezier(0.22,1,0.36,1);
@@ -700,55 +724,67 @@
             to   { opacity:1; transform: translateY(0); }
         }
 
-        /* ── INPUT GLOW — Style Search Bar dengan Cahaya Semua Sisi ── */
+        /* ── INPUT GLOW — Embos Cahaya Biru Muda ── */
         .input-glow-wrap {
             position: relative;
             display: flex;
-            align-items: center;
-            border-radius: 14px;
-            padding: 2px;
-            background: linear-gradient(135deg,
-                rgba(212,168,32,0.7) 0%,
-                rgba(100,180,255,0.5) 25%,
-                rgba(180,100,255,0.5) 50%,
-                rgba(100,180,255,0.5) 75%,
-                rgba(212,168,32,0.7) 100%
-            );
-            background-size: 200% 200%;
-            animation: glowBorder 4s linear infinite;
+            align-items: stretch;
+            border-radius: 18px;
+            padding: 0;
+            background: transparent;
+            width: 100%;
+            /* Cahaya biru menyebar ke luar — tanpa padding agar inner menempel */
             box-shadow:
-                0 0 12px 3px rgba(212,168,32,0.35),
-                0 0 28px 6px rgba(100,160,255,0.20),
-                0 0 5px 1px rgba(180,100,255,0.25),
-                inset 0 0 12px rgba(212,168,32,0.08);
+                0 0 18px 6px rgba(70,170,255,0.32),
+                0 0 38px 12px rgba(100,200,255,0.18),
+                0 4px 22px rgba(80,160,230,0.20);
         }
-        @keyframes glowBorder {
+        @keyframes glowBorderBlue {
             0%   { background-position: 0% 50%; }
             50%  { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
         .input-glow-wrap:focus-within {
             box-shadow:
-                0 0 18px 5px rgba(212,168,32,0.55),
-                0 0 40px 10px rgba(100,160,255,0.30),
-                0 0 8px 2px rgba(180,100,255,0.40),
-                inset 0 0 20px rgba(212,168,32,0.12);
-            animation-duration: 1.5s;
+                0 0 26px 8px rgba(50,170,255,0.50),
+                0 0 55px 15px rgba(100,210,255,0.28),
+                0 6px 30px rgba(60,160,230,0.32);
         }
         .input-glow-inner {
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #0f1e3a 0%, #0b1628 100%);
-            border-radius: 12px;
-            padding: 10px 14px;
-            min-height: 48px;
+            gap: 12px;
+            background: linear-gradient(160deg,
+                rgba(245,252,255,0.98) 0%,
+                rgba(228,245,255,0.96) 100%
+            );
+            border-radius: 18px;
+            padding: 14px 18px;
+            min-height: 58px;
+            width: 100%;
+            /* Border kuning menempel langsung pada elemen — tidak terpisah dari bias biru */
+            border: 2.5px solid rgba(212,168,32,0.75);
+            box-shadow:
+                inset 0 2px 10px rgba(100,190,255,0.20),
+                inset 0 -1px 5px rgba(80,170,230,0.12),
+                /* Kilau kuning emas tipis dari luar border */
+                0 0 0 1px rgba(212,168,32,0.18),
+                0 0 10px 2px rgba(212,168,32,0.20);
+        }
+        .input-glow-wrap:focus-within .input-glow-inner {
+            border-color: rgba(212,168,32,0.95);
+            box-shadow:
+                inset 0 2px 10px rgba(100,190,255,0.20),
+                inset 0 -1px 5px rgba(80,170,230,0.12),
+                0 0 0 1px rgba(212,168,32,0.30),
+                0 0 14px 4px rgba(212,168,32,0.35);
         }
         .input-glow-icon {
-            font-size: 1.1em;
+            font-size: 1.30em;
             flex-shrink: 0;
-            opacity: 0.65;
+            opacity: 0.70;
+            filter: drop-shadow(0 0 5px rgba(50,160,255,0.55));
         }
         /* Override input/select/textarea di dalam wrap */
         .input-glow-inner input,
@@ -759,28 +795,33 @@
             border: none !important;
             outline: none !important;
             box-shadow: none !important;
-            color: #f0f4ff !important;
-            font-size: 1.0em !important;
+            color: #0d2a4a !important;
+            font-size: 1.17em !important;
             padding: 0 !important;
             margin: 0 !important;
             width: 100% !important;
-            font-weight: 500;
+            font-weight: 600;
             letter-spacing: 0.02em;
-            caret-color: #f5e07a;
+            caret-color: #1a80ff;
         }
         .input-glow-inner input::placeholder,
         .input-glow-inner textarea::placeholder {
-            color: rgba(160,190,255,0.40) !important;
+            color: rgba(70,140,210,0.45) !important;
             font-style: italic;
+            font-weight: 400;
         }
         .input-glow-inner select option {
-            background: #0d1f45;
-            color: #f0f4ff;
+            background: #e8f4ff;
+            color: #0d2a4a;
         }
         .input-glow-inner textarea {
             resize: none;
-            min-height: 72px;
-            line-height: 1.5;
+            min-height: 88px;
+            line-height: 1.6;
+        }
+        #stepInputArea small {
+            color: rgba(30,90,170,0.55) !important;
+            font-size: 0.74em;
         }
 
         /* ── Tombol Lanjut — versi baru lebih indah ── */
@@ -1316,11 +1357,25 @@
             display: none;
         }
         .op-nama-ttd {
-            font-size: 0.82em;
-            font-weight: 700;
+            font-size: 0.95em;
+            font-weight: 800;
             color: #0d1f45;
-            margin-top: 2px;
+            margin-top: 6px;
             letter-spacing: 0.03em;
+            text-align: center;
+            border-top: 1.5px solid #0d1f45;
+            padding-top: 5px;
+            width: 100%;
+            max-width: 340px;
+        }
+        .op-nama-ttd::after {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.78em;
+            font-weight: 400;
+            color: #6b7280;
+            margin-top: 2px;
+            letter-spacing: 0.05em;
         }
 
         /* ── Footer ── */
@@ -1484,10 +1539,14 @@
 
         /* stepInputArea di dalam modal */
         .si-body > #stepInputArea {
-            padding: 10px 16px 8px !important;
+            padding: 16px 16px 14px !important;
             border-bottom: none !important;
             min-height: unset !important;
-            background: transparent !important;
+            background: linear-gradient(180deg,
+                rgba(218,240,255,0.88) 0%,
+                rgba(200,230,252,0.84) 100%
+            ) !important;
+            border-radius: 0 0 12px 12px;
         }
 
         /* Input/select/textarea: putih bersih agar mudah diisi */
@@ -1824,92 +1883,117 @@
 
                 <div class="hidden" id="daftarInstansi">
                     <label>🏢 Instansi / Unit Kerja <span class="required">*</span></label>
-                    <select id="instansi" onchange="checkAndShowNext('instansi', 'field-pihakDitemui');">
-                        <option value="">-- Pilih Instansi --</option>
-                        <option>SEKRETARIAT DAERAH</option>
-                        <option>SEKRETARIAT DPRD</option>
-                        <option>BADAN PERENCANAAN PEMBANGUNAN DAERAH</option>
-                        <option>BADAN PENGELOLAAN KEUANGAN DAN ASET DAERAH</option>
-                        <option>BADAN PENGELOLAAN PAJAK DAN RETRIBUSI DAERAH</option>
-                        <option>BADAN KEPEGAWAIAN DAN PENGEMBANGAN SUMBER DAYA MANUSIA</option>
-                        <option>BADAN KESATUAN BANGSA DAN POLITIK DAERAH</option>
-                        <option>BADAN PENANGGULANGAN BENCANA DAERAH</option>
-                        <option>DINAS LINGKUNGAN HIDUP</option>
-                        <option>DINAS KESEHATAN</option>
-                        <option>DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</option>
-                        <option>DINAS KOPERASI, UMKM, PERINDUSTRIAN DAN PERDAGANGAN</option>
-                        <option>DINAS SOSIAL</option>
-                        <option>DINAS PEMUDA, OLAHRAGA DAN PARIWISATA</option>
-                        <option>DINAS KOMUNIKASI DAN INFORMATIKA</option>
-                        <option>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</option>
-                        <option>DINAS PENANAMAN MODAL DAN PELAYANAN PERIZINAN TERPADU SATU PINTU</option>
-                        <option>DINAS PENDIDIKAN DAN KEBUDAYAAN</option>
-                        <option>DINAS KETAHANAN PANGAN</option>
-                        <option>DINAS PEMBERDAYAAN MASYARAKAT DAN TIYUH</option>
-                        <option>DINAS PEMBERDAYAAN PEREMPUAN DAN PERLINDUNGAN ANAK</option>
-                        <option>DINAS PENGENDALIAN PENDUDUK DAN KELUARGA BERENCANA</option>
-                        <option>DINAS PERHUBUNGAN</option>
-                        <option>DINAS PERTANIAN</option>
-                        <option>DINAS PETERNAKAN DAN KESEHATAN HEWAN</option>
-                        <option>DINAS PEKERJAAN UMUM DAN PENATAAN RUANG</option>
-                        <option>DINAS TENAGA KERJA DAN TRANSMIGRASI</option>
-                        <option>DINAS PERIKANAN</option>
-                        <option>DINAS PERPUSTAKAAN DAN KEARSIPAN</option>
-                        <option>DINAS PEMADAM KEBAKARAN DAN PENYELAMATAN</option>
-                        <option>SATUAN POLISI PAMONG PRAJA</option>
-                        <option>BADAN PENGAWASAN KEUANGAN DAN PEMBANGUNAN (BPKP)</option>
-                        <option>LAINNYA</option>
-                    </select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">🏢</span>
+                            <select id="instansi" onchange="checkAndShowNext('instansi', 'field-pihakDitemui');">
+                                <option value="">-- Pilih Instansi --</option>
+                                <option>SEKRETARIAT DAERAH</option>
+                                <option>SEKRETARIAT DPRD</option>
+                                <option>BADAN PERENCANAAN PEMBANGUNAN DAERAH</option>
+                                <option>BADAN PENGELOLAAN KEUANGAN DAN ASET DAERAH</option>
+                                <option>BADAN PENGELOLAAN PAJAK DAN RETRIBUSI DAERAH</option>
+                                <option>BADAN KEPEGAWAIAN DAN PENGEMBANGAN SUMBER DAYA MANUSIA</option>
+                                <option>BADAN KESATUAN BANGSA DAN POLITIK DAERAH</option>
+                                <option>BADAN PENANGGULANGAN BENCANA DAERAH</option>
+                                <option>DINAS LINGKUNGAN HIDUP</option>
+                                <option>DINAS KESEHATAN</option>
+                                <option>DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</option>
+                                <option>DINAS KOPERASI, UMKM, PERINDUSTRIAN DAN PERDAGANGAN</option>
+                                <option>DINAS SOSIAL</option>
+                                <option>DINAS PEMUDA, OLAHRAGA DAN PARIWISATA</option>
+                                <option>DINAS KOMUNIKASI DAN INFORMATIKA</option>
+                                <option>DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN</option>
+                                <option>DINAS PENANAMAN MODAL DAN PELAYANAN PERIZINAN TERPADU SATU PINTU</option>
+                                <option>DINAS PENDIDIKAN DAN KEBUDAYAAN</option>
+                                <option>DINAS KETAHANAN PANGAN</option>
+                                <option>DINAS PEMBERDAYAAN MASYARAKAT DAN TIYUH</option>
+                                <option>DINAS PEMBERDAYAAN PEREMPUAN DAN PERLINDUNGAN ANAK</option>
+                                <option>DINAS PENGENDALIAN PENDUDUK DAN KELUARGA BERENCANA</option>
+                                <option>DINAS PERHUBUNGAN</option>
+                                <option>DINAS PERTANIAN</option>
+                                <option>DINAS PETERNAKAN DAN KESEHATAN HEWAN</option>
+                                <option>DINAS PEKERJAAN UMUM DAN PENATAAN RUANG</option>
+                                <option>DINAS TENAGA KERJA DAN TRANSMIGRASI</option>
+                                <option>DINAS PERIKANAN</option>
+                                <option>DINAS PERPUSTAKAAN DAN KEARSIPAN</option>
+                                <option>DINAS PEMADAM KEBAKARAN DAN PENYELAMATAN</option>
+                                <option>SATUAN POLISI PAMONG PRAJA</option>
+                                <option>BADAN PENGAWASAN KEUANGAN DAN PEMBANGUNAN (BPKP)</option>
+                                <option>LAINNYA</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hidden" id="daftarMasyarakat">
                     <label>🗺️ Kecamatan <span class="required">*</span></label>
-                    <select id="kecamatan" onchange="updateDesaList();">
-                        <option value="">-- Pilih Kecamatan --</option>
-                        <option value="Tulang Bawang Tengah">1. Tulang Bawang Tengah</option>
-                        <option value="Tulang Bawang Udik">2. Tulang Bawang Udik</option>
-                        <option value="Tumijajar">3. Tumijajar</option>
-                        <option value="Gunung Agung">4. Gunung Agung</option>
-                        <option value="Way Kenanga">5. Way Kenanga</option>
-                        <option value="Gunung Terang">6. Gunung Terang</option>
-                        <option value="Lambu Kibang">7. Lambu Kibang</option>
-                        <option value="Pagar Dewa">8. Pagar Dewa</option>
-                        <option value="Batu Putih">9. Batu Putih</option>
-                    </select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">🗺️</span>
+                            <select id="kecamatan" onchange="updateDesaList();">
+                                <option value="">-- Pilih Kecamatan --</option>
+                                <option value="Tulang Bawang Tengah">1. Tulang Bawang Tengah</option>
+                                <option value="Tulang Bawang Udik">2. Tulang Bawang Udik</option>
+                                <option value="Tumijajar">3. Tumijajar</option>
+                                <option value="Gunung Agung">4. Gunung Agung</option>
+                                <option value="Way Kenanga">5. Way Kenanga</option>
+                                <option value="Gunung Terang">6. Gunung Terang</option>
+                                <option value="Lambu Kibang">7. Lambu Kibang</option>
+                                <option value="Pagar Dewa">8. Pagar Dewa</option>
+                                <option value="Batu Putih">9. Batu Putih</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hidden" id="fieldDesa">
                     <label>🏘️ Desa / Kelurahan <span class="required">*</span></label>
-                    <select id="desa" onchange="checkAndShowNext('desa', 'field-pihakDitemui');"></select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">🏘️</span>
+                            <select id="desa" onchange="checkAndShowNext('desa', 'field-pihakDitemui');"></select>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="field-pihakDitemui" class="hidden">
                     <label>👥 Pihak yang Ditemui <span class="required">*</span></label>
-                    <select id="pihakDitemui" required onchange="checkAndShowNext('pihakDitemui', 'field-jenisLayanan');">
-                        <option value="">-- Pilih --</option>
-                        <option>INSPEKTUR</option>
-                        <option>SEKRETARIS</option>
-                        <option>IRBANSUS</option>
-                        <option>IRBAN 1</option>
-                        <option>IRBAN 2</option>
-                        <option>IRBAN 3</option>
-                        <option>IRBAN 4</option>
-                    </select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">👥</span>
+                            <select id="pihakDitemui" required onchange="checkAndShowNext('pihakDitemui', 'field-jenisLayanan');">
+                                <option value="">-- Pilih --</option>
+                                <option>INSPEKTUR</option>
+                                <option>SEKRETARIS</option>
+                                <option>IRBANSUS</option>
+                                <option>IRBAN 1</option>
+                                <option>IRBAN 2</option>
+                                <option>IRBAN 3</option>
+                                <option>IRBAN 4</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="field-jenisLayanan" class="hidden">
                     <label>📋 Jenis Layanan <span class="required">*</span></label>
-                    <select id="jenisLayanan" required onchange="checkAndShowNext('jenisLayanan', 'field-uraian');">
-                        <option value="">-- Pilih --</option>
-                        <option>Permintaan Audit/Klarifikasi Khusus</option>
-                        <option>Penanganan Pengaduan</option>
-                        <option>Layanan Informasi Publik</option>
-                        <option>Pembinaan &amp; Konsultasi</option>
-                        <option>Audit</option>
-                        <option>Review</option>
-                        <option>Evaluasi / Monitoring</option>
-                        <option>Tindak Lanjut Temuan</option>
-                    </select>
+                    <div class="input-glow-wrap">
+                        <div class="input-glow-inner">
+                            <span class="input-glow-icon">📋</span>
+                            <select id="jenisLayanan" required onchange="checkAndShowNext('jenisLayanan', 'field-uraian');">
+                                <option value="">-- Pilih --</option>
+                                <option>Permintaan Audit/Klarifikasi Khusus</option>
+                                <option>Penanganan Pengaduan</option>
+                                <option>Layanan Informasi Publik</option>
+                                <option>Pembinaan &amp; Konsultasi</option>
+                                <option>Audit</option>
+                                <option>Review</option>
+                                <option>Evaluasi / Monitoring</option>
+                                <option>Tindak Lanjut Temuan</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="field-uraian" class="hidden">
@@ -1929,7 +2013,7 @@
 
                 <div id="field-nomorHp" class="hidden">
                     <label>📱 Nomor WhatsApp <span class="required">*</span></label>
-                    <small style="color:rgba(160,190,255,0.55); display:block; margin-bottom:8px; font-size:0.78em;">Awali dengan <strong style="color:#f5e07a;">08</strong> (contoh: 081234567890)</small>
+                    <small style="color:rgba(30,90,170,0.60); display:block; margin-bottom:8px; font-size:0.78em;">Awali dengan <strong style="color:#f5e07a;">08</strong> (contoh: 081234567890)</small>
                     <div class="input-glow-wrap">
                         <div class="input-glow-inner">
                             <span class="input-glow-icon">📞</span>
@@ -1939,7 +2023,7 @@
                                 onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
                         </div>
                     </div>
-                    <small id="nomorHpInfo" style="color:#ff8080; display:block; min-height:1.2em; margin-top:4px;"></small>
+                    <small id="nomorHpInfo" style="color:#c0280a; display:block; min-height:1.2em; margin-top:4px;"></small>
                     <button type="button" class="btn-lanjut" onclick="stepNomorHp()">Lanjut ➜</button>
                 </div>
 
@@ -1952,7 +2036,6 @@
                         </div>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:0; align-items:center; margin-top:2px;">
-                        <button type="button" class="btn-hapus-ttd" onclick="clearSignature()">🗑️ Hapus</button>
                         <button type="button" class="btn-lanjut" id="btnLanjutTTD" style="display:none;" onclick="stepTandaTangan()">Lanjut ➜</button>
                     </div>
                 </div>
@@ -2195,7 +2278,7 @@
                             <img id="opImgTTD" class="op-ttd-img" src="" alt="Tanda Tangan">
                             <div class="op-foto-empty" id="opTTDEmpty">Belum ada tanda tangan</div>
                         </div>
-                        <div class="op-nama-ttd" id="opNamaTTD"></div>
+                        <div class="op-nama-ttd" id="opNamaTTD" data-label="Nama Lengkap"></div>
                     </div>
                 </div>
 
@@ -5224,12 +5307,23 @@ async function exportDetailPerTamuPDF(index) {
         doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
         doc.text("Tanda Tangan:",margin,y); y+=4;
         const sW=80,sH=28,sX=margin+2,sY=y+2;
-        doc.setFillColor(255,255,255); doc.rect(sX-2,sY-2,sW+4,sH+14,'F');
-        doc.setDrawColor(180,140,20); doc.setLineWidth(0.5); doc.rect(sX-2,sY-2,sW+4,sH+14,'S');
+        doc.setFillColor(255,255,255); doc.rect(sX-2,sY-2,sW+4,sH+4,'F');
+        doc.setDrawColor(180,140,20); doc.setLineWidth(0.5); doc.rect(sX-2,sY-2,sW+4,sH+4,'S');
         if(jpegTTD){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(jpegTTD,'JPEG',sX,sY,sW,sH);}catch(e){doc.setFontSize(9);doc.setTextColor(150);doc.text("(Gagal menampilkan tanda tangan)",sX+4,sY+8);}}
         else{doc.setFontSize(9);doc.setTextColor(150);doc.text("(Tidak ada tanda tangan)",sX+4,sY+8);}
-        doc.setGState(doc.GState({opacity:1.0})); doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
-        doc.text(data.nama||"________________________",sX+sW/2,sY+sH+10,{align:'center'});
+        // Garis bawah nama
+        const namaY = sY+sH+10;
+        const namaX = sX+sW/2;
+        const namaTeks = data.nama || "________________________";
+        doc.setDrawColor(13,31,69); doc.setLineWidth(0.4);
+        doc.line(sX, namaY+1, sX+sW, namaY+1);
+        // Nama tamu di bawah garis TTD
+        doc.setGState(doc.GState({opacity:1.0}));
+        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
+        doc.text(namaTeks, namaX, namaY, {align:'center'});
+        // Label "Nama Lengkap" di bawah nama
+        doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,130);
+        doc.text("( Nama Lengkap )", namaX, namaY+6, {align:'center'});
         const fY=280;
         
         doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(70,70,95);
