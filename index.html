@@ -1465,6 +1465,7 @@
             justify-content: center;
             padding: 0 12px 12px;
             pointer-events: none;
+            transition: bottom 0.18s ease, transform 0.18s ease;
         }
         #stepIsianModal.aktif {
             display: flex;
@@ -5608,17 +5609,7 @@ document.addEventListener('DOMContentLoaded', () => {
         prevHeight = currHeight;
     });
 
-    // ── Fix klik 1x tombol Lanjut di HP ──
-    // Saat keyboard aktif, klik pertama hanya dismiss keyboard (blur).
-    // Dengan touchstart + blur paksa + preventDefault, step langsung jalan di klik pertama.
-    document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
-        btn.addEventListener('touchstart', function(e) {
-            // Paksa blur input aktif agar keyboard turun SEBELUM onclick
-            if (document.activeElement && document.activeElement !== document.body) {
-                document.activeElement.blur();
-            }
-        }, { passive: true });
-    });
+    // (fix tombol Lanjut 1x klik ditangani di block terpisah di bawah)
 });
 </script>
 <script>
@@ -6702,12 +6693,13 @@ document.addEventListener('touchmove', function(e) {
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 
 // ══════════════════════════════════════════════════════
-// KEYBOARD VIRTUAL HP — pageScroller menyesuaikan tinggi
+// KEYBOARD VIRTUAL HP — pageScroller + stepIsianModal menyesuaikan tinggi
 // ══════════════════════════════════════════════════════
 (function() {
     const scroller = document.getElementById('pageScroller');
-    if (!scroller) return;
+
     function terapkanTinggi(vv) {
+        if (!scroller) return;
         const tinggiVisible = vv.height;
         const offsetTop = vv.offsetTop || 0;
         scroller.style.position = 'fixed';
@@ -6716,43 +6708,48 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
         scroller.style.height = (tinggiVisible - 36) + 'px';
         scroller.style.overflowY = 'auto';
     }
+
     function resetTinggi() {
+        if (!scroller) return;
         scroller.style.position = '';
         scroller.style.top    = '18px';
         scroller.style.bottom = '18px';
         scroller.style.height = '';
     }
+
+    // ── Geser #stepIsianModal ke atas keyboard ──
+    function aturPosisiModal(vv) {
+        const modal = document.getElementById('stepIsianModal');
+        if (!modal) return;
+        const keyboardTinggi = window.innerHeight - vv.height - (vv.offsetTop || 0);
+        if (keyboardTinggi > 80) {
+            // keyboard aktif — angkat modal
+            modal.style.bottom = keyboardTinggi + 'px';
+        } else {
+            // keyboard tidak aktif — kembalikan ke bawah
+            modal.style.bottom = '0px';
+        }
+    }
+
+    function resetModal() {
+        const modal = document.getElementById('stepIsianModal');
+        if (modal) modal.style.bottom = '0px';
+    }
+
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', function() {
-            if (window.visualViewport.height < window.innerHeight * 0.75) {
-                terapkanTinggi(window.visualViewport);
-                // Scroll tombol Lanjut ke atas agar tidak tertutup keyboard
-                setTimeout(function() {
-                    const btns = document.querySelectorAll('.btn-lanjut:not([style*="display:none"]):not(.hidden)');
-                    let visibleBtn = null;
-                    btns.forEach(function(b) {
-                        if (b.offsetParent !== null && getComputedStyle(b).display !== 'none') {
-                            visibleBtn = b;
-                        }
-                    });
-                    if (visibleBtn) {
-                        visibleBtn.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                    } else {
-                        const focused = document.activeElement;
-                        if (focused && focused !== document.body) {
-                            focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                }, 150);
+        function onVVChange() {
+            const vv = window.visualViewport;
+            const keyboardAktif = vv.height < window.innerHeight * 0.75;
+            if (keyboardAktif) {
+                terapkanTinggi(vv);
+                aturPosisiModal(vv);
             } else {
                 resetTinggi();
+                resetModal();
             }
-        });
-        window.visualViewport.addEventListener('scroll', function() {
-            if (window.visualViewport.height < window.innerHeight * 0.75) {
-                terapkanTinggi(window.visualViewport);
-            }
-        });
+        }
+        window.visualViewport.addEventListener('resize', onVVChange);
+        window.visualViewport.addEventListener('scroll', onVVChange);
     } else {
         document.addEventListener('focusin', function() {
             setTimeout(function() {
@@ -6763,6 +6760,45 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
             }, 350);
         }, true);
     }
+})();
+
+// ══════════════════════════════════════════════════════
+// FIX: TOMBOL LANJUT — 1x klik di HP (blur paksa sebelum action)
+// ══════════════════════════════════════════════════════
+(function() {
+    // Menggunakan pointerdown (lebih cepat dari touchstart) +
+    // blur paksa agar keyboard turun SEBELUM event click terpicu.
+    // Ini memastikan hanya 1x tap sudah pindah step.
+    function pasangHandlerLanjut(btn) {
+        btn._lanjutHandlerPasang = true;
+        btn.addEventListener('pointerdown', function(e) {
+            const aktif = document.activeElement;
+            if (aktif && aktif !== document.body && aktif !== btn) {
+                aktif.blur();
+            }
+        }, { passive: true });
+        // Fallback untuk browser lama yang tidak support PointerEvents
+        btn.addEventListener('touchstart', function(e) {
+            if (!btn._lanjutHandlerPasang) return;
+            const aktif = document.activeElement;
+            if (aktif && aktif !== document.body && aktif !== btn) {
+                aktif.blur();
+            }
+        }, { passive: true });
+    }
+
+    // Pasang ke semua .btn-lanjut yang sudah ada
+    function pasangSemua() {
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+            if (!btn._lanjutHandlerPasang) pasangHandlerLanjut(btn);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', pasangSemua);
+
+    // MutationObserver: pasang juga ke btn-lanjut yang muncul kemudian
+    var obs = new MutationObserver(function() { pasangSemua(); });
+    obs.observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 </div><!-- /pageScroller -->
