@@ -1921,7 +1921,7 @@
                     <div class="input-glow-wrap">
                         <div class="input-glow-inner">
                             <span class="input-glow-icon">🏢</span>
-                            <select id="instansi" onchange="checkAndShowNext('instansi', 'field-pihakDitemui');">
+                            <select id="instansi" onchange="instansiChanged();">
                                 <option value="">-- Pilih Instansi --</option>
                                 <option>SEKRETARIAT DAERAH</option>
                                 <option>SEKRETARIAT DPRD</option>
@@ -1958,6 +1958,23 @@
                                 <option>LAINNYA</option>
                             </select>
                         </div>
+                    </div>
+                </div>
+
+                <div class="hidden" id="fieldInstansiLainnya">
+                    <label>✏️ Nama Instansi / Unit Kerja <span class="required">*</span></label>
+                    <div style="border-radius:18px; overflow:hidden; box-shadow: 0 0 18px 6px rgba(70,170,255,0.32), 0 0 38px 12px rgba(100,200,255,0.18), 0 4px 22px rgba(80,160,230,0.20);">
+                        <div class="input-glow-inner" style="border-radius:18px 18px 0 0; border-bottom:none;">
+                            <span class="input-glow-icon">✏️</span>
+                            <input type="text" id="instansiLainnya" placeholder="Tuliskan nama instansi / unit kerja Anda..."
+                                oninput="instansiLainnyaChanged();"
+                                autocomplete="off" style="width:100%;" />
+                        </div>
+                        <button type="button" id="btnLanjutInstansiLainnya" class="btn-lanjut"
+                            onclick="lanjutDariInstansiLainnya();"
+                            style="display:none; width:100%; border-radius:0 0 18px 18px; margin:0;">
+                            Lanjut ➜
+                        </button>
                     </div>
                 </div>
 
@@ -2039,11 +2056,11 @@
                                 <span class="input-glow-icon">✍️</span>
                                 <textarea id="uraian" required rows="3"
                                     placeholder="Tuliskan uraian keperluan... (min. 10 karakter)"
-                                    oninput="_debouncedValidateUraian();"
+                                    oninput="_debouncedValidateUraian(); (function(){var b=document.getElementById('btnLanjutUraian'); if(b) b.style.display=document.getElementById('uraian').value.trim().length>=10?'':'none';})();"
                                     onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();stepUraian();}"></textarea>
                             </div>
                         </div>
-                        <button type="button" class="btn-lanjut" onclick="stepUraian()">Lanjut ➜</button>
+                        <button type="button" id="btnLanjutUraian" class="btn-lanjut" onclick="stepUraian()" style="display:none;">Lanjut ➜</button>
                     </div>
                 </div>
 
@@ -2056,11 +2073,11 @@
                                 <span class="input-glow-icon">📞</span>
                                 <input id="nomorHp" required type="tel" placeholder="08xxxxxxxxxx"
                                     pattern="08[0-9]{9,11}" maxlength="13" minlength="11"
-                                    oninput="validateNomorHp(this);"
+                                    oninput="validateNomorHp(this); (function(){var v=document.getElementById('nomorHp').value.trim(); var b=document.getElementById('btnLanjutNomorHp'); if(b) b.style.display=(v.startsWith('08')&&v.length>=11&&/^[0-9]+$/.test(v))?'':'none';})();"
                                     onkeydown="if(event.key==='Enter'){event.preventDefault();stepNomorHp();}"/>
                             </div>
                         </div>
-                        <button type="button" class="btn-lanjut" onclick="stepNomorHp()">Lanjut ➜</button>
+                        <button type="button" id="btnLanjutNomorHp" class="btn-lanjut" onclick="stepNomorHp()" style="display:none;">Lanjut ➜</button>
                     </div>
                     <small id="nomorHpInfo" style="color:#c0280a; display:block; min-height:1em; margin-top:4px;"></small>
                 </div>
@@ -2099,10 +2116,7 @@
                                 style="display:none; font-size:15px; background:#6610f2; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
                             📷 Foto Suasana
                         </button>
-                        <button type="button" id="btnHapusTTD" onclick="clearSignature()"
-                                style="font-size:15px; background:#dc3545; color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;">
-                            🗑️ Hapus TTD
-                        </button>
+
                     </div>
                     <div class="warning" id="photoWarning" style="display:none; margin:10px 0;">⚠️ Foto wajib diambil!</div>
                     <div id="photoPreview" style="margin-top:20px; margin-bottom:40px; display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
@@ -2997,6 +3011,9 @@ function clearSignature() {
     // Sembunyikan tombol Lanjut TTD
     const btnLanjutTTD = document.getElementById('btnLanjutTTD');
     if (btnLanjutTTD) btnLanjutTTD.style.display = 'none';
+    // Sembunyikan tombol Lanjut Instansi Lainnya
+    const btnLanjutIL = document.getElementById('btnLanjutInstansiLainnya');
+    if (btnLanjutIL) btnLanjutIL.style.display = 'none';
     if (!isEditMode) {
         // Hapus baris TTD dan sembunyikan separator dokumentasi
         const bubTTD = document.querySelector('.ps-row[data-field="tandaTangan"]');
@@ -3199,10 +3216,11 @@ function aktifkanField(id) {
 
 // Metadata tiap field: ikon, judul, langkah, hint
 const _SI_META = {
-    'field-nama':         { icon:'👤', title:'Nama Lengkap',         step:1, hint:'Minimal 5 huruf — lanjut otomatis setelah selesai mengetik' },
-    'field-asal':         { icon:'🏠', title:'Asal / Instansi',       step:2, hint:'Pilih asal Anda lalu lanjut otomatis' },
-    'daftarInstansi':     { icon:'🏢', title:'Instansi / Unit Kerja', step:3, hint:'Pilih instansi atau unit kerja Anda' },
-    'daftarMasyarakat':   { icon:'🗺️', title:'Kecamatan',             step:3, hint:'Pilih kecamatan asal Anda' },
+    'field-nama':         { icon:'👤', title:'Nama Lengkap',              step:1, hint:'Minimal 5 huruf — lanjut otomatis setelah selesai mengetik' },
+    'field-asal':         { icon:'🏠', title:'Asal / Instansi',            step:2, hint:'Pilih asal Anda lalu lanjut otomatis' },
+    'daftarInstansi':     { icon:'🏢', title:'Instansi / Unit Kerja',      step:3, hint:'Pilih instansi atau unit kerja Anda' },
+    'fieldInstansiLainnya': { icon:'✏️', title:'Nama Instansi / Unit Kerja', step:3, hint:'Ketik nama instansi atau unit kerja Anda lalu tekan Lanjut' },
+    'daftarMasyarakat':   { icon:'🗺️', title:'Kecamatan',                  step:3, hint:'Pilih kecamatan asal Anda' },
     'fieldDesa':          { icon:'🏘️', title:'Desa / Kelurahan',      step:4, hint:'Pilih desa atau kelurahan Anda' },
     'field-pihakDitemui': { icon:'👥', title:'Pihak yang Ditemui',    step:5, hint:'Pilih pihak yang ingin Anda temui' },
     'field-jenisLayanan': { icon:'📋', title:'Jenis Layanan',          step:6, hint:'Pilih jenis layanan yang dibutuhkan' },
@@ -3434,24 +3452,93 @@ function stepTandaTangan() {
     });
 }
 
+function instansiChanged() {
+    const instansiVal = document.getElementById('instansi').value;
+    const fieldLainnya = document.getElementById('fieldInstansiLainnya');
+
+    if (isEditMode || _editBebasMode) {
+        // Di mode edit: hanya tampilkan/sembunyikan field lainnya, tidak ada step/reset
+        if (instansiVal === 'LAINNYA') {
+            fieldLainnya.classList.remove('hidden');
+        } else {
+            fieldLainnya.classList.add('hidden');
+            document.getElementById('instansiLainnya').value = '';
+        }
+        return;
+    }
+
+    if (instansiVal === 'LAINNYA') {
+        fieldLainnya.classList.remove('hidden');
+        aktifkanField('fieldInstansiLainnya');
+        document.getElementById('instansiLainnya').value = '';
+        const btn = document.getElementById('btnLanjutInstansiLainnya');
+        if (btn) btn.style.display = 'none';
+    } else {
+        fieldLainnya.classList.add('hidden');
+        document.getElementById('instansiLainnya').value = '';
+        if (instansiVal) {
+            checkAndShowNext('instansi', 'field-pihakDitemui');
+        }
+    }
+}
+
+function instansiLainnyaChanged() {
+    const val = document.getElementById('instansiLainnya').value.trim();
+    const btn = document.getElementById('btnLanjutInstansiLainnya');
+    // Tampilkan tombol Lanjut jika ada isian, sembunyikan jika kosong
+    if (btn) btn.style.display = val ? 'block' : 'none';
+}
+
+function lanjutDariInstansiLainnya() {
+    const val = document.getElementById('instansiLainnya').value.trim();
+    if (!val) return;
+    const btn = document.getElementById('btnLanjutInstansiLainnya');
+    if (isEditMode || _editBebasMode) {
+        // Di mode edit: tidak perlu lakukan apa-apa, nilai sudah tersimpan di field
+        if (btn) btn.style.display = 'none';
+        return;
+    }
+    tampilJawab('instansiLainnya', 'Instansi / Unit Kerja', val);
+    aktifkanField('field-pihakDitemui');
+    if (btn) btn.style.display = 'none';
+}
+
+function getInstansiValue() {
+    const instansiSel = document.getElementById('instansi').value;
+    if (instansiSel === 'LAINNYA') {
+        return document.getElementById('instansiLainnya').value.trim();
+    }
+    return instansiSel;
+}
+
 function asalChanged() {
-   if (isEditMode) {
+   if (isEditMode || _editBebasMode) {
         const asal = document.getElementById('asal').value;
         const daftarInstansi = document.getElementById('daftarInstansi');
         const daftarMasyarakat = document.getElementById('daftarMasyarakat');
         const fieldDesa = document.getElementById('fieldDesa');
+        const fieldLainnya = document.getElementById('fieldInstansiLainnya');
         if (asal === 'INSTANSI') {
             daftarInstansi.classList.remove('hidden');
             daftarMasyarakat.classList.add('hidden');
             fieldDesa.classList.add('hidden');
+            // Jaga field lainnya sesuai nilai instansi saat ini
+            const instansiVal = document.getElementById('instansi').value;
+            if (instansiVal === 'LAINNYA') {
+                fieldLainnya.classList.remove('hidden');
+            } else {
+                fieldLainnya.classList.add('hidden');
+            }
         } else if (asal === 'MASYARAKAT') {
             daftarMasyarakat.classList.remove('hidden');
             daftarInstansi.classList.add('hidden');
             fieldDesa.classList.remove('hidden');
+            fieldLainnya.classList.add('hidden');
         } else {
             daftarInstansi.classList.add('hidden');
             daftarMasyarakat.classList.add('hidden');
             fieldDesa.classList.add('hidden');
+            fieldLainnya.classList.add('hidden');
         }
         return;
     }
@@ -3554,7 +3641,7 @@ function checkAndShowNext(currentId, nextFieldId) {
 
 function hideFieldsAfter(fieldId) {
     if (isEditMode) return;
-    const fields = ['field-asal', 'daftarInstansi', 'daftarMasyarakat', 'fieldDesa', 
+    const fields = ['field-asal', 'daftarInstansi', 'fieldInstansiLainnya', 'daftarMasyarakat', 'fieldDesa', 
                     'field-pihakDitemui', 'field-jenisLayanan', 'field-uraian', 
                     'field-nomorHp', 'field-tandaTangan', 'field-aksi'];
     let found = false;
@@ -3565,12 +3652,33 @@ function hideFieldsAfter(fieldId) {
 }
 
 function hideAllFields() {
-    ['field-asal','daftarInstansi','daftarMasyarakat','fieldDesa',
+    ['field-asal','daftarInstansi','fieldInstansiLainnya','daftarMasyarakat','fieldDesa',
      'field-pihakDitemui','field-jenisLayanan','field-uraian',
      'field-nomorHp','field-tandaTangan','field-aksi'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
+
+    // ── Kosongkan semua isian & dropdown secara eksplisit ──
+    const kosongkan = (id, defaultVal) => {
+        const el = document.getElementById(id);
+        if (el) { el.value = defaultVal !== undefined ? defaultVal : ''; el.classList.remove('error','success'); }
+    };
+    kosongkan('nama');
+    kosongkan('asal', '');
+    kosongkan('instansi', '');
+    kosongkan('instansiLainnya');
+    kosongkan('kecamatan', '');
+    kosongkan('desa', '');
+    kosongkan('pihakDitemui', '');
+    kosongkan('jenisLayanan', '');
+    kosongkan('uraian');
+    kosongkan('nomorHp');
+
+    // ── Sembunyikan tombol lanjut instansi lainnya ──
+    const btnIL = document.getElementById('btnLanjutInstansiLainnya');
+    if (btnIL) btnIL.style.display = 'none';
+
     bersihJawab();
     /* Tampilkan kembali field Nama dengan animasi */
     const fn = document.getElementById('field-nama');
@@ -3666,17 +3774,10 @@ function _toggleTombolFoto() {
         normal.style.display   = 'none';
         depan.style.display    = '';
         belakang.style.display = '';
-        // Sembunyikan tombol Lanjut dan Hapus TTD di mode edit
-        document.querySelectorAll('.btn-lanjut').forEach(function(btn) { btn.style.display = 'none'; });
-        const btnHapusTTD = document.getElementById('btnHapusTTD');
-        if (btnHapusTTD) btnHapusTTD.style.display = 'none';
     } else {
         normal.style.display   = '';
         depan.style.display    = 'none';
         belakang.style.display = 'none';
-        // Tampilkan kembali tombol Hapus TTD di mode normal
-        const btnHapusTTD = document.getElementById('btnHapusTTD');
-        if (btnHapusTTD) btnHapusTTD.style.display = '';
     }
 }
 
@@ -3972,7 +4073,7 @@ function bukaOverlay() {
     ];
 
     if (asal === 'INSTANSI') {
-        rows.push({ lbl: 'Instansi / Unit Kerja', val: document.getElementById('instansi').value || '—' });
+        rows.push({ lbl: 'Instansi / Unit Kerja', val: getInstansiValue() || '—' });
     } else {
         rows.push({ lbl: 'Kecamatan',        val: document.getElementById('kecamatan').value || '—' });
         rows.push({ lbl: 'Desa / Kelurahan', val: document.getElementById('desa').value || '—' });
@@ -4159,8 +4260,19 @@ function editDariOverlay() {
             if (asal === 'INSTANSI') {
                 document.getElementById('daftarMasyarakat').classList.add('hidden');
                 document.getElementById('fieldDesa').classList.add('hidden');
+                // Tampilkan fieldInstansiLainnya hanya jika pilihan LAINNYA
+                const instansiVal = document.getElementById('instansi').value;
+                if (instansiVal === 'LAINNYA') {
+                    document.getElementById('fieldInstansiLainnya').classList.remove('hidden');
+                } else {
+                    document.getElementById('fieldInstansiLainnya').classList.add('hidden');
+                }
+                // Sembunyikan tombol Lanjut — tidak diperlukan di mode edit
+                const btnIL = document.getElementById('btnLanjutInstansiLainnya');
+                if (btnIL) btnIL.style.display = 'none';
             } else if (asal === 'MASYARAKAT') {
                 document.getElementById('daftarInstansi').classList.add('hidden');
+                document.getElementById('fieldInstansiLainnya').classList.add('hidden');
                 const kec = document.getElementById('kecamatan').value;
                 if (kec && dataDesa[kec]) {
                     const desaEl = document.getElementById('desa');
@@ -4178,6 +4290,7 @@ function editDariOverlay() {
                 document.getElementById('daftarInstansi').classList.add('hidden');
                 document.getElementById('daftarMasyarakat').classList.add('hidden');
                 document.getElementById('fieldDesa').classList.add('hidden');
+                document.getElementById('fieldInstansiLainnya').classList.add('hidden');
             }
 
             // ── Resize canvas TTD ──
@@ -4427,6 +4540,23 @@ async function simpanData() {
             alert('Nama minimal 5 huruf!');
         }
 
+        // ── Validasi Instansi: jika LAINNYA, field teks wajib diisi ──
+        const asalValEdit = document.getElementById('asal').value;
+        if (asalValEdit === 'INSTANSI') {
+            const instansiValEdit = document.getElementById('instansi').value;
+            if (instansiValEdit === 'LAINNYA') {
+                const lainnyaEl = document.getElementById('instansiLainnya');
+                if (!lainnyaEl || !lainnyaEl.value.trim()) {
+                    lainnyaEl && lainnyaEl.classList.add('error');
+                    isValid = false;
+                    alert('Mohon isi nama instansi / unit kerja Anda!');
+                }
+            } else if (!instansiValEdit) {
+                document.getElementById('instansi').classList.add('error');
+                isValid = false;
+            }
+        }
+
         // ── Validasi Uraian minimal 15 karakter ──
         const uraianEditEl = document.getElementById('uraian');
         if (uraianEditEl && uraianEditEl.value.trim().length < 15) {
@@ -4471,7 +4601,7 @@ async function simpanData() {
     const formData = {
         nama: document.getElementById('nama').value.trim(),
         asal: asal,
-        instansi: asal === 'INSTANSI' ? document.getElementById('instansi').value : '',
+        instansi: asal === 'INSTANSI' ? getInstansiValue() : '',
         kecamatan: asal === 'MASYARAKAT' ? document.getElementById('kecamatan').value : '',
         desa: asal === 'MASYARAKAT' ? document.getElementById('desa').value : '',
         pihakDitemui: document.getElementById('pihakDitemui').value,
@@ -4543,6 +4673,15 @@ async function simpanDataSementara() {
             isValid = false;
         }
     });
+    // Validasi instansiLainnya jika LAINNYA dipilih
+    const asalValSementara = document.getElementById('asal').value;
+    if (asalValSementara === 'INSTANSI' && document.getElementById('instansi').value === 'LAINNYA') {
+        const lainnyaElS = document.getElementById('instansiLainnya');
+        if (!lainnyaElS || !lainnyaElS.value.trim()) {
+            lainnyaElS && lainnyaElS.classList.add('error');
+            isValid = false;
+        }
+    }
     if (!isValid) {
         alert('❌ Data belum lengkap. Silakan lengkapi form terlebih dahulu.');
         return false;
@@ -4551,7 +4690,7 @@ async function simpanDataSementara() {
     const formData = {
         nama: document.getElementById('nama').value.trim(),
         asal: asal,
-        instansi: asal === 'INSTANSI' ? document.getElementById('instansi').value : '',
+        instansi: asal === 'INSTANSI' ? getInstansiValue() : '',
         kecamatan: asal === 'MASYARAKAT' ? document.getElementById('kecamatan').value : '',
         desa: asal === 'MASYARAKAT' ? document.getElementById('desa').value : '',
         pihakDitemui: document.getElementById('pihakDitemui').value,
@@ -4589,6 +4728,17 @@ function resetFormComplete() {
     // Reset edit bebas mode
     _editBebasMode = false;
     bersihJawab();
+    // Kosongkan semua field input secara eksplisit
+    const namaEl = document.getElementById('nama');
+    if (namaEl) { namaEl.value = ''; namaEl.classList.remove('error','success'); }
+    const instansiLainnyaEl = document.getElementById('instansiLainnya');
+    if (instansiLainnyaEl) instansiLainnyaEl.value = '';
+    const uraianEl = document.getElementById('uraian');
+    if (uraianEl) uraianEl.value = '';
+    const nomorHpEl = document.getElementById('nomorHp');
+    if (nomorHpEl) { nomorHpEl.value = ''; nomorHpEl.classList.remove('error','success'); }
+    const btnIL = document.getElementById('btnLanjutInstansiLainnya');
+    if (btnIL) btnIL.style.display = 'none';
     hideAllFields();
     isEditMode = false;
     editingIndex = -1;
@@ -4602,32 +4752,81 @@ function showForm() {
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
 
-    document.getElementById('bukuTamuForm').reset();
+    // ── Reset semua state & flag ──
+    _editBebasMode = false;
+    isEditMode = false;
+    editingIndex = -1;
+    editingSementara = false;
+    _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
+    clearTimeout(_timerNama); clearTimeout(_timerUraian); clearTimeout(_timerHp);
     hasSignature = false;
     hasPhoto = false;
     fotoDataURLFront = null;
     fotoDataURLBack = null;
     totalStrokeLength = 0;
-    if (ctx2) ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-    bersihJawab();
-    hideAllFields();
-    isEditMode = false;
-    editingIndex = -1;
-    editingSementara = false;
-    // Reset auto-advance flags
-    _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
-    clearTimeout(_timerNama); clearTimeout(_timerUraian); clearTimeout(_timerHp);
-    document.getElementById('formSection').style.display = 'block';
-    document.getElementById('dataSection').style.display = 'none';
-    document.getElementById('editModeButtons').style.display = 'none';
+    signatureDataURL = null;
+
+    // ── Reset canvas TTD ──
+    if (ctx2 && signatureCanvas) {
+        ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        _gambarPlaceholderTTD();
+    }
+
+    // ── Reset semua field input & select secara eksplisit ──
+    const resetField = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = val !== undefined ? val : '';
+            el.classList.remove('error', 'success');
+        }
+    };
+    resetField('nama');
+    resetField('asal', '');
+    resetField('instansi', '');
+    resetField('instansiLainnya');
+    resetField('kecamatan', '');
+    resetField('desa', '');
+    resetField('pihakDitemui', '');
+    resetField('jenisLayanan', '');
+    resetField('uraian');
+    resetField('nomorHp');
+
+    // ── Reset foto ──
     const imgFront = document.getElementById('imgFront');
     const imgBack  = document.getElementById('imgBack');
     if (imgFront) { imgFront.src = ''; imgFront.style.display = 'none'; }
     if (imgBack)  { imgBack.src  = ''; imgBack.style.display  = 'none'; }
+
+    // ── Reset warning ──
+    const sigWarn = document.getElementById('signatureWarning');
+    if (sigWarn) sigWarn.style.display = 'none';
+    const photoWarn = document.getElementById('photoWarning');
+    if (photoWarn) photoWarn.style.display = 'none';
+
+    // ── Sembunyikan tombol lanjut instansi lainnya ──
+    const btnIL = document.getElementById('btnLanjutInstansiLainnya');
+    if (btnIL) btnIL.style.display = 'none';
+
+    // ── Bersihkan ringkasan jawaban ──
+    bersihJawab();
+
+    // ── Navigasi ──
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('dataSection').style.display = 'none';
+    document.getElementById('editModeButtons').style.display = 'none';
     document.getElementById('mainNavigation').style.display = 'block';
     document.getElementById('btnFormHeader').style.display = '';
     document.getElementById('btnFormHeader').style.background = 'linear-gradient(135deg,#1a6e2a,#27ae60)';
     document.getElementById('btnData').style.background = '';
+    const floatBtns = document.getElementById('floatingEditBtns');
+    if (floatBtns) floatBtns.style.display = 'none';
+    const paperScroll = document.getElementById('paperScroll');
+    if (paperScroll) paperScroll.style.display = '';
+
+    // ── Tutup overlay step isian, sembunyikan semua field, mulai dari Nama ──
+    _tutupStepIsian(() => {
+        hideAllFields();
+    });
 }
 
 function showData() {
@@ -4784,7 +4983,16 @@ function editData(index) {
         document.getElementById('asal').value = data.asal || '';
         asalChanged();
         if (data.asal === 'INSTANSI') {
-            document.getElementById('instansi').value = data.instansi || '';
+            const instansiSel1 = document.getElementById('instansi');
+            const opsiAda1 = Array.from(instansiSel1.options).some(o => o.value === data.instansi || o.text === data.instansi);
+            if (opsiAda1) {
+                instansiSel1.value = data.instansi || '';
+                document.getElementById('fieldInstansiLainnya').classList.add('hidden');
+            } else if (data.instansi) {
+                instansiSel1.value = 'LAINNYA';
+                document.getElementById('fieldInstansiLainnya').classList.remove('hidden');
+                document.getElementById('instansiLainnya').value = data.instansi;
+            }
         } else if (data.asal === 'MASYARAKAT') {
             document.getElementById('kecamatan').value = data.kecamatan || '';
             updateDesaList();
@@ -4913,7 +5121,16 @@ function editSementara(sIndex) {
         document.getElementById('asal').value = data.asal || '';
         asalChanged();
         if (data.asal === 'INSTANSI') {
-            document.getElementById('instansi').value = data.instansi || '';
+            const instansiSel2 = document.getElementById('instansi');
+            const opsiAda2 = Array.from(instansiSel2.options).some(o => o.value === data.instansi || o.text === data.instansi);
+            if (opsiAda2) {
+                instansiSel2.value = data.instansi || '';
+                document.getElementById('fieldInstansiLainnya').classList.add('hidden');
+            } else if (data.instansi) {
+                instansiSel2.value = 'LAINNYA';
+                document.getElementById('fieldInstansiLainnya').classList.remove('hidden');
+                document.getElementById('instansiLainnya').value = data.instansi;
+            }
         } else if (data.asal === 'MASYARAKAT') {
             document.getElementById('kecamatan').value = data.kecamatan || '';
             updateDesaList();
@@ -5351,29 +5568,25 @@ async function exportDetailPerTamuPDF(index) {
         if(stampedFront){try{doc.addImage(stampedFront,'JPEG',pX,y,pSz,pSz);}catch(e){doc.setDrawColor(180,140,20);doc.setLineWidth(0.5);doc.rect(pX,y,pSz,pSz,'S');}}
         pX+=pSz+pGap;
         if(stampedBack){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(stampedBack,'JPEG',pX,y,pSz,pSz);}catch(e){doc.setDrawColor(180,140,20);doc.setLineWidth(0.5);doc.rect(pX,y,pSz,pSz,'S');}}
-        y+=pSz+16;
+        y+=pSz+6;
         doc.setGState(doc.GState({opacity:1.0}));
         doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
         doc.text("Tanda Tangan:",margin,y); y+=4;
-        const sW=80,sH=28,sX=margin+2,sY=y+2;
+        // Border tanda tangan lebih tinggi agar nama muat di dalam
+        const sW=80,sH=42,sX=margin+2,sY=y+2;
         doc.setFillColor(255,255,255); doc.rect(sX-2,sY-2,sW+4,sH+4,'F');
         doc.setDrawColor(180,140,20); doc.setLineWidth(0.5); doc.rect(sX-2,sY-2,sW+4,sH+4,'S');
-        if(jpegTTD){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(jpegTTD,'JPEG',sX,sY,sW,sH);}catch(e){doc.setFontSize(9);doc.setTextColor(150);doc.text("(Gagal menampilkan tanda tangan)",sX+4,sY+8);}}
+        // Gambar tanda tangan di bagian atas border
+        if(jpegTTD){try{doc.setGState(doc.GState({opacity:1.0}));doc.addImage(jpegTTD,'JPEG',sX,sY,sW,28);}catch(e){doc.setFontSize(9);doc.setTextColor(150);doc.text("(Gagal menampilkan tanda tangan)",sX+4,sY+8);}}
         else{doc.setFontSize(9);doc.setTextColor(150);doc.text("(Tidak ada tanda tangan)",sX+4,sY+8);}
-        // Garis bawah nama
-        const namaY = sY+sH+10;
+        // Nama tamu di dalam border, di bawah tanda tangan (tanpa garis)
         const namaX = sX+sW/2;
+        const namaY = sY+38;
         const namaTeks = data.nama || "________________________";
-        doc.setDrawColor(13,31,69); doc.setLineWidth(0.4);
-        doc.line(sX, namaY+1, sX+sW, namaY+1);
-        // Nama tamu di bawah garis TTD
         doc.setGState(doc.GState({opacity:1.0}));
         doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(13,31,69);
         doc.text(namaTeks, namaX, namaY, {align:'center'});
-        // Label "Nama Lengkap" di bawah nama
-        doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,130);
-        doc.text("( Nama Lengkap )", namaX, namaY+6, {align:'center'});
-        const fY=280;
+        const fY=277;
         
         doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(70,70,95);
         doc.text('Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital \u2014 Inspektorat Kab. Tulang Bawang Barat',pageWidth/2,fY+6,{align:'center'});
