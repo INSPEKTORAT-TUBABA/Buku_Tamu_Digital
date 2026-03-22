@@ -1390,22 +1390,18 @@
             font-size: 0.95em;
             font-weight: 800;
             color: #0d1f45;
-            margin-top: 6px;
+            margin-top: 8px;
             letter-spacing: 0.03em;
             text-align: center;
-            border-top: 1.5px solid #0d1f45;
-            padding-top: 5px;
+            border: 1.5px solid rgba(212,168,32,0.60);
+            border-radius: 7px;
+            padding: 6px 18px;
             width: 100%;
             max-width: 340px;
+            background: rgba(212,168,32,0.06);
         }
         .op-nama-ttd::after {
-            content: attr(data-label);
-            display: block;
-            font-size: 0.78em;
-            font-weight: 400;
-            color: #6b7280;
-            margin-top: 2px;
-            letter-spacing: 0.05em;
+            content: none;
         }
 
         /* ── Footer ── */
@@ -2651,7 +2647,78 @@ function _tampilHalamanTamu(data) {
     document.body.appendChild(modal);
 }
 
+// ===== PEMBATASAN JAM KERJA & SATU DEVICE SATU KALI =====
+
+/** Cek apakah sekarang dalam jam kerja 07:30 – 16:00 (jam lokal perangkat) */
+function cekJamKerja() {
+    const now = new Date();
+    const totalMenit = now.getHours() * 60 + now.getMinutes();
+    return totalMenit >= (7*60+30) && totalMenit < (16*60);
+}
+
+/** Buat fingerprint unik device dari properti browser */
+function getDeviceId() {
+    const raw = (navigator.userAgent||'') + '|' + (navigator.language||'') + '|' +
+                (Intl.DateTimeFormat().resolvedOptions().timeZone||'') + '|' +
+                screen.width + 'x' + screen.height;
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0;
+    return 'dev_' + Math.abs(h).toString(36);
+}
+
+/** Cek apakah device ini sudah mengisi hari ini */
+function cekDeviceSudahIsi() {
+    const key = 'btamu_dev_' + getDeviceId();
+    return localStorage.getItem(key) === new Date().toLocaleDateString('id-ID');
+}
+
+/** Tandai device sudah mengisi hari ini */
+function tandaiDeviceSudahIsi() {
+    localStorage.setItem('btamu_dev_' + getDeviceId(), new Date().toLocaleDateString('id-ID'));
+}
+
+/** Tampilkan modal blokir */
+function tampilModalBlokir(judul, pesan, ikonEmoji) {
+    const ada = document.getElementById('_blokirModal');
+    if (ada) ada.remove();
+    const modal = document.createElement('div');
+    modal.id = '_blokirModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:24px;';
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
+            <div style="font-size:3rem;margin-bottom:10px;">${ikonEmoji}</div>
+            <h3 style="margin:0 0 10px;color:#0d1f45;font-size:1.15em;font-weight:800;">${judul}</h3>
+            <p style="margin:0 0 24px;color:#555;font-size:0.93em;line-height:1.6;">${pesan}</p>
+            <button onclick="document.getElementById('_blokirModal').remove()"
+                style="background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:50px;padding:12px 36px;font-size:1em;font-weight:900;cursor:pointer;width:100%;letter-spacing:.04em;">
+                Tutup
+            </button>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
 function startApp() {
+    // ── Cek jam kerja SEBELUM membuka form ──
+    if (!cekJamKerja()) {
+        tampilModalBlokir(
+            'Di Luar Jam Kerja',
+            'Buku tamu hanya dapat diisi pada jam kerja:<br><br>' +
+            '<strong style="font-size:1.2em;color:#d4a820;">07:30 – 16:00 WIB</strong><br><br>' +
+            'Silakan kembali pada jam tersebut.',
+            '🕐'
+        );
+        return;
+    }
+    // ── Cek satu device satu kali per hari ──
+    if (cekDeviceSudahIsi()) {
+        tampilModalBlokir(
+            'Sudah Mengisi Hari Ini',
+            'Perangkat ini sudah digunakan untuk mengisi buku tamu hari ini.<br><br>' +
+            'Satu perangkat hanya diizinkan <strong>satu kali pengisian</strong> per hari.',
+            '📵'
+        );
+        return;
+    }
     sembunyikanWelcome();
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
@@ -4645,6 +4712,8 @@ async function simpanData() {
     }
     updateDataCounter();
     await lsSave();
+    // Tandai device sudah mengisi hari ini (hanya entri baru, bukan edit)
+    if (editingIndex < 0) tandaiDeviceSudahIsi();
     resetFormComplete();
     return true;
 }
@@ -4709,6 +4778,8 @@ async function simpanDataSementara() {
     // Simpan juga ke Firebase Penyimpanan Terpusat
     const fbKey = await fbSimpan(formData, true);
     if (fbKey) dataTamuSementara[dataTamuSementara.length - 1]._fbKey = fbKey;
+    // Tandai device sudah mengisi hari ini
+    tandaiDeviceSudahIsi();
     resetFormComplete();
     return true;
 }
