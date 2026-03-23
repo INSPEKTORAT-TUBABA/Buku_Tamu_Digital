@@ -3189,6 +3189,10 @@ function _cekLoginAdmin() {
 }
 
 async function startApp() {
+    // ── Inisialisasi Firebase DULU agar fbDb siap sebelum cek jam ──
+    if (!fbDb) {
+        try { await inisialisasiFirebase(); } catch(e) {}
+    }
     // ── Muat jam kerja terbaru dari Firebase ──
     if (fbDb) {
         try {
@@ -3247,10 +3251,11 @@ async function startApp() {
     const imgBack  = document.getElementById('imgBack');
     if (imgFront) { imgFront.src = ''; imgFront.style.display = 'none'; }
     if (imgBack)  { imgBack.src  = ''; imgBack.style.display  = 'none'; }
-    // Hubungkan ke Firebase Penyimpanan Terpusat
-    inisialisasiFirebase();
-    // Sinkron waktu internet di background (anti-manipulasi jam perangkat)
-    sinkronWaktuInternet();
+    // Firebase sudah diinisialisasi di awal startApp — muat ulang data tamu
+    if (fbDb) {
+        fbMuatSemua().then(() => updateDataCounter());
+        fbPasangListener();
+    }
     // Tampilkan overlay isian untuk field nama pertama kali
     setTimeout(() => _tampilStepIsian('field-nama'), 350);
 }
