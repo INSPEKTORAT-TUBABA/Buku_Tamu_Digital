@@ -2296,10 +2296,10 @@
         <div id="fbSyncStatus" style="display:none;"></div>
 
         <!-- ── Panel Pengaturan Jam Kerja ── -->
-        <!-- Panel Pengaturan Jam — full overlay responsif HP -->
-        <div id="jamKerjaPanel" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,30,80,0.72);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-          <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-          <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45);">
+        <!-- Panel Pengaturan Jam dipindah ke body langsung via JS -->
+        <div id="jamKerjaPanel" style="display:none;">
+          <div style="min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+          <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45);margin:auto;">
 
             <!-- Header -->
             <div style="background:linear-gradient(135deg,#0a2a6e,#1a6fd4);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
@@ -2794,29 +2794,47 @@ var _offsetWaktuInternet = null; // null = belum disinkron, angka = selisih ms
  * Dipanggil saat simpan pengaturan jam & saat startApp.
  */
 async function sinkronWaktuInternet() {
-    try {
-        const t0 = Date.now();
-        const res = await Promise.race([
-            fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta', { cache: 'no-store' }),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
-        ]);
-        const t1 = Date.now();
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        // unixtime dari API sudah dalam detik; konversi ke ms
-        const waktuServer = data.unixtime * 1000 + Math.round((t1 - t0) / 2);
-        _offsetWaktuInternet = waktuServer - t1;
-        // Simpan offset ke sessionStorage agar tetap ada selama tab terbuka
-        sessionStorage.setItem('waktuOffset', _offsetWaktuInternet.toString());
-        return true;
-    } catch(e) {
-        // Jika gagal, coba ambil dari sessionStorage sebelumnya
-        const saved = sessionStorage.getItem('waktuOffset');
-        if (saved !== null) { _offsetWaktuInternet = parseInt(saved); return true; }
-        // Tidak ada data sama sekali — fallback ke jam perangkat
-        _offsetWaktuInternet = 0;
-        return false;
+    // Daftar API waktu publik sebagai fallback
+    const apiList = [
+        {
+            url: 'https://timeapi.io/api/time/current/zone?timeZone=Asia%2FJakarta',
+            parse: (d) => new Date(d.dateTime).getTime()
+        },
+        {
+            url: 'https://worldtimeapi.org/api/timezone/Asia/Jakarta',
+            parse: (d) => d.unixtime * 1000
+        },
+        {
+            url: 'https://api.ipgeolocation.io/ipgeo?fields=time_zone',
+            parse: (d) => new Date(d.time_zone && d.time_zone.current_time).getTime()
+        }
+    ];
+    for (const api of apiList) {
+        try {
+            const t0 = Date.now();
+            const res = await Promise.race([
+                fetch(api.url, { cache: 'no-store' }),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+            ]);
+            const t1 = Date.now();
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            const waktuServer = api.parse(data) + Math.round((t1 - t0) / 2);
+            if (!waktuServer || isNaN(waktuServer)) throw new Error('invalid');
+            _offsetWaktuInternet = waktuServer - t1;
+            sessionStorage.setItem('waktuOffset', _offsetWaktuInternet.toString());
+            return true;
+        } catch(e) {
+            // coba API berikutnya
+            continue;
+        }
     }
+    // Semua API gagal — coba pakai cache sessionStorage
+    const saved = sessionStorage.getItem('waktuOffset');
+    if (saved !== null) { _offsetWaktuInternet = parseInt(saved); return true; }
+    // Fallback ke jam perangkat
+    _offsetWaktuInternet = 0;
+    return false;
 }
 
 /** Dapatkan waktu sekarang yang sudah dikoreksi dengan internet */
@@ -2881,10 +2899,15 @@ function _ubahJam(slot, bagian, delta) {
     _sinkronHidden();
 }
 
-/** Tampilkan panel pengaturan jam sebagai overlay */
+/** Tampilkan panel pengaturan jam sebagai overlay (dipindah ke body) */
 function tampilPengaturanJam() {
     const panel = document.getElementById('jamKerjaPanel');
     if (!panel) return;
+    // Pindahkan ke body agar tidak tertutup elemen lain
+    if (panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+    }
+    panel.style.cssText = 'display:block;position:fixed;inset:0;z-index:999999;background:rgba(10,30,80,0.75);overflow-y:auto;-webkit-overflow-scrolling:touch;';
     const buka  = localStorage.getItem('jamKerjaBuka')  || '07:30';
     const tutup = localStorage.getItem('jamKerjaTutup') || '16:00';
     const [bH, bM] = buka.split(':').map(Number);
@@ -2896,7 +2919,12 @@ function tampilPengaturanJam() {
     document.getElementById('inputJamBuka').value  = buka;
     document.getElementById('inputJamTutup').value = tutup;
     _sinkronHidden();
-    panel.style.display = 'flex';
+    // Reset info box
+    const info = document.getElementById('jamKerjaInfo');
+    if (info) {
+        info.style.cssText = 'background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.9em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;';
+        info.innerHTML = '⏰ Tamu dapat mengisi: <b>' + buka + ' – ' + tutup + '</b>';
+    }
 }
 
 function tutupPengaturanJam() {
