@@ -2900,14 +2900,28 @@ function _ubahJam(slot, bagian, delta) {
 }
 
 /** Tampilkan panel pengaturan jam sebagai overlay (dipindah ke body) */
-function tampilPengaturanJam() {
+async function tampilPengaturanJam() {
     const panel = document.getElementById('jamKerjaPanel');
     if (!panel) return;
+
     // Pindahkan ke body agar tidak tertutup elemen lain
     if (panel.parentElement !== document.body) {
         document.body.appendChild(panel);
     }
     panel.style.cssText = 'display:block;position:fixed;inset:0;z-index:999999;background:rgba(10,30,80,0.75);overflow-y:auto;-webkit-overflow-scrolling:touch;';
+
+    // Muat jam terbaru dari Firebase sebelum tampil
+    if (fbDb) {
+        try {
+            const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
+            if (snap.exists()) {
+                const cfg = snap.val();
+                if (cfg.jam_buka)  localStorage.setItem('jamKerjaBuka',  cfg.jam_buka);
+                if (cfg.jam_tutup) localStorage.setItem('jamKerjaTutup', cfg.jam_tutup);
+            }
+        } catch(e) { /* pakai localStorage jika gagal */ }
+    }
+
     const buka  = localStorage.getItem('jamKerjaBuka')  || '07:30';
     const tutup = localStorage.getItem('jamKerjaTutup') || '16:00';
     const [bH, bM] = buka.split(':').map(Number);
@@ -2919,11 +2933,11 @@ function tampilPengaturanJam() {
     document.getElementById('inputJamBuka').value  = buka;
     document.getElementById('inputJamTutup').value = tutup;
     _sinkronHidden();
-    // Reset info box
+
     const info = document.getElementById('jamKerjaInfo');
     if (info) {
         info.style.cssText = 'background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.9em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;';
-        info.innerHTML = '⏰ Tamu dapat mengisi: <b>' + buka + ' – ' + tutup + '</b>';
+        info.innerHTML = '🌐 Jam dimuat dari server<br>⏰ Tamu dapat mengisi: <b>' + buka + ' – ' + tutup + '</b>';
     }
 }
 
@@ -2954,6 +2968,11 @@ async function simpanPengaturanJam() {
     // Simpan pengaturan
     localStorage.setItem('jamKerjaBuka',  buka);
     localStorage.setItem('jamKerjaTutup', tutup);
+    // Simpan ke Firebase agar sinkron ke semua perangkat
+    if (typeof fbSimpanKonfigurasi === 'function') {
+        fbSimpanKonfigurasi('jam_buka',  buka);
+        fbSimpanKonfigurasi('jam_tutup', tutup);
+    }
 
     // Ubah tombol ke status loading
     const btn = document.querySelector('#jamKerjaPanel button[onclick="simpanPengaturanJam()"]');
@@ -3170,6 +3189,17 @@ function _cekLoginAdmin() {
 }
 
 async function startApp() {
+    // ── Muat jam kerja terbaru dari Firebase ──
+    if (fbDb) {
+        try {
+            const _snapJam = await fbDb.ref('bukuTamu/konfigurasi').get();
+            if (_snapJam.exists()) {
+                const _cfgJam = _snapJam.val();
+                if (_cfgJam.jam_buka)  localStorage.setItem('jamKerjaBuka',  _cfgJam.jam_buka);
+                if (_cfgJam.jam_tutup) localStorage.setItem('jamKerjaTutup', _cfgJam.jam_tutup);
+            }
+        } catch(e) { /* pakai localStorage */ }
+    }
     // ── Sinkron waktu internet dulu (non-blocking, max 5 detik) ──
     await sinkronWaktuInternet();
     // ── Cek jam kerja & device — lewati jika admin ──
@@ -6531,9 +6561,13 @@ async function fbMuatKonfigurasi() {
             localStorage.setItem('wa_routing_pihak', JSON.stringify(cfg.wa_routing));
             CONFIG_WA_PENERIMA = Object.values(cfg.wa_routing).filter(Boolean).join(',');
         }
+        // Jam kerja — sinkron ke semua perangkat
+        if (cfg.jam_buka) localStorage.setItem('jamKerjaBuka',  cfg.jam_buka);
+        if (cfg.jam_tutup) localStorage.setItem('jamKerjaTutup', cfg.jam_tutup);
         if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
         console.log('[FB-Config] Konfigurasi dimuat dari Firebase ✓',
-            'token:', CONFIG_FONNTE_TOKEN ? 'ada' : 'kosong');
+            'token:', CONFIG_FONNTE_TOKEN ? 'ada' : 'kosong',
+            'jam:', (cfg.jam_buka||'?') + '-' + (cfg.jam_tutup||'?'));
     } catch(e) { console.warn('[FB-Config] Gagal muat:', e); }
 }
 
@@ -6544,12 +6578,16 @@ async function _sinkronLokalKeFirebase() {
         const localToken   = localStorage.getItem('fonnte_token') || '';
         const localWorker  = localStorage.getItem('cf_worker_url') || '';
         const localRouting = localStorage.getItem('wa_routing_pihak') || '';
+        const localJamBuka  = localStorage.getItem('jamKerjaBuka')  || '';
+        const localJamTutup = localStorage.getItem('jamKerjaTutup') || '';
         const updates = {};
         if (localToken)  updates['fonnte_token'] = localToken;
         if (localWorker) updates['worker_url']   = localWorker;
         if (localRouting) {
             try { updates['wa_routing'] = JSON.parse(localRouting); } catch(e) {}
         }
+        if (localJamBuka)  updates['jam_buka']  = localJamBuka;
+        if (localJamTutup) updates['jam_tutup'] = localJamTutup;
         if (Object.keys(updates).length > 0) {
             await fbDb.ref('bukuTamu/konfigurasi').update(updates);
             console.log('[FB-Config] Konfigurasi lokal disinkronkan ke Firebase ✓');
