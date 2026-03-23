@@ -3175,10 +3175,12 @@ async function startApp() {
     // ── Cek jam kerja & device — lewati jika admin ──
     if (!cekAdminAktif()) {
         if (!cekJamKerja()) {
+            const _jBuka  = localStorage.getItem('jamKerjaBuka')  || '07:30';
+            const _jTutup = localStorage.getItem('jamKerjaTutup') || '16:00';
             tampilModalBlokir(
                 'Di Luar Jam Kerja',
                 'Buku tamu hanya dapat diisi pada jam kerja:<br><br>' +
-                '<strong style="font-size:1.2em;color:#d4a820;">07:30 – 16:00 WIB</strong><br><br>' +
+                '<strong style="font-size:1.2em;color:#d4a820;">' + _jBuka + ' – ' + _jTutup + ' WIB</strong><br><br>' +
                 'Silakan kembali pada jam tersebut.' +
                 '<span id="_adminTapArea1" onclick="_hitungTapAdmin(1)" style="display:inline-block;width:32px;height:32px;cursor:default;user-select:none;vertical-align:middle;"></span>',
                 '🕐'
