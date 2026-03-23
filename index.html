@@ -7672,7 +7672,7 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
                     pasangHandlerLanjut(node);
                 }
                 node.querySelectorAll && node.querySelectorAll('.btn-lanjut').forEach(pasangHandlerLanjut);
-            });
+            }); 
         });
     }).observe(document.documentElement, { childList: true, subtree: true });
 })();
