@@ -2296,86 +2296,110 @@
         <div id="fbSyncStatus" style="display:none;"></div>
 
         <!-- ── Panel Pengaturan Jam Kerja ── -->
-        <!-- Panel Pengaturan Jam — tampil sebagai overlay di atas form -->
-        <div id="jamKerjaPanel" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.55); align-items:center; justify-content:center; padding:20px;">
-          <div style="background:linear-gradient(135deg,#eaf2ff,#f0f7ff); border:2px solid #1a6fd4; border-radius:16px; padding:24px; width:100%; max-width:420px; box-shadow:0 8px 40px rgba(26,111,212,0.35); position:relative;">
+        <!-- Panel Pengaturan Jam — full overlay responsif HP -->
+        <div id="jamKerjaPanel" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,30,80,0.72);overflow-y:auto;-webkit-overflow-scrolling:touch;">
+          <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+          <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45);">
 
-            <!-- Tombol tutup -->
-            <button onclick="tutupPengaturanJam()" type="button"
-                style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.4em;cursor:pointer;color:#0d1f45;line-height:1;">✕</button>
-
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                <span style="font-size:1.4em;">⏰</span>
-                <b style="color:#0d1f45;font-size:1.05em;">Pengaturan Jam Kerja</b>
+            <!-- Header -->
+            <div style="background:linear-gradient(135deg,#0a2a6e,#1a6fd4);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.6em;">⏰</span>
+                    <div>
+                        <div style="color:#fff;font-size:1em;font-weight:800;letter-spacing:0.03em;">Pengaturan Jam Kerja</div>
+                        <div style="color:rgba(255,255,255,0.7);font-size:0.75em;margin-top:2px;">Khusus Admin</div>
+                    </div>
+                </div>
+                <button onclick="tutupPengaturanJam()" type="button"
+                    style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:1.1em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
             </div>
-            <p style="margin:0 0 18px;color:#555;font-size:0.87em;line-height:1.5;">Atur rentang jam tamu diizinkan mengisi buku tamu.</p>
 
-            <!-- hidden inputs untuk kompatibilitas -->
-            <input type="hidden" id="inputJamBuka"  value="07:30" />
-            <input type="hidden" id="inputJamTutup" value="16:00" />
+            <!-- Body -->
+            <div style="padding:22px 20px;">
+                <p style="margin:0 0 20px;color:#666;font-size:0.88em;line-height:1.6;text-align:center;">Atur rentang jam tamu diizinkan mengisi buku tamu. Di luar jam ini, form akan diblokir.</p>
 
-            <div style="display:flex;gap:14px;margin-bottom:18px;">
-                <!-- JAM BUKA -->
-                <div style="flex:1;background:#fff;border:2px solid #1a6fd4;border-radius:12px;padding:14px 10px;text-align:center;">
-                    <div style="font-size:0.82em;color:#0d1f45;font-weight:700;margin-bottom:12px;">🟢 Jam Buka</div>
-                    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <button type="button" onclick="_ubahJam('buka','jam',1)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#1a6fd4;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▲</button>
-                            <div style="width:64px;height:50px;border:2px solid #1a6fd4;border-radius:8px;background:#f0f7ff;display:flex;align-items:center;justify-content:center;">
-                                <span id="bukaJamDisp" style="font-size:1.5em;font-weight:900;color:#0d1f45;font-family:monospace;min-width:44px;display:inline-block;text-align:center;">07</span>
+                <!-- hidden inputs -->
+                <input type="hidden" id="inputJamBuka"  value="07:30" />
+                <input type="hidden" id="inputJamTutup" value="16:00" />
+
+                <!-- Spinner Jam -->
+                <div style="display:flex;gap:12px;margin-bottom:20px;">
+
+                    <!-- JAM BUKA -->
+                    <div style="flex:1;background:linear-gradient(135deg,#eaf4ff,#f5faff);border:2px solid #1a6fd4;border-radius:14px;padding:16px 10px;text-align:center;">
+                        <div style="font-size:0.8em;color:#1a6fd4;font-weight:800;letter-spacing:0.05em;margin-bottom:14px;">🟢 JAM BUKA</div>
+                        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <!-- jam -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                <button type="button" onclick="_ubahJam('buka','jam',1)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#1a6fd4;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                                <div style="width:62px;height:56px;border:2px solid #1a6fd4;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                    <span id="bukaJamDisp" style="font-size:1.8em;font-weight:900;color:#0d1f45;font-family:monospace;">07</span>
+                                </div>
+                                <button type="button" onclick="_ubahJam('buka','jam',-1)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#1a6fd4;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                                <input type="hidden" id="bukaJam" value="7" />
                             </div>
-                            <button type="button" onclick="_ubahJam('buka','jam',-1)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#1a6fd4;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▼</button>
-                            <input type="hidden" id="bukaJam" value="7" />
+                            <span style="font-size:2em;font-weight:900;color:#0d1f45;line-height:1;margin:0 2px;align-self:center;">:</span>
+                            <!-- menit -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                <button type="button" onclick="_ubahJam('buka','menit',5)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#1a6fd4;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                                <div style="width:62px;height:56px;border:2px solid #1a6fd4;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                    <span id="bukaMenitDisp" style="font-size:1.8em;font-weight:900;color:#0d1f45;font-family:monospace;">30</span>
+                                </div>
+                                <button type="button" onclick="_ubahJam('buka','menit',-5)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#1a6fd4;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                                <input type="hidden" id="bukaMenit" value="30" />
+                            </div>
                         </div>
-                        <span style="font-size:2em;font-weight:900;color:#0d1f45;margin-bottom:4px;">:</span>
-                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <button type="button" onclick="_ubahJam('buka','menit',5)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#1a6fd4;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▲</button>
-                            <div style="width:64px;height:50px;border:2px solid #1a6fd4;border-radius:8px;background:#f0f7ff;display:flex;align-items:center;justify-content:center;">
-                                <span id="bukaMenitDisp" style="font-size:1.5em;font-weight:900;color:#0d1f45;font-family:monospace;min-width:44px;display:inline-block;text-align:center;">30</span>
+                    </div>
+
+                    <!-- JAM TUTUP -->
+                    <div style="flex:1;background:linear-gradient(135deg,#fff5f5,#fff8f8);border:2px solid #e05a5a;border-radius:14px;padding:16px 10px;text-align:center;">
+                        <div style="font-size:0.8em;color:#c0392b;font-weight:800;letter-spacing:0.05em;margin-bottom:14px;">🔴 JAM TUTUP</div>
+                        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <!-- jam -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                <button type="button" onclick="_ubahJam('tutup','jam',1)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                                <div style="width:62px;height:56px;border:2px solid #e05a5a;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                    <span id="tutupJamDisp" style="font-size:1.8em;font-weight:900;color:#7b0000;font-family:monospace;">16</span>
+                                </div>
+                                <button type="button" onclick="_ubahJam('tutup','jam',-1)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                                <input type="hidden" id="tutupJam" value="16" />
                             </div>
-                            <button type="button" onclick="_ubahJam('buka','menit',-5)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#1a6fd4;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▼</button>
-                            <input type="hidden" id="bukaMenit" value="30" />
+                            <span style="font-size:2em;font-weight:900;color:#7b0000;line-height:1;margin:0 2px;align-self:center;">:</span>
+                            <!-- menit -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                <button type="button" onclick="_ubahJam('tutup','menit',5)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                                <div style="width:62px;height:56px;border:2px solid #e05a5a;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                    <span id="tutupMenitDisp" style="font-size:1.8em;font-weight:900;color:#7b0000;font-family:monospace;">00</span>
+                                </div>
+                                <button type="button" onclick="_ubahJam('tutup','menit',-5)"
+                                    style="width:48px;height:40px;border:none;border-radius:10px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                                <input type="hidden" id="tutupMenit" value="0" />
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- JAM TUTUP -->
-                <div style="flex:1;background:#fff;border:2px solid #e05a5a;border-radius:12px;padding:14px 10px;text-align:center;">
-                    <div style="font-size:0.82em;color:#7b0000;font-weight:700;margin-bottom:12px;">🔴 Jam Tutup</div>
-                    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <button type="button" onclick="_ubahJam('tutup','jam',1)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#c0392b;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▲</button>
-                            <div style="width:64px;height:50px;border:2px solid #e05a5a;border-radius:8px;background:#fff0f0;display:flex;align-items:center;justify-content:center;">
-                                <span id="tutupJamDisp" style="font-size:1.5em;font-weight:900;color:#7b0000;font-family:monospace;min-width:44px;display:inline-block;text-align:center;">16</span>
-                            </div>
-                            <button type="button" onclick="_ubahJam('tutup','jam',-1)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#c0392b;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▼</button>
-                            <input type="hidden" id="tutupJam" value="16" />
-                        </div>
-                        <span style="font-size:2em;font-weight:900;color:#7b0000;margin-bottom:4px;">:</span>
-                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <button type="button" onclick="_ubahJam('tutup','menit',5)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#c0392b;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▲</button>
-                            <div style="width:64px;height:50px;border:2px solid #e05a5a;border-radius:8px;background:#fff0f0;display:flex;align-items:center;justify-content:center;">
-                                <span id="tutupMenitDisp" style="font-size:1.5em;font-weight:900;color:#7b0000;font-family:monospace;min-width:44px;display:inline-block;text-align:center;">00</span>
-                            </div>
-                            <button type="button" onclick="_ubahJam('tutup','menit',-5)"
-                                style="width:44px;height:36px;border:none;border-radius:8px;background:#c0392b;font-size:1em;font-weight:900;cursor:pointer;color:#fff;">▼</button>
-                            <input type="hidden" id="tutupMenit" value="0" />
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div id="jamKerjaInfo" style="background:#fff;border:1px solid #b8d4f5;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:0.9em;color:#1a6fd4;text-align:center;font-weight:700;"></div>
-            <button onclick="simpanPengaturanJam()" type="button"
-                style="width:100%;padding:13px;background:linear-gradient(135deg,#0d1f45,#1a3a70);color:#f5e07a;border:1px solid rgba(212,168,32,0.6);border-radius:8px;font-size:0.95em;font-weight:800;cursor:pointer;letter-spacing:0.04em;">
-                💾 Simpan Pengaturan Jam
-            </button>
+                <!-- Info box -->
+                <div id="jamKerjaInfo" style="background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.9em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;"></div>
+
+                <!-- Tombol simpan -->
+                <button onclick="simpanPengaturanJam()" type="button"
+                    style="width:100%;padding:15px;background:linear-gradient(135deg,#0a2a6e,#1a6fd4);color:#f5e07a;border:none;border-radius:12px;font-size:1em;font-weight:800;cursor:pointer;letter-spacing:0.04em;touch-action:manipulation;box-shadow:0 4px 14px rgba(26,111,212,0.4);">
+                    💾 Simpan Pengaturan Jam
+                </button>
+                <button onclick="tutupPengaturanJam()" type="button"
+                    style="width:100%;padding:12px;margin-top:10px;background:none;border:1.5px solid #ccc;border-radius:12px;font-size:0.9em;color:#888;cursor:pointer;touch-action:manipulation;">
+                    Batal
+                </button>
+            </div>
+          </div>
           </div>
         </div>
     </div>
