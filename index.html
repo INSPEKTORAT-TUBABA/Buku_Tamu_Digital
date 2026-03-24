@@ -3540,6 +3540,7 @@ function tampilLoginAdmin(onSuccess) {
             <p style="margin:0 0 18px;color:#666;font-size:0.85em;line-height:1.5;">Masukkan password admin untuk mengakses di luar jam kerja</p>
             <div style="position:relative;margin-bottom:14px;">
                 <input type="password" id="_adminPwInput" placeholder="Password admin"
+                    autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text"
                     style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #d0c8b8;border-radius:8px;font-size:0.95em;box-sizing:border-box;outline:none;"
                     onkeydown="if(event.key==='Enter') _cekLoginAdmin()" />
                 <span onclick="var i=document.getElementById('_adminPwInput');i.type=i.type==='password'?'text':'password'"
@@ -3563,7 +3564,7 @@ function _cekLoginAdmin() {
     var input = document.getElementById('_adminPwInput');
     var errEl = document.getElementById('_adminPwError');
     if (!input) return;
-    if (input.value === ADMIN_PASSWORD) {
+    if (input.value.trim() === ADMIN_PASSWORD) {
         aktifkanAdmin();
         document.getElementById('_adminLoginModal').remove();
         if (typeof window._adminLoginSuccess === 'function') window._adminLoginSuccess();
