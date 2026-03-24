@@ -3349,43 +3349,31 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
         </div>`;
     document.body.appendChild(modal);
 
+    // ── Klik 5x di mana saja di card popup → login admin (laptop/desktop) ──
     var card = document.getElementById('_blokirCard');
-
-    // ── LAPTOP/DESKTOP: Klik 5x di sembarang tempat di area popup → login admin ──
     card.addEventListener('click', function(e) {
+        // jangan trigger dari tombol Tutup
         if (e.target.tagName === 'BUTTON') return;
         _hitungTapAdmin(1);
     });
 
-    // ── HP/TABLET: Buka dua jari (pinch-out) di area popup → login admin ──
-    var _pinchStartDist = null;
+    // ── Swipe 1 jari dari atas ke bawah di popup → login admin (HP/tablet) ──
+    var _swipeTouchStartY = null;
     card.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 2) {
-            var dx = e.touches[0].clientX - e.touches[1].clientX;
-            var dy = e.touches[0].clientY - e.touches[1].clientY;
-            _pinchStartDist = Math.hypot(dx, dy);
+        if (e.touches.length === 1) {
+            _swipeTouchStartY = e.touches[0].clientY;
         }
     }, { passive: true });
     card.addEventListener('touchend', function(e) {
-        if (_pinchStartDist === null) return;
-        if (e.changedTouches.length >= 1 && e.touches.length < 2) {
-            // ambil posisi terakhir kedua jari dari changedTouches
-            // cukup cek jarak saat touchmove terakhir disimpan
-            _pinchStartDist = null;
-        }
-    }, { passive: true });
-    card.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 2 && _pinchStartDist !== null) {
-            var dx = e.touches[0].clientX - e.touches[1].clientX;
-            var dy = e.touches[0].clientY - e.touches[1].clientY;
-            var currentDist = Math.hypot(dx, dy);
-            // Pinch-out: jarak membesar minimal 60px → bypass
-            if (currentDist - _pinchStartDist > 60) {
-                _pinchStartDist = null;
-                var blokirModal = document.getElementById('_blokirModal');
-                if (blokirModal) blokirModal.remove();
-                tampilLoginAdmin(startApp);
-            }
+        if (_swipeTouchStartY === null) return;
+        var endY = e.changedTouches[0].clientY;
+        var deltaY = endY - _swipeTouchStartY;
+        _swipeTouchStartY = null;
+        // Swipe ke bawah minimal 60px → bypass
+        if (deltaY > 60) {
+            var blokirModal = document.getElementById('_blokirModal');
+            if (blokirModal) blokirModal.remove();
+            tampilLoginAdmin(startApp);
         }
     }, { passive: true });
 }
