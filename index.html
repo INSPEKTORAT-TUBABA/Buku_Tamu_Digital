@@ -3658,6 +3658,11 @@ async function startApp() {
     sembunyikanWelcome();
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
+    // PERBAIKAN: Tampilkan overlay PWA setelah welcome page ditutup (agar tidak memblokir tombol ISI BUKU TAMU)
+    if (!_sudahInstallPWA() && _adalahMobile() && localStorage.getItem('pwa_installed') !== '1') {
+        setTimeout(_tampilPopupFullscreen, 600);
+        setTimeout(_tampilSplashInstall, 1200);
+    }
     lsLoad();
     updateDataCounter();
     document.getElementById('mainNavigation').style.display = 'block';
@@ -7871,11 +7876,9 @@ window.addEventListener('load', () => {
     if (!_adalahMobile()) return;
     if (localStorage.getItem('pwa_installed') === '1') return;
 
-    // Tampilkan splash install setelah 800ms (welcome page sudah tampil)
-    setTimeout(_tampilSplashInstall, 800);
-
-    // Tampilkan popup pengingat fullscreen (jika belum PWA)
-    setTimeout(_tampilPopupFullscreen, 400);
+    // PERBAIKAN: Jangan tampilkan splash/popup saat welcome page masih aktif.
+    // Splash dan popup fullscreen akan ditampilkan SETELAH startApp() dipanggil
+    // (lihat fungsi _tampilOverlaySetelahWelcome yang dipanggil dari startApp).
 });
 
 // ── Popup pengingat tap untuk fullscreen ──
@@ -7948,6 +7951,16 @@ function _tampilPopupFullscreen() {
 
     // Tutup otomatis setelah 8 detik
     setTimeout(_tutupFsHint, 8000);
+}
+
+// ── Tampilkan overlay install/fullscreen SETELAH welcome page ditutup ──
+// Dipanggil dari startApp() setelah mainApp aktif, sehingga tidak memblokir tombol ISI BUKU TAMU
+function _tampilOverlaySetelahWelcome() {
+    if (_sudahInstallPWA()) return;
+    if (!_adalahMobile()) return;
+    if (localStorage.getItem('pwa_installed') === '1') return;
+    setTimeout(_tampilPopupFullscreen, 600);
+    setTimeout(_tampilSplashInstall, 1200);
 }
 
 // ── Setelah berhasil install ──
