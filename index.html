@@ -3336,9 +3336,9 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
     modal.id = '_blokirModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `
-        <div id="_blokirCard" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;cursor:default;user-select:none;">
+        <div id="_blokirModalInner" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
             <div id="_ikonTapAdmin"
-                style="font-size:3rem;margin-bottom:10px;display:inline-block;padding:8px;">${ikonEmoji}</div>
+                style="font-size:3rem;margin-bottom:10px;cursor:default;user-select:none;display:inline-block;padding:8px;">${ikonEmoji}</div>
             <h3 style="margin:0 0 10px;color:#0d1f45;font-size:1.15em;font-weight:800;">${judul}</h3>
             <p style="margin:0 0 24px;color:#555;font-size:0.93em;line-height:1.6;">${pesan}</p>
             <div id="_adminTapHint" style="display:none;margin-bottom:12px;font-size:0.78em;color:#d4a820;font-weight:700;">🔐 Login Admin...</div>
@@ -3349,32 +3349,78 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
         </div>`;
     document.body.appendChild(modal);
 
-    // ── Klik 5x di mana saja di card popup → login admin (laptop/desktop) ──
-    var card = document.getElementById('_blokirCard');
-    card.addEventListener('click', function(e) {
-        // jangan trigger dari tombol Tutup
-        if (e.target.tagName === 'BUTTON') return;
-        _hitungTapAdmin(1);
-    });
+    // ── Admin bypass: 5 klik di mana saja di area modal (desktop) ──
+    var _klikModalCount = 0;
+    var _klikModalTimer = null;
+    var innerBox = document.getElementById('_blokirModalInner');
+    if (innerBox) {
+        innerBox.addEventListener('click', function(e) {
+            // Jangan hitung klik tombol Tutup
+            if (e.target && e.target.tagName === 'BUTTON') return;
+            _klikModalCount++;
+            clearTimeout(_klikModalTimer);
+            _klikModalTimer = setTimeout(function() {
+                _klikModalCount = 0;
+                var hint = document.getElementById('_adminTapHint');
+                if (hint) hint.style.display = 'none';
+            }, 2500);
 
-    // ── Swipe 1 jari dari atas ke bawah di popup → login admin (HP/tablet) ──
-    var _swipeTouchStartY = null;
-    card.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 1) {
-            _swipeTouchStartY = e.touches[0].clientY;
+            // Feedback visual ikon
+            var ikon = document.getElementById('_ikonTapAdmin');
+            if (ikon) {
+                ikon.style.transform = 'scale(0.88)';
+                setTimeout(function(){ if(ikon) ikon.style.transform = 'scale(1)'; }, 150);
+            }
+
+            // Tampilkan hint mulai ketukan ke-3
+            var hint = document.getElementById('_adminTapHint');
+            if (hint && _klikModalCount >= 3) {
+                var sisa = 5 - _klikModalCount;
+                hint.style.display = 'block';
+                hint.textContent = sisa > 0 ? ('🔐 ' + sisa + 'x lagi...') : '🔐 Login Admin...';
+            }
+
+            if (_klikModalCount >= 5) {
+                _klikModalCount = 0;
+                clearTimeout(_klikModalTimer);
+                var blokirModal = document.getElementById('_blokirModal');
+                if (blokirModal) blokirModal.remove();
+                tampilLoginAdmin(startApp);
+            }
+        });
+    }
+
+    // ── Admin bypass: usap 3 jari dari atas (mobile) ──
+    var _swipeTouches = 0;
+    var _swipeStartY = null;
+    modal.addEventListener('touchstart', function(e) {
+        _swipeTouches = e.touches.length;
+        if (e.touches.length >= 3) {
+            // Catat rata-rata Y awal dari 3 jari pertama
+            var sumY = 0;
+            for (var i = 0; i < Math.min(3, e.touches.length); i++) sumY += e.touches[i].clientY;
+            _swipeStartY = sumY / Math.min(3, e.touches.length);
         }
     }, { passive: true });
-    card.addEventListener('touchend', function(e) {
-        if (_swipeTouchStartY === null) return;
-        var endY = e.changedTouches[0].clientY;
-        var deltaY = endY - _swipeTouchStartY;
-        _swipeTouchStartY = null;
-        // Swipe ke bawah minimal 60px → bypass
-        if (deltaY > 60) {
-            var blokirModal = document.getElementById('_blokirModal');
-            if (blokirModal) blokirModal.remove();
-            tampilLoginAdmin(startApp);
+    modal.addEventListener('touchend', function(e) {
+        if (_swipeTouches >= 3 && _swipeStartY !== null) {
+            // Ambil Y akhir dari changedTouches
+            var sumY = 0;
+            var cnt = Math.min(3, e.changedTouches.length);
+            for (var i = 0; i < cnt; i++) sumY += e.changedTouches[i].clientY;
+            var endY = sumY / cnt;
+            var deltaY = endY - _swipeStartY;
+            // Minimal usap ke bawah 60px dari posisi atas layar (swipe dari atas)
+            if (_swipeStartY < window.innerHeight * 0.35 && deltaY > 60) {
+                _swipeStartY = null;
+                _swipeTouches = 0;
+                var blokirModal = document.getElementById('_blokirModal');
+                if (blokirModal) blokirModal.remove();
+                tampilLoginAdmin(startApp);
+            }
         }
+        _swipeStartY = null;
+        _swipeTouches = 0;
     }, { passive: true });
 }
 
