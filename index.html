@@ -193,6 +193,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
+            pointer-events: none;
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -3336,9 +3337,9 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
     modal.id = '_blokirModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `
-        <div id="_blokirModalInner" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
+        <div id="_blokirCard" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;cursor:default;user-select:none;">
             <div id="_ikonTapAdmin"
-                style="font-size:3rem;margin-bottom:10px;cursor:default;user-select:none;display:inline-block;padding:8px;">${ikonEmoji}</div>
+                style="font-size:3rem;margin-bottom:10px;display:inline-block;padding:8px;">${ikonEmoji}</div>
             <h3 style="margin:0 0 10px;color:#0d1f45;font-size:1.15em;font-weight:800;">${judul}</h3>
             <p style="margin:0 0 24px;color:#555;font-size:0.93em;line-height:1.6;">${pesan}</p>
             <div id="_adminTapHint" style="display:none;margin-bottom:12px;font-size:0.78em;color:#d4a820;font-weight:700;">🔐 Login Admin...</div>
@@ -3349,78 +3350,44 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
         </div>`;
     document.body.appendChild(modal);
 
-    // ── Admin bypass: 5 klik di mana saja di area modal (desktop) ──
-    var _klikModalCount = 0;
-    var _klikModalTimer = null;
-    var innerBox = document.getElementById('_blokirModalInner');
-    if (innerBox) {
-        innerBox.addEventListener('click', function(e) {
-            // Jangan hitung klik tombol Tutup
-            if (e.target && e.target.tagName === 'BUTTON') return;
-            _klikModalCount++;
-            clearTimeout(_klikModalTimer);
-            _klikModalTimer = setTimeout(function() {
-                _klikModalCount = 0;
-                var hint = document.getElementById('_adminTapHint');
-                if (hint) hint.style.display = 'none';
-            }, 2500);
+    var card = document.getElementById('_blokirCard');
 
-            // Feedback visual ikon
-            var ikon = document.getElementById('_ikonTapAdmin');
-            if (ikon) {
-                ikon.style.transform = 'scale(0.88)';
-                setTimeout(function(){ if(ikon) ikon.style.transform = 'scale(1)'; }, 150);
-            }
+    // ── LAPTOP/DESKTOP: Klik 5x di sembarang tempat di area popup → login admin ──
+    card.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        _hitungTapAdmin(1);
+    });
 
-            // Tampilkan hint mulai ketukan ke-3
-            var hint = document.getElementById('_adminTapHint');
-            if (hint && _klikModalCount >= 3) {
-                var sisa = 5 - _klikModalCount;
-                hint.style.display = 'block';
-                hint.textContent = sisa > 0 ? ('🔐 ' + sisa + 'x lagi...') : '🔐 Login Admin...';
-            }
-
-            if (_klikModalCount >= 5) {
-                _klikModalCount = 0;
-                clearTimeout(_klikModalTimer);
-                var blokirModal = document.getElementById('_blokirModal');
-                if (blokirModal) blokirModal.remove();
-                tampilLoginAdmin(startApp);
-            }
-        });
-    }
-
-    // ── Admin bypass: usap 3 jari dari atas (mobile) ──
-    var _swipeTouches = 0;
-    var _swipeStartY = null;
-    modal.addEventListener('touchstart', function(e) {
-        _swipeTouches = e.touches.length;
-        if (e.touches.length >= 3) {
-            // Catat rata-rata Y awal dari 3 jari pertama
-            var sumY = 0;
-            for (var i = 0; i < Math.min(3, e.touches.length); i++) sumY += e.touches[i].clientY;
-            _swipeStartY = sumY / Math.min(3, e.touches.length);
+    // ── HP/TABLET: Buka dua jari (pinch-out) di area popup → login admin ──
+    var _pinchStartDist = null;
+    card.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            _pinchStartDist = Math.hypot(dx, dy);
         }
     }, { passive: true });
-    modal.addEventListener('touchend', function(e) {
-        if (_swipeTouches >= 3 && _swipeStartY !== null) {
-            // Ambil Y akhir dari changedTouches
-            var sumY = 0;
-            var cnt = Math.min(3, e.changedTouches.length);
-            for (var i = 0; i < cnt; i++) sumY += e.changedTouches[i].clientY;
-            var endY = sumY / cnt;
-            var deltaY = endY - _swipeStartY;
-            // Minimal usap ke bawah 60px dari posisi atas layar (swipe dari atas)
-            if (_swipeStartY < window.innerHeight * 0.35 && deltaY > 60) {
-                _swipeStartY = null;
-                _swipeTouches = 0;
+    card.addEventListener('touchend', function(e) {
+        if (_pinchStartDist === null) return;
+        if (e.changedTouches.length >= 1 && e.touches.length < 2) {
+            // ambil posisi terakhir kedua jari dari changedTouches
+            // cukup cek jarak saat touchmove terakhir disimpan
+            _pinchStartDist = null;
+        }
+    }, { passive: true });
+    card.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2 && _pinchStartDist !== null) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            var currentDist = Math.hypot(dx, dy);
+            // Pinch-out: jarak membesar minimal 60px → bypass
+            if (currentDist - _pinchStartDist > 60) {
+                _pinchStartDist = null;
                 var blokirModal = document.getElementById('_blokirModal');
                 if (blokirModal) blokirModal.remove();
                 tampilLoginAdmin(startApp);
             }
         }
-        _swipeStartY = null;
-        _swipeTouches = 0;
     }, { passive: true });
 }
 
@@ -3691,6 +3658,11 @@ async function startApp() {
     sembunyikanWelcome();
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
+    // PERBAIKAN: Tampilkan overlay PWA setelah welcome page ditutup (agar tidak memblokir tombol ISI BUKU TAMU)
+    if (!_sudahInstallPWA() && _adalahMobile() && localStorage.getItem('pwa_installed') !== '1') {
+        setTimeout(_tampilPopupFullscreen, 600);
+        setTimeout(_tampilSplashInstall, 1200);
+    }
     lsLoad();
     updateDataCounter();
     document.getElementById('mainNavigation').style.display = 'block';
@@ -7904,11 +7876,9 @@ window.addEventListener('load', () => {
     if (!_adalahMobile()) return;
     if (localStorage.getItem('pwa_installed') === '1') return;
 
-    // Tampilkan splash install setelah 800ms (welcome page sudah tampil)
-    setTimeout(_tampilSplashInstall, 800);
-
-    // Tampilkan popup pengingat fullscreen (jika belum PWA)
-    setTimeout(_tampilPopupFullscreen, 400);
+    // PERBAIKAN: Jangan tampilkan splash/popup saat welcome page masih aktif.
+    // Splash dan popup fullscreen akan ditampilkan SETELAH startApp() dipanggil
+    // (lihat fungsi _tampilOverlaySetelahWelcome yang dipanggil dari startApp).
 });
 
 // ── Popup pengingat tap untuk fullscreen ──
@@ -7981,6 +7951,16 @@ function _tampilPopupFullscreen() {
 
     // Tutup otomatis setelah 8 detik
     setTimeout(_tutupFsHint, 8000);
+}
+
+// ── Tampilkan overlay install/fullscreen SETELAH welcome page ditutup ──
+// Dipanggil dari startApp() setelah mainApp aktif, sehingga tidak memblokir tombol ISI BUKU TAMU
+function _tampilOverlaySetelahWelcome() {
+    if (_sudahInstallPWA()) return;
+    if (!_adalahMobile()) return;
+    if (localStorage.getItem('pwa_installed') === '1') return;
+    setTimeout(_tampilPopupFullscreen, 600);
+    setTimeout(_tampilSplashInstall, 1200);
 }
 
 // ── Setelah berhasil install ──
