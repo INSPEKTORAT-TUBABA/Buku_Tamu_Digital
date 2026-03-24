@@ -193,7 +193,6 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            pointer-events: none;
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -2399,90 +2398,103 @@
         </div>
     </div>
 
-        <!-- ── Panel Pengaturan GPS ── -->
+        <!-- ── Panel Pengaturan GPS Multi-Lokasi ── -->
         <div id="gpsPanel" style="display:none;">
-          <div style="min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-          <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45);margin:auto;">
+          <div style="min-height:100vh;min-height:100dvh;display:flex;align-items:flex-start;justify-content:center;padding:16px;box-sizing:border-box;overflow-y:auto;">
+          <div style="background:#fff;border-radius:20px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45);margin:auto;">
 
             <!-- Header -->
-            <div style="background:linear-gradient(135deg,#1a4a1a,#2e7d32);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="background:linear-gradient(135deg,#1a4a1a,#2e7d32);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:1.6em;">📍</span>
+                    <span style="font-size:1.5em;">📍</span>
                     <div>
-                        <div style="color:#fff;font-size:1em;font-weight:800;letter-spacing:0.03em;">Pengaturan Radius GPS</div>
-                        <div style="color:rgba(255,255,255,0.7);font-size:0.75em;margin-top:2px;">Khusus Admin</div>
+                        <div style="color:#fff;font-size:0.98em;font-weight:800;letter-spacing:0.03em;">Pengaturan GPS Multi-Lokasi</div>
+                        <div style="color:rgba(255,255,255,0.7);font-size:0.72em;margin-top:1px;">Khusus Admin — bisa tambah banyak lokasi</div>
                     </div>
                 </div>
                 <button onclick="tutupPengaturanGPS()" type="button"
-                    style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:1.1em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+                    style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
             </div>
 
-            <!-- Body -->
-            <div style="padding:18px 16px 20px;">
-                <p style="margin:0 0 14px;color:#555;font-size:0.85em;line-height:1.5;text-align:center;">Tentukan lokasi kantor dan radius maksimum agar tamu hanya bisa mengisi buku tamu dari area tersebut.</p>
+            <div style="padding:16px 16px 20px;max-height:80vh;overflow-y:auto;">
 
-                <!-- Status aktif/nonaktif -->
-                <div style="background:linear-gradient(135deg,#f1f8e9,#e8f5e9);border:2px solid #4caf50;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+                <!-- Toggle aktif -->
+                <div style="background:linear-gradient(135deg,#f1f8e9,#e8f5e9);border:2px solid #4caf50;border-radius:12px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
                     <div>
-                        <div style="font-size:0.85em;font-weight:800;color:#2e7d32;letter-spacing:0.04em;">STATUS PEMBATASAN GPS</div>
-                        <div id="gpsStatusLabel" style="font-size:0.78em;color:#555;margin-top:2px;">Aktif — tamu harus berada di area kantor</div>
+                        <div style="font-size:0.83em;font-weight:800;color:#2e7d32;letter-spacing:0.04em;">STATUS PEMBATASAN GPS</div>
+                        <div id="gpsStatusLabel" style="font-size:0.76em;color:#555;margin-top:2px;">Aktif</div>
                     </div>
-                    <label style="position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;">
+                    <label style="position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;cursor:pointer;">
                         <input type="checkbox" id="gpsAktifToggle" style="opacity:0;width:0;height:0;" onchange="updateGpsStatusLabel()">
                         <span style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:28px;transition:.3s;" id="gpsToggleTrack">
-                            <span id="gpsToggleThumb" style="position:absolute;content:'';height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>
+                            <span id="gpsToggleThumb" style="position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>
                         </span>
                     </label>
                 </div>
 
-                <!-- Input Latitude -->
-                <div style="margin-bottom:12px;">
-                    <label style="font-size:0.82em;font-weight:800;color:#1a4a1a;letter-spacing:0.04em;display:block;margin-bottom:5px;">🌐 LATITUDE (Garis Lintang)</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input type="number" id="inputGpsLat" step="0.000001" placeholder="Contoh: -4.481800"
-                            style="flex:1;padding:10px 12px;border:2px solid #a5d6a7;border-radius:10px;font-size:0.92em;font-family:monospace;outline:none;"/>
+                <!-- Daftar lokasi -->
+                <div style="font-size:0.82em;font-weight:800;color:#1a4a1a;letter-spacing:0.04em;margin-bottom:8px;">📋 DAFTAR LOKASI YANG DIIZINKAN</div>
+                <div id="gpsLokasiList" style="margin-bottom:12px;display:flex;flex-direction:column;gap:8px;">
+                    <!-- diisi JS -->
+                </div>
+
+                <!-- Info box -->
+                <div id="gpsInfoBox" style="background:#f1f8e9;border:1.5px solid #4caf50;border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:0.82em;color:#2e7d32;font-weight:700;line-height:1.6;"></div>
+
+                <!-- Form tambah/edit lokasi -->
+                <div id="gpsFormLokasi" style="background:#f8f8f8;border:2px solid #a5d6a7;border-radius:14px;padding:14px;margin-bottom:12px;">
+                    <div style="font-size:0.82em;font-weight:800;color:#1a4a1a;letter-spacing:0.04em;margin-bottom:10px;" id="gpsFormJudul">➕ TAMBAH LOKASI BARU</div>
+                    <input type="hidden" id="gpsEditIndex" value="-1"/>
+
+                    <div style="margin-bottom:9px;">
+                        <label style="font-size:0.78em;font-weight:700;color:#1a4a1a;display:block;margin-bottom:4px;">🏢 NAMA LOKASI</label>
+                        <input type="text" id="inputGpsNama" placeholder="Contoh: Kantor Pusat, Gedung B, Kantor Cabang..."
+                            style="width:100%;padding:9px 11px;border:2px solid #a5d6a7;border-radius:9px;font-size:0.88em;outline:none;box-sizing:border-box;"/>
                     </div>
-                </div>
-
-                <!-- Input Longitude -->
-                <div style="margin-bottom:12px;">
-                    <label style="font-size:0.82em;font-weight:800;color:#1a4a1a;letter-spacing:0.04em;display:block;margin-bottom:5px;">🌐 LONGITUDE (Garis Bujur)</label>
-                    <input type="number" id="inputGpsLon" step="0.000001" placeholder="Contoh: 105.196000"
-                        style="width:100%;padding:10px 12px;border:2px solid #a5d6a7;border-radius:10px;font-size:0.92em;font-family:monospace;outline:none;box-sizing:border-box;"/>
-                </div>
-
-                <!-- Input Radius -->
-                <div style="margin-bottom:14px;">
-                    <label style="font-size:0.82em;font-weight:800;color:#1a4a1a;letter-spacing:0.04em;display:block;margin-bottom:5px;">📏 RADIUS MAKSIMUM</label>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <input type="range" id="inputGpsRadius" min="50" max="1000" step="10" value="100"
-                            style="flex:1;accent-color:#2e7d32;" oninput="document.getElementById('gpsRadiusAngka').textContent=this.value"/>
-                        <div style="min-width:72px;text-align:center;background:linear-gradient(135deg,#1a4a1a,#2e7d32);color:#a5d6a7;padding:8px 10px;border-radius:8px;font-weight:900;font-size:0.95em;">
-                            <span id="gpsRadiusAngka">100</span> m
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px;">
+                        <div>
+                            <label style="font-size:0.78em;font-weight:700;color:#1a4a1a;display:block;margin-bottom:4px;">🌐 LATITUDE</label>
+                            <input type="number" id="inputGpsLat" step="0.000001" placeholder="-4.481800"
+                                style="width:100%;padding:9px 10px;border:2px solid #a5d6a7;border-radius:9px;font-size:0.86em;font-family:monospace;outline:none;box-sizing:border-box;"/>
+                        </div>
+                        <div>
+                            <label style="font-size:0.78em;font-weight:700;color:#1a4a1a;display:block;margin-bottom:4px;">🌐 LONGITUDE</label>
+                            <input type="number" id="inputGpsLon" step="0.000001" placeholder="105.196000"
+                                style="width:100%;padding:9px 10px;border:2px solid #a5d6a7;border-radius:9px;font-size:0.86em;font-family:monospace;outline:none;box-sizing:border-box;"/>
                         </div>
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:0.72em;color:#999;margin-top:3px;padding:0 2px;">
-                        <span>50 m</span><span>500 m</span><span>1000 m</span>
+                    <div style="margin-bottom:10px;">
+                        <label style="font-size:0.78em;font-weight:700;color:#1a4a1a;display:block;margin-bottom:4px;">📏 RADIUS: <span id="gpsRadiusAngka">100</span> meter</label>
+                        <input type="range" id="inputGpsRadius" min="50" max="1000" step="10" value="100"
+                            style="width:100%;accent-color:#2e7d32;" oninput="document.getElementById('gpsRadiusAngka').textContent=this.value"/>
+                        <div style="display:flex;justify-content:space-between;font-size:0.70em;color:#999;margin-top:2px;">
+                            <span>50 m</span><span>500 m</span><span>1000 m</span>
+                        </div>
+                    </div>
+                    <button onclick="ambilLokasiSaatIni()" type="button"
+                        style="width:100%;padding:9px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);color:#1a4a1a;border:2px solid #4caf50;border-radius:9px;font-size:0.83em;font-weight:800;cursor:pointer;margin-bottom:8px;touch-action:manipulation;">
+                        🎯 Ambil Koordinat GPS Saya Sekarang
+                    </button>
+                    <div id="gpsAmbilInfo" style="display:none;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:7px;padding:8px 11px;font-size:0.78em;color:#1a4a1a;margin-bottom:8px;line-height:1.6;text-align:center;"></div>
+                    <div style="display:flex;gap:7px;">
+                        <button onclick="tambahAtauUpdateLokasi()" type="button" id="btnTambahLokasi"
+                            style="flex:1;padding:10px;background:linear-gradient(135deg,#1a4a1a,#2e7d32);color:#a5d6a7;border:none;border-radius:9px;font-size:0.86em;font-weight:800;cursor:pointer;touch-action:manipulation;">
+                            ➕ Tambah Lokasi
+                        </button>
+                        <button onclick="batalEditLokasi()" type="button" id="btnBatalEdit"
+                            style="display:none;padding:10px 14px;background:#fff;border:2px solid #ccc;border-radius:9px;font-size:0.86em;color:#888;cursor:pointer;touch-action:manipulation;">
+                            Batal
+                        </button>
                     </div>
                 </div>
 
-                <!-- Tombol ambil lokasi saat ini -->
-                <button onclick="ambilLokasiSaatIni()" type="button"
-                    style="width:100%;padding:11px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);color:#1a4a1a;border:2px solid #4caf50;border-radius:10px;font-size:0.88em;font-weight:800;cursor:pointer;margin-bottom:12px;letter-spacing:0.03em;touch-action:manipulation;">
-                    🎯 Ambil Koordinat Lokasi Saya Sekarang
-                </button>
-                <div id="gpsAmbilInfo" style="display:none;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:9px 12px;font-size:0.82em;color:#1a4a1a;margin-bottom:12px;line-height:1.6;text-align:center;"></div>
-
-                <!-- Info box status -->
-                <div id="gpsInfoBox" style="background:#f1f8e9;border:1.5px solid #4caf50;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.84em;color:#2e7d32;text-align:center;font-weight:700;line-height:1.7;"></div>
-
-                <!-- Simpan -->
+                <!-- Simpan semua -->
                 <button onclick="simpanPengaturanGPS()" type="button"
-                    style="width:100%;padding:14px;background:linear-gradient(135deg,#1a4a1a,#2e7d32);color:#a5d6a7;border:none;border-radius:12px;font-size:0.95em;font-weight:800;cursor:pointer;letter-spacing:0.04em;touch-action:manipulation;box-shadow:0 4px 14px rgba(46,125,50,0.4);margin-bottom:8px;">
-                    💾 Simpan Pengaturan GPS
+                    style="width:100%;padding:13px;background:linear-gradient(135deg,#1a4a1a,#2e7d32);color:#a5d6a7;border:none;border-radius:12px;font-size:0.93em;font-weight:800;cursor:pointer;letter-spacing:0.04em;touch-action:manipulation;box-shadow:0 4px 14px rgba(46,125,50,0.4);margin-bottom:8px;">
+                    💾 Simpan Semua Pengaturan GPS
                 </button>
                 <button onclick="tutupPengaturanGPS()" type="button"
-                    style="width:100%;padding:11px;background:none;border:1.5px solid #ddd;border-radius:12px;font-size:0.88em;color:#999;cursor:pointer;touch-action:manipulation;">
+                    style="width:100%;padding:10px;background:none;border:1.5px solid #ddd;border-radius:12px;font-size:0.86em;color:#999;cursor:pointer;touch-action:manipulation;">
                     Batal
                 </button>
             </div>
@@ -3032,45 +3044,117 @@ function tutupPengaturanJam() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// FUNGSI PANEL PENGATURAN GPS (ADMIN)
+// FUNGSI PANEL PENGATURAN GPS MULTI-LOKASI (ADMIN)
 // ══════════════════════════════════════════════════════════════
 
-/** Buka panel pengaturan GPS dan isi nilai dari localStorage/Firebase */
+// Buffer lokasi saat panel terbuka (belum disimpan)
+var _gpsLokasiBuffer = [];
+
+/** Render daftar lokasi di panel */
+function _renderLokasiList() {
+    const container = document.getElementById('gpsLokasiList');
+    if (!container) return;
+    if (_gpsLokasiBuffer.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#aaa;font-size:0.82em;padding:12px;border:2px dashed #ddd;border-radius:10px;">Belum ada lokasi. Tambahkan lokasi pertama di bawah.</div>';
+        _updateInfoGps();
+        return;
+    }
+    container.innerHTML = _gpsLokasiBuffer.map(function(lok, i) {
+        return '<div style="background:#fff;border:2px solid #a5d6a7;border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:8px;">' +
+            '<div style="flex:1;min-width:0;">' +
+                '<div style="font-weight:800;font-size:0.88em;color:#1a4a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + (lok.nama || 'Lokasi ' + (i+1)) + '</div>' +
+                '<div style="font-size:0.74em;color:#666;font-family:monospace;margin-top:2px;">' + lok.lat.toFixed(6) + ', ' + lok.lon.toFixed(6) + '</div>' +
+                '<div style="font-size:0.74em;color:#2e7d32;font-weight:700;margin-top:1px;">Radius: ' + lok.radius + ' m</div>' +
+            '</div>' +
+            '<button onclick="editLokasi(' + i + ')" type="button" style="padding:6px 10px;background:#e3f2fd;border:1.5px solid #90caf9;border-radius:7px;font-size:0.78em;font-weight:700;color:#1565c0;cursor:pointer;white-space:nowrap;flex-shrink:0;">✏️</button>' +
+            '<button onclick="hapusLokasi(' + i + ')" type="button" style="padding:6px 10px;background:#ffebee;border:1.5px solid #ef9a9a;border-radius:7px;font-size:0.78em;font-weight:700;color:#c62828;cursor:pointer;flex-shrink:0;">🗑️</button>' +
+        '</div>';
+    }).join('');
+    _updateInfoGps();
+}
+
+/** Edit lokasi — isi form dengan data lokasi ke-i */
+function editLokasi(i) {
+    const lok = _gpsLokasiBuffer[i];
+    if (!lok) return;
+    document.getElementById('gpsEditIndex').value     = i;
+    document.getElementById('inputGpsNama').value     = lok.nama || '';
+    document.getElementById('inputGpsLat').value      = lok.lat;
+    document.getElementById('inputGpsLon').value      = lok.lon;
+    document.getElementById('inputGpsRadius').value   = lok.radius;
+    document.getElementById('gpsRadiusAngka').textContent = lok.radius;
+    document.getElementById('gpsFormJudul').textContent = '✏️ EDIT LOKASI';
+    document.getElementById('btnTambahLokasi').textContent = '💾 Simpan Perubahan';
+    document.getElementById('btnBatalEdit').style.display = '';
+    document.getElementById('gpsAmbilInfo').style.display = 'none';
+    document.getElementById('inputGpsNama').focus();
+}
+
+/** Hapus lokasi dari buffer */
+function hapusLokasi(i) {
+    _gpsLokasiBuffer.splice(i, 1);
+    batalEditLokasi();
+    _renderLokasiList();
+}
+
+/** Batal edit — reset form */
+function batalEditLokasi() {
+    document.getElementById('gpsEditIndex').value = '-1';
+    document.getElementById('inputGpsNama').value = '';
+    document.getElementById('inputGpsLat').value  = '';
+    document.getElementById('inputGpsLon').value  = '';
+    document.getElementById('inputGpsRadius').value = 100;
+    document.getElementById('gpsRadiusAngka').textContent = '100';
+    document.getElementById('gpsFormJudul').textContent = '➕ TAMBAH LOKASI BARU';
+    document.getElementById('btnTambahLokasi').textContent = '➕ Tambah Lokasi';
+    document.getElementById('btnBatalEdit').style.display = 'none';
+    document.getElementById('gpsAmbilInfo').style.display = 'none';
+}
+
+/** Tambah atau update lokasi ke buffer */
+function tambahAtauUpdateLokasi() {
+    const nama   = document.getElementById('inputGpsNama').value.trim();
+    const lat    = parseFloat(document.getElementById('inputGpsLat').value);
+    const lon    = parseFloat(document.getElementById('inputGpsLon').value);
+    const radius = parseInt(document.getElementById('inputGpsRadius').value, 10);
+    const idx    = parseInt(document.getElementById('gpsEditIndex').value, 10);
+
+    if (!nama) { alert('⚠️ Nama lokasi harus diisi!'); document.getElementById('inputGpsNama').focus(); return; }
+    if (isNaN(lat) || isNaN(lon)) { alert('⚠️ Koordinat Latitude dan Longitude harus diisi!\n\nGunakan tombol 🎯 untuk mengambil otomatis.'); return; }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) { alert('⚠️ Koordinat tidak valid.'); return; }
+
+    const obj = { nama, lat, lon, radius };
+    if (idx >= 0 && idx < _gpsLokasiBuffer.length) {
+        _gpsLokasiBuffer[idx] = obj;
+    } else {
+        _gpsLokasiBuffer.push(obj);
+    }
+    batalEditLokasi();
+    _renderLokasiList();
+}
+
+/** Buka panel pengaturan GPS dan muat data */
 async function tampilPengaturanGPS() {
-    // Muat config terbaru dari Firebase jika tersedia
+    // Muat dari Firebase
     if (fbDb) {
         try {
             const snap = await fbDb.ref('bukuTamu/konfigurasi').get();
             if (snap.exists()) {
                 const cfg = snap.val();
-                if (cfg.geo_lat  !== undefined) GEO_CONFIG.LAT    = cfg.geo_lat;
-                if (cfg.geo_lon  !== undefined) GEO_CONFIG.LON    = cfg.geo_lon;
-                if (cfg.geo_radius !== undefined) GEO_CONFIG.RADIUS = cfg.geo_radius;
-                if (cfg.geo_aktif !== undefined) GEO_CONFIG.AKTIF  = cfg.geo_aktif;
+                if (cfg.geo_aktif  !== undefined) GEO_CONFIG.AKTIF  = cfg.geo_aktif;
+                if (Array.isArray(cfg.geo_lokasi)) GEO_CONFIG.LOKASI = cfg.geo_lokasi;
             }
-        } catch(e) {
-            // fallback localStorage
-            const ls = _bacaGpsLS();
-            if (ls) { GEO_CONFIG.LAT = ls.lat; GEO_CONFIG.LON = ls.lon; GEO_CONFIG.RADIUS = ls.radius; GEO_CONFIG.AKTIF = ls.aktif; }
-        }
-    } else {
-        const ls = _bacaGpsLS();
-        if (ls) { GEO_CONFIG.LAT = ls.lat; GEO_CONFIG.LON = ls.lon; GEO_CONFIG.RADIUS = ls.radius; GEO_CONFIG.AKTIF = ls.aktif; }
-    }
+        } catch(e) { _muatGpsLS(); }
+    } else { _muatGpsLS(); }
 
-    // Isi nilai ke form
-    document.getElementById('inputGpsLat').value    = GEO_CONFIG.LAT;
-    document.getElementById('inputGpsLon').value    = GEO_CONFIG.LON;
-    document.getElementById('inputGpsRadius').value = GEO_CONFIG.RADIUS;
-    document.getElementById('gpsRadiusAngka').textContent = GEO_CONFIG.RADIUS;
+    _gpsLokasiBuffer = GEO_CONFIG.LOKASI.map(function(l){ return Object.assign({}, l); });
 
     const toggle = document.getElementById('gpsAktifToggle');
     toggle.checked = GEO_CONFIG.AKTIF;
     _syncGpsToggleStyle();
     updateGpsStatusLabel();
-    _updateInfoGps();
-
-    document.getElementById('gpsAmbilInfo').style.display = 'none';
+    batalEditLokasi();
+    _renderLokasiList();
     document.getElementById('gpsPanel').style.display = 'block';
 }
 
@@ -3078,7 +3162,6 @@ function tutupPengaturanGPS() {
     document.getElementById('gpsPanel').style.display = 'none';
 }
 
-/** Sync warna tombol toggle */
 function _syncGpsToggleStyle() {
     const aktif = document.getElementById('gpsAktifToggle').checked;
     const track = document.getElementById('gpsToggleTrack');
@@ -3092,46 +3175,35 @@ function updateGpsStatusLabel() {
     const aktif = document.getElementById('gpsAktifToggle').checked;
     const lbl   = document.getElementById('gpsStatusLabel');
     if (lbl) lbl.textContent = aktif
-        ? 'Aktif — tamu harus berada di area kantor'
+        ? 'Aktif — tamu harus berada di salah satu area yang terdaftar'
         : 'Nonaktif — tamu bisa mengisi dari mana saja';
     _updateInfoGps();
 }
 
 function _updateInfoGps() {
-    const box    = document.getElementById('gpsInfoBox');
-    const aktif  = document.getElementById('gpsAktifToggle').checked;
-    const radius = document.getElementById('inputGpsRadius').value;
-    const lat    = document.getElementById('inputGpsLat').value;
-    const lon    = document.getElementById('inputGpsLon').value;
+    const box   = document.getElementById('gpsInfoBox');
     if (!box) return;
+    const aktif = document.getElementById('gpsAktifToggle') ? document.getElementById('gpsAktifToggle').checked : GEO_CONFIG.AKTIF;
+    const jumlah = _gpsLokasiBuffer.length;
     if (!aktif) {
-        box.textContent = '⚠️ Pembatasan GPS dinonaktifkan — semua tamu dapat mengisi tanpa cek lokasi.';
-        box.style.background = '#fff8e1';
-        box.style.borderColor = '#ffb300';
-        box.style.color = '#e65100';
-    } else if (!lat || !lon) {
-        box.textContent = '⚠️ Koordinat belum diisi. Gunakan tombol "Ambil Koordinat" atau isi manual.';
-        box.style.background = '#fff8e1';
-        box.style.borderColor = '#ffb300';
-        box.style.color = '#e65100';
+        box.innerHTML = '⚠️ Pembatasan GPS <b>dinonaktifkan</b> — tamu dapat mengisi dari mana saja.';
+        box.style.cssText = 'background:#fff8e1;border:1.5px solid #ffb300;border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:0.82em;color:#e65100;font-weight:700;line-height:1.6;';
+    } else if (jumlah === 0) {
+        box.innerHTML = '⚠️ Belum ada lokasi terdaftar. Tambahkan minimal 1 lokasi agar pembatasan berfungsi.';
+        box.style.cssText = 'background:#fff8e1;border:1.5px solid #ffb300;border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:0.82em;color:#e65100;font-weight:700;line-height:1.6;';
     } else {
-        box.innerHTML = '✅ Tamu hanya bisa mengisi dalam radius <b>' + radius + ' meter</b> dari koordinat yang ditentukan.';
-        box.style.background = '#f1f8e9';
-        box.style.borderColor = '#4caf50';
-        box.style.color = '#2e7d32';
+        box.innerHTML = '✅ <b>' + jumlah + ' lokasi</b> terdaftar — tamu hanya bisa mengisi dari salah satu area yang terdaftar.';
+        box.style.cssText = 'background:#f1f8e9;border:1.5px solid #4caf50;border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:0.82em;color:#2e7d32;font-weight:700;line-height:1.6;';
     }
 }
 
-/** Ambil koordinat GPS perangkat saat ini */
+/** Ambil koordinat GPS saat ini ke form */
 function ambilLokasiSaatIni() {
     const infoEl = document.getElementById('gpsAmbilInfo');
     infoEl.style.display = 'block';
     infoEl.style.color = '#1a4a1a';
     infoEl.textContent = '📡 Mengambil koordinat GPS, harap tunggu…';
-    if (!navigator.geolocation) {
-        infoEl.textContent = '❌ Perangkat tidak mendukung GPS.';
-        return;
-    }
+    if (!navigator.geolocation) { infoEl.textContent = '❌ Perangkat tidak mendukung GPS.'; return; }
     navigator.geolocation.getCurrentPosition(
         function(pos) {
             const lat = pos.coords.latitude.toFixed(6);
@@ -3140,13 +3212,10 @@ function ambilLokasiSaatIni() {
             document.getElementById('inputGpsLat').value = lat;
             document.getElementById('inputGpsLon').value = lon;
             infoEl.innerHTML = '✅ Koordinat berhasil diambil!<br>📌 Lat: <b>' + lat + '</b> | Lon: <b>' + lon + '</b><br>🎯 Akurasi GPS: ±' + acc + ' meter';
-            _updateInfoGps();
         },
         function(err) {
             infoEl.style.color = '#c0392b';
-            if (err.code === 1) infoEl.textContent = '❌ Izin lokasi ditolak. Aktifkan izin lokasi di browser.';
-            else if (err.code === 3) infoEl.textContent = '❌ Waktu habis. Pastikan GPS aktif lalu coba lagi.';
-            else infoEl.textContent = '❌ Gagal mengambil lokasi. Coba lagi.';
+            infoEl.textContent = err.code===1 ? '❌ Izin lokasi ditolak.' : err.code===3 ? '❌ Waktu habis. GPS aktifkan lalu coba lagi.' : '❌ Gagal mengambil lokasi.';
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
@@ -3154,75 +3223,52 @@ function ambilLokasiSaatIni() {
 
 /** Baca config GPS dari localStorage */
 function _bacaGpsLS() {
-    try {
-        const s = localStorage.getItem('geoConfig');
-        return s ? JSON.parse(s) : null;
-    } catch(e) { return null; }
+    try { const s = localStorage.getItem('geoConfig'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
 }
 
-/** Simpan pengaturan GPS ke localStorage & Firebase */
+function _muatGpsLS() {
+    const ls = _bacaGpsLS();
+    if (!ls) return;
+    if (ls.aktif  !== undefined) GEO_CONFIG.AKTIF  = ls.aktif;
+    if (Array.isArray(ls.lokasi)) GEO_CONFIG.LOKASI = ls.lokasi;
+}
+
+/** Simpan semua pengaturan GPS ke localStorage & Firebase */
 async function simpanPengaturanGPS() {
-    const lat    = parseFloat(document.getElementById('inputGpsLat').value);
-    const lon    = parseFloat(document.getElementById('inputGpsLon').value);
-    const radius = parseInt(document.getElementById('inputGpsRadius').value, 10);
-    const aktif  = document.getElementById('gpsAktifToggle').checked;
-
-    if (aktif && (isNaN(lat) || isNaN(lon))) {
-        alert('⚠️ Mohon isi koordinat Latitude dan Longitude dengan benar!\n\nGunakan tombol "Ambil Koordinat Lokasi Saya Sekarang" atau isi manual dari Google Maps.');
+    const aktif = document.getElementById('gpsAktifToggle').checked;
+    if (aktif && _gpsLokasiBuffer.length === 0) {
+        alert('⚠️ Harap tambahkan minimal 1 lokasi sebelum menyimpan!\n\nAtau nonaktifkan pembatasan GPS jika tidak ingin membatasi lokasi.');
         return;
     }
-    if (aktif && (lat < -90 || lat > 90 || lon < -180 || lon > 180)) {
-        alert('⚠️ Koordinat tidak valid. Latitude: -90 s/d 90, Longitude: -180 s/d 180.');
-        return;
-    }
-
-    // Update variabel global langsung
-    GEO_CONFIG.LAT    = lat;
-    GEO_CONFIG.LON    = lon;
-    GEO_CONFIG.RADIUS = radius;
     GEO_CONFIG.AKTIF  = aktif;
+    GEO_CONFIG.LOKASI = _gpsLokasiBuffer.map(function(l){ return Object.assign({}, l); });
 
-    // Simpan ke localStorage
-    localStorage.setItem('geoConfig', JSON.stringify({ lat, lon, radius, aktif }));
+    localStorage.setItem('geoConfig', JSON.stringify({ aktif: aktif, lokasi: GEO_CONFIG.LOKASI }));
 
-    // Simpan ke Firebase agar sinkron semua perangkat
-    const payload = { geo_lat: lat, geo_lon: lon, geo_radius: radius, geo_aktif: aktif };
+    const payload = { geo_aktif: aktif, geo_lokasi: GEO_CONFIG.LOKASI };
     let fbOk = false;
     if (fbDb) {
-        try {
-            await fbDb.ref('bukuTamu/konfigurasi').update(payload);
-            fbOk = true;
-        } catch(e) { fbOk = false; }
+        try { await fbDb.ref('bukuTamu/konfigurasi').update(payload); fbOk = true; } catch(e) {}
     }
 
     const btnSimpan = document.querySelector('#gpsPanel button[onclick="simpanPengaturanGPS()"]');
-    const teksAwal = btnSimpan ? btnSimpan.innerHTML : '';
+    const teksAwal  = btnSimpan ? btnSimpan.innerHTML : '';
     if (btnSimpan) {
         btnSimpan.innerHTML = fbOk ? '✅ Tersimpan & Sinkron ke Server!' : '✅ Tersimpan di Perangkat!';
         btnSimpan.style.background = 'linear-gradient(135deg,#1b5e20,#388e3c)';
-        setTimeout(() => {
-            btnSimpan.innerHTML = teksAwal;
-            btnSimpan.style.background = '';
-            tutupPengaturanGPS();
-        }, 1800);
+        setTimeout(function(){ btnSimpan.innerHTML = teksAwal; btnSimpan.style.background = ''; tutupPengaturanGPS(); }, 1800);
     } else {
-        alert(fbOk
-            ? '✅ Pengaturan GPS berhasil disimpan dan disinkronkan ke server!\n\nRadius: ' + radius + ' meter\nStatus: ' + (aktif ? 'Aktif' : 'Nonaktif')
-            : '✅ Pengaturan GPS disimpan di perangkat ini.\n\n⚠️ Tidak terhubung ke server — pengaturan belum sinkron.');
+        alert(fbOk ? '✅ Tersimpan & sinkron ke server! (' + GEO_CONFIG.LOKASI.length + ' lokasi)' : '✅ Tersimpan di perangkat.');
         tutupPengaturanGPS();
     }
 }
 
 /** Muat config GPS dari localStorage saat app pertama dibuka */
-(function _muatGpsConfig() {
-    const ls = _bacaGpsLS && _bacaGpsLS();
-    if (ls) {
-        if (ls.lat    !== undefined) GEO_CONFIG.LAT    = ls.lat;
-        if (ls.lon    !== undefined) GEO_CONFIG.LON    = ls.lon;
-        if (ls.radius !== undefined) GEO_CONFIG.RADIUS = ls.radius;
-        if (ls.aktif  !== undefined) GEO_CONFIG.AKTIF  = ls.aktif;
-    }
+(function _inisialisasiGps() {
+    _muatGpsLS && _muatGpsLS();
 })();
+
+
 
 function _updateInfoJam() {
     const buka  = document.getElementById('inputJamBuka').value  || '07:30';
@@ -3337,9 +3383,9 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
     modal.id = '_blokirModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `
-        <div id="_blokirCard" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;cursor:default;user-select:none;">
-            <div id="_ikonTapAdmin"
-                style="font-size:3rem;margin-bottom:10px;display:inline-block;padding:8px;">${ikonEmoji}</div>
+        <div style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
+            <div id="_ikonTapAdmin" onclick="_hitungTapAdmin(0)"
+                style="font-size:3rem;margin-bottom:10px;cursor:default;user-select:none;display:inline-block;padding:8px;">${ikonEmoji}</div>
             <h3 style="margin:0 0 10px;color:#0d1f45;font-size:1.15em;font-weight:800;">${judul}</h3>
             <p style="margin:0 0 24px;color:#555;font-size:0.93em;line-height:1.6;">${pesan}</p>
             <div id="_adminTapHint" style="display:none;margin-bottom:12px;font-size:0.78em;color:#d4a820;font-weight:700;">🔐 Login Admin...</div>
@@ -3349,46 +3395,6 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
             </button>
         </div>`;
     document.body.appendChild(modal);
-
-    var card = document.getElementById('_blokirCard');
-
-    // ── LAPTOP/DESKTOP: Klik 5x di sembarang tempat di area popup → login admin ──
-    card.addEventListener('click', function(e) {
-        if (e.target.tagName === 'BUTTON') return;
-        _hitungTapAdmin(1);
-    });
-
-    // ── HP/TABLET: Buka dua jari (pinch-out) di area popup → login admin ──
-    var _pinchStartDist = null;
-    card.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 2) {
-            var dx = e.touches[0].clientX - e.touches[1].clientX;
-            var dy = e.touches[0].clientY - e.touches[1].clientY;
-            _pinchStartDist = Math.hypot(dx, dy);
-        }
-    }, { passive: true });
-    card.addEventListener('touchend', function(e) {
-        if (_pinchStartDist === null) return;
-        if (e.changedTouches.length >= 1 && e.touches.length < 2) {
-            // ambil posisi terakhir kedua jari dari changedTouches
-            // cukup cek jarak saat touchmove terakhir disimpan
-            _pinchStartDist = null;
-        }
-    }, { passive: true });
-    card.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 2 && _pinchStartDist !== null) {
-            var dx = e.touches[0].clientX - e.touches[1].clientX;
-            var dy = e.touches[0].clientY - e.touches[1].clientY;
-            var currentDist = Math.hypot(dx, dy);
-            // Pinch-out: jarak membesar minimal 60px → bypass
-            if (currentDist - _pinchStartDist > 60) {
-                _pinchStartDist = null;
-                var blokirModal = document.getElementById('_blokirModal');
-                if (blokirModal) blokirModal.remove();
-                tampilLoginAdmin(startApp);
-            }
-        }
-    }, { passive: true });
 }
 
 // ── Ketuk tersembunyi 5x untuk munculkan login admin ──
@@ -3435,62 +3441,65 @@ function _hitungTapAdmin(sumber) {
 var ADMIN_PASSWORD = 'inspektorat2025';
 
 // ══════════════════════════════════════════════════════════════
-// KONFIGURASI PEMBATASAN RADIUS LOKASI GPS
-// Ubah koordinat & radius sesuai lokasi kantor Anda
+// KONFIGURASI PEMBATASAN RADIUS LOKASI GPS — MULTI LOKASI
+// Dikelola sepenuhnya via menu admin (📍 Pengaturan GPS)
 // ══════════════════════════════════════════════════════════════
 var GEO_CONFIG = {
-    // Koordinat pusat (lokasi kantor Inspektorat Daerah Tubaba)
-    // Ganti dengan koordinat GPS yang tepat!
-    LAT:    -4.4818,   // Latitude kantor (contoh: -4.4818)
-    LON:   105.1960,   // Longitude kantor (contoh: 105.1960)
-    RADIUS: 100,       // Radius maksimum dalam meter (ubah sesuai kebutuhan)
-    AKTIF:  true       // true = fitur aktif, false = nonaktifkan sementara
+    AKTIF:  true,    // true = fitur aktif, false = nonaktif
+    LOKASI: []       // array lokasi: [{nama, lat, lon, radius}, ...]
 };
 
 /**
- * Hitung jarak antara dua titik koordinat (Haversine Formula)
- * Mengembalikan jarak dalam meter
+ * Hitung jarak antara dua titik koordinat (Haversine Formula) — meter
  */
 function hitungJarak(lat1, lon1, lat2, lon2) {
-    var R = 6371000; // radius bumi dalam meter
+    var R = 6371000;
     var dLat = (lat2 - lat1) * Math.PI / 180;
     var dLon = (lon2 - lon1) * Math.PI / 180;
     var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLon/2) * Math.sin(dLon/2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 /**
- * Cek lokasi GPS pengguna — Promise resolve(true) jika dalam radius, resolve(false) jika di luar
- * Memanggil callback dengan (bolehIsi, jarakMeter, errorMsg)
+ * Cek lokasi GPS — cocokkan dengan semua lokasi yang terdaftar.
+ * Resolve: { boleh, lokasiNama, jarak, jarakTerdekat, lokasiTerdekat, error }
  */
 function cekLokasiGPS() {
     return new Promise(function(resolve) {
-        if (!GEO_CONFIG.AKTIF) { resolve({ boleh: true, jarak: 0, error: null }); return; }
+        if (!GEO_CONFIG.AKTIF) { resolve({ boleh: true, error: null }); return; }
+        var daftarLokasi = GEO_CONFIG.LOKASI.filter(function(l){ return l.lat && l.lon; });
+        if (daftarLokasi.length === 0) { resolve({ boleh: true, error: null }); return; }
         if (!navigator.geolocation) {
-            resolve({ boleh: false, jarak: null, error: 'Perangkat tidak mendukung GPS. Mohon gunakan browser yang mendukung geolokasi.' });
+            resolve({ boleh: false, error: 'Perangkat tidak mendukung GPS. Mohon gunakan browser yang mendukung geolokasi.' });
             return;
         }
-        var opsiGeo = { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 };
         navigator.geolocation.getCurrentPosition(
             function(pos) {
                 var lat = pos.coords.latitude;
                 var lon = pos.coords.longitude;
-                var jarak = hitungJarak(lat, lon, GEO_CONFIG.LAT, GEO_CONFIG.LON);
-                var boleh = jarak <= GEO_CONFIG.RADIUS;
-                resolve({ boleh: boleh, jarak: Math.round(jarak), error: null });
+                var cocok = null, jarakCocok = null;
+                var terdekat = null, jarakTerdekat = Infinity;
+                daftarLokasi.forEach(function(lok) {
+                    var j = hitungJarak(lat, lon, lok.lat, lok.lon);
+                    if (j < jarakTerdekat) { jarakTerdekat = j; terdekat = lok; }
+                    if (j <= lok.radius && !cocok) { cocok = lok; jarakCocok = Math.round(j); }
+                });
+                if (cocok) {
+                    resolve({ boleh: true, lokasiNama: cocok.nama, jarak: jarakCocok, error: null });
+                } else {
+                    resolve({ boleh: false, jarak: Math.round(jarakTerdekat), lokasiTerdekat: terdekat ? terdekat.nama : '', error: null });
+                }
             },
             function(err) {
-                var pesan = '';
-                if (err.code === 1) pesan = 'Izin lokasi ditolak. Mohon aktifkan izin lokasi di pengaturan browser Anda, lalu coba lagi.';
-                else if (err.code === 2) pesan = 'Lokasi tidak dapat ditentukan. Pastikan GPS aktif dan Anda berada di area dengan sinyal.';
-                else if (err.code === 3) pesan = 'Waktu habis saat mengambil lokasi. Pastikan GPS aktif, lalu coba lagi.';
-                else pesan = 'Terjadi kesalahan GPS. Silakan coba lagi.';
-                resolve({ boleh: false, jarak: null, error: pesan });
+                var pesan = err.code===1 ? 'Izin lokasi ditolak. Mohon aktifkan izin lokasi di pengaturan browser Anda, lalu coba lagi.'
+                          : err.code===2 ? 'Lokasi tidak dapat ditentukan. Pastikan GPS aktif dan Anda berada di area dengan sinyal.'
+                          : err.code===3 ? 'Waktu habis saat mengambil lokasi. Pastikan GPS aktif, lalu coba lagi.'
+                          : 'Terjadi kesalahan GPS. Silakan coba lagi.';
+                resolve({ boleh: false, error: pesan });
             },
-            opsiGeo
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
         );
     });
 }
@@ -3581,10 +3590,8 @@ async function startApp() {
                 if (_cfgJam.jam_buka)  localStorage.setItem('jamKerjaBuka',  _cfgJam.jam_buka);
                 if (_cfgJam.jam_tutup) localStorage.setItem('jamKerjaTutup', _cfgJam.jam_tutup);
                 // Sinkron config GPS dari Firebase
-                if (_cfgJam.geo_lat    !== undefined) GEO_CONFIG.LAT    = _cfgJam.geo_lat;
-                if (_cfgJam.geo_lon    !== undefined) GEO_CONFIG.LON    = _cfgJam.geo_lon;
-                if (_cfgJam.geo_radius !== undefined) GEO_CONFIG.RADIUS = _cfgJam.geo_radius;
                 if (_cfgJam.geo_aktif  !== undefined) GEO_CONFIG.AKTIF  = _cfgJam.geo_aktif;
+                if (Array.isArray(_cfgJam.geo_lokasi)) GEO_CONFIG.LOKASI = _cfgJam.geo_lokasi;
             }
         } catch(e) { /* pakai localStorage */ }
     }
@@ -3638,17 +3645,19 @@ async function startApp() {
             tampilModalBlokir(
                 'Akses Lokasi Diperlukan',
                 _geoHasil.error + '<br><br>' +
-                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Buku tamu hanya dapat diisi dari lokasi Inspektorat Daerah Tubaba.</span>',
+                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Buku tamu hanya dapat diisi dari area lokasi yang telah ditentukan.</span>',
                 '📍'
             );
             return;
         }
         if (!_geoHasil.boleh) {
+            var _lokasiTerdekatTeks = _geoHasil.lokasiTerdekat
+                ? '<br>Lokasi terdekat: <strong style="color:#f5e07a;">' + _geoHasil.lokasiTerdekat + '</strong>' : '';
             tampilModalBlokir(
-                'Di Luar Area Kantor',
-                'Anda berada <strong style="color:#f5e07a;">' + _geoHasil.jarak + ' meter</strong> dari lokasi Inspektorat Daerah Tubaba.<br><br>' +
-                'Buku tamu hanya dapat diisi dalam radius <strong style="color:#f5e07a;">' + GEO_CONFIG.RADIUS + ' meter</strong> dari kantor.<br><br>' +
-                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Pastikan Anda berada di area kantor dan GPS aktif.</span>',
+                'Di Luar Area yang Diizinkan',
+                'Anda berada <strong style="color:#f5e07a;">' + _geoHasil.jarak + ' meter</strong> dari titik lokasi terdekat.' + _lokasiTerdekatTeks + '<br><br>' +
+                'Buku tamu hanya dapat diisi dari area lokasi yang telah didaftarkan.<br><br>' +
+                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Pastikan Anda berada di salah satu area kantor yang diizinkan dan GPS aktif.</span>',
                 '🗺️'
             );
             return;
@@ -3658,11 +3667,6 @@ async function startApp() {
     sembunyikanWelcome();
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
-    // PERBAIKAN: Tampilkan overlay PWA setelah welcome page ditutup (agar tidak memblokir tombol ISI BUKU TAMU)
-    if (!_sudahInstallPWA() && _adalahMobile() && localStorage.getItem('pwa_installed') !== '1') {
-        setTimeout(_tampilPopupFullscreen, 600);
-        setTimeout(_tampilSplashInstall, 1200);
-    }
     lsLoad();
     updateDataCounter();
     document.getElementById('mainNavigation').style.display = 'block';
@@ -7876,9 +7880,11 @@ window.addEventListener('load', () => {
     if (!_adalahMobile()) return;
     if (localStorage.getItem('pwa_installed') === '1') return;
 
-    // PERBAIKAN: Jangan tampilkan splash/popup saat welcome page masih aktif.
-    // Splash dan popup fullscreen akan ditampilkan SETELAH startApp() dipanggil
-    // (lihat fungsi _tampilOverlaySetelahWelcome yang dipanggil dari startApp).
+    // Tampilkan splash install setelah 800ms (welcome page sudah tampil)
+    setTimeout(_tampilSplashInstall, 800);
+
+    // Tampilkan popup pengingat fullscreen (jika belum PWA)
+    setTimeout(_tampilPopupFullscreen, 400);
 });
 
 // ── Popup pengingat tap untuk fullscreen ──
@@ -7951,16 +7957,6 @@ function _tampilPopupFullscreen() {
 
     // Tutup otomatis setelah 8 detik
     setTimeout(_tutupFsHint, 8000);
-}
-
-// ── Tampilkan overlay install/fullscreen SETELAH welcome page ditutup ──
-// Dipanggil dari startApp() setelah mainApp aktif, sehingga tidak memblokir tombol ISI BUKU TAMU
-function _tampilOverlaySetelahWelcome() {
-    if (_sudahInstallPWA()) return;
-    if (!_adalahMobile()) return;
-    if (localStorage.getItem('pwa_installed') === '1') return;
-    setTimeout(_tampilPopupFullscreen, 600);
-    setTimeout(_tampilSplashInstall, 1200);
 }
 
 // ── Setelah berhasil install ──
