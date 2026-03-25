@@ -2360,10 +2360,10 @@
                         <input type="number" id="inputGeoLon" step="0.000001" placeholder="105.196000"
                             style="width:100%;padding:9px 12px;border:1.5px solid #d4a820;border-radius:8px;font-size:0.92em;font-family:monospace;box-sizing:border-box;" />
                     </div>
-                    <!-- Tombol pilih di peta -->
-                    <button type="button" onclick="_bukaMapPicker()"
-                        style="width:100%;padding:11px;background:linear-gradient(135deg,#1a4a8a,#2563c5);color:#fff;border:none;border-radius:8px;font-size:0.88em;font-weight:800;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation;box-shadow:0 3px 10px rgba(37,99,197,0.35);">
-                        🗺️ Pilih Titik Lokasi di Peta
+                    <!-- Tombol buka maps bawaan HP -->
+                    <button type="button" onclick="_bukaAppMaps()"
+                        style="width:100%;padding:11px;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;border-radius:8px;font-size:0.88em;font-weight:800;cursor:pointer;margin-bottom:8px;touch-action:manipulation;box-shadow:0 3px 10px rgba(21,101,192,0.4);">
+                        🗺️ Buka Aplikasi Maps &amp; Tentukan Titik
                     </button>
                     <button type="button" onclick="_ambilKoordinatSekarang()"
                         style="width:100%;padding:9px;background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:8px;font-size:0.85em;font-weight:800;cursor:pointer;touch-action:manipulation;">
@@ -7956,289 +7956,257 @@ document.addEventListener('touchmove', function(e) {
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 
 // ══════════════════════════════════════════════════════
-// MAP PICKER — Pilih Koordinat Kantor via Leaflet + OSM
+// MAP PICKER — Buka Aplikasi Maps Bawaan HP
+// Alur:
+//  1. Coba ambil GPS dulu → buka maps di titik itu
+//  2. User tandai lokasi di apps maps
+//  3. Kembali ke app → modal panduan paste koordinat muncul
 // ══════════════════════════════════════════════════════
 
-var _mapPickerLoaded = false;
-var _mapPickerMap    = null;
-var _mapPickerMarker = null;
+function _bukaAppMaps() {
+    // Ambil koordinat awal dari input (jika sudah ada), fallback ke default kantor
+    var lat = parseFloat(document.getElementById('inputGeoLat').value) || -4.4818;
+    var lon = parseFloat(document.getElementById('inputGeoLon').value) || 105.1960;
 
-function _muatLeaflet(cb) {
-    if (window.L) { cb(); return; }
-    // CSS Leaflet
-    var css = document.createElement('link');
-    css.rel  = 'stylesheet';
-    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-    document.head.appendChild(css);
-    // JS Leaflet
-    var js = document.createElement('script');
-    js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    js.onload = function() { _mapPickerLoaded = true; cb(); };
-    js.onerror = function() { alert('❌ Gagal memuat peta. Periksa koneksi internet Anda.'); };
-    document.head.appendChild(js);
+    // Coba ambil GPS dulu agar maps terbuka di lokasi saat ini
+    if (navigator.geolocation) {
+        var info = document.getElementById('jarakGpsInfo');
+        if (info) {
+            info.style.cssText = 'background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.88em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;';
+            info.innerHTML = '📡 Mengambil GPS untuk membuka peta di lokasi Anda…';
+        }
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                lat = pos.coords.latitude;
+                lon = pos.coords.longitude;
+                _lakukanBukaMaps(lat, lon);
+            },
+            function() { _lakukanBukaMaps(lat, lon); },
+            { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+        );
+    } else {
+        _lakukanBukaMaps(lat, lon);
+    }
 }
 
-function _bukaMapPicker() {
-    // Ambil koordinat saat ini dari input (jika ada)
-    var curLat = parseFloat(document.getElementById('inputGeoLat').value) || -4.4818;
-    var curLon = parseFloat(document.getElementById('inputGeoLon').value) || 105.1960;
+function _lakukanBukaMaps(lat, lon) {
+    // Deteksi platform
+    var ua  = navigator.userAgent || '';
+    var ios = /iphone|ipad|ipod/i.test(ua);
 
-    // Buat modal fullscreen
-    var existing = document.getElementById('_mapPickerModal');
-    if (existing) existing.remove();
+    // URL yang bisa membuka aplikasi maps bawaan
+    // iOS  → maps.apple.com  (Apple Maps)  + fallback Google Maps
+    // Android → geo: URI  (Google Maps / Maps.me / dll)
+    // Desktop → Google Maps web
+    var url;
+    if (ios) {
+        // Apple Maps — akan minta buka "Maps"
+        url = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&z=18&t=m';
+    } else {
+        // Android: geo: URI → OS akan tanya pakai app apa
+        url = 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '&z=18';
+    }
+
+    // Buka maps
+    window.open(url, '_blank');
+
+    // Tampilkan modal panduan paste koordinat setelah 1.2 detik
+    // (beri waktu OS memproses intent)
+    setTimeout(function() { _tampilModalPasteKoordinat(); }, 1200);
+}
+
+// ── Modal panduan: cara salin koordinat dari Maps lalu paste di sini ──
+function _tampilModalPasteKoordinat() {
+    var ada = document.getElementById('_pasteKoordModal');
+    if (ada) { ada.style.display = 'flex'; return; }
 
     var modal = document.createElement('div');
-    modal.id = '_mapPickerModal';
+    modal.id = '_pasteKoordModal';
     modal.style.cssText = [
         'position:fixed',
         'inset:0',
         'z-index:9999999',
-        'background:#0a1a0a',
+        'background:rgba(0,0,0,0.82)',
         'display:flex',
-        'flex-direction:column',
-        'overflow:hidden',
-        '-webkit-overflow-scrolling:touch'
+        'align-items:flex-end',
+        'justify-content:center',
+        'padding:0',
+        'box-sizing:border-box'
     ].join(';');
 
     modal.innerHTML = `
-        <!-- Header bar -->
-        <div style="
-            background:linear-gradient(135deg,#1a4a1a,#276a27);
-            padding:12px 14px 10px;
-            display:flex;
-            align-items:center;
-            gap:10px;
-            flex-shrink:0;
-            z-index:10;
-            box-shadow:0 2px 8px rgba(0,0,0,0.4);
-        ">
-            <div style="flex:1;">
-                <div style="color:#fff;font-size:0.95em;font-weight:800;letter-spacing:0.03em;">📍 Pilih Titik Lokasi Kantor</div>
-                <div style="color:rgba(255,255,255,0.65);font-size:0.72em;margin-top:2px;">Tap/klik peta untuk menentukan titik, lalu Konfirmasi</div>
+    <div style="
+        background:#fff;
+        border-radius:24px 24px 0 0;
+        width:100%;
+        max-width:480px;
+        padding:22px 20px 32px;
+        box-shadow:0 -8px 40px rgba(0,0,0,0.45);
+        box-sizing:border-box;
+        max-height:92dvh;
+        overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+    ">
+        <!-- Handle bar -->
+        <div style="width:40px;height:5px;background:#ddd;border-radius:3px;margin:0 auto 18px;"></div>
+
+        <!-- Judul -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <span style="font-size:1.8em;">📍</span>
+            <div>
+                <div style="font-size:1em;font-weight:900;color:#0d1f45;line-height:1.2;">Salin Koordinat dari Maps</div>
+                <div style="font-size:0.78em;color:#888;margin-top:2px;">Ikuti langkah berikut lalu paste di sini</div>
             </div>
-            <button id="_mapClosBtn" type="button" style="
-                width:36px;height:36px;border-radius:50%;
-                border:none;background:rgba(255,255,255,0.15);
-                color:#fff;font-size:1.1em;cursor:pointer;
-                display:flex;align-items:center;justify-content:center;
-                flex-shrink:0;touch-action:manipulation;
-            ">✕</button>
+            <button type="button" onclick="document.getElementById('_pasteKoordModal').remove()"
+                style="margin-left:auto;width:32px;height:32px;border-radius:50%;border:none;
+                background:#f0f0f0;color:#555;font-size:1em;cursor:pointer;flex-shrink:0;">✕</button>
         </div>
 
-        <!-- Search box -->
-        <div style="
-            background:#1a2a1a;
-            padding:10px 12px;
-            display:flex;
-            gap:8px;
-            flex-shrink:0;
-            z-index:10;
-        ">
-            <input id="_mapSearchInput" type="text"
-                placeholder="🔍 Cari lokasi (contoh: Inspektorat Tubaba)..."
+        <!-- Panduan langkah -->
+        <div style="background:#f8f9ff;border:1.5px solid #c8d8f8;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:0.84em;color:#1a2a5e;line-height:1.7;">
+            <div style="font-weight:800;color:#1565c0;margin-bottom:8px;font-size:0.9em;letter-spacing:0.04em;">📱 CARA DI GOOGLE MAPS:</div>
+            <div>1️⃣ &nbsp;Cari atau geser peta ke <b>lokasi kantor</b></div>
+            <div>2️⃣ &nbsp;Tap &amp; tahan titik di peta beberapa detik</div>
+            <div>3️⃣ &nbsp;Koordinat muncul di bagian bawah layar</div>
+            <div>4️⃣ &nbsp;Tap koordinat tersebut → pilih <b>Salin</b></div>
+            <div>5️⃣ &nbsp;Kembali ke app ini → paste di kolom bawah</div>
+        </div>
+
+        <!-- Contoh format -->
+        <div style="background:#fffbea;border:1px solid #f0d060;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.80em;color:#7a5800;">
+            <b>Contoh format koordinat dari Maps:</b><br>
+            <span style="font-family:monospace;letter-spacing:0.04em;font-size:1.05em;">-4.481234, 105.196789</span><br>
+            <span style="color:#aaa;font-size:0.88em;">(lat, lon dipisahkan koma)</span>
+        </div>
+
+        <!-- Input paste -->
+        <label style="font-size:0.82em;font-weight:700;color:#333;display:block;margin-bottom:6px;">
+            📋 Paste atau ketik koordinat di sini:
+        </label>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <input type="text" id="_inputPasteKoord"
+                placeholder="-4.481234, 105.196789"
                 style="
-                    flex:1;padding:10px 14px;
-                    border:1.5px solid rgba(100,200,100,0.5);
+                    flex:1;padding:12px 14px;
+                    border:2px solid #1565c0;
                     border-radius:10px;
-                    font-size:0.88em;
-                    background:rgba(255,255,255,0.95);
+                    font-size:0.90em;
+                    font-family:monospace;
                     color:#0d1f45;
+                    background:#f4f8ff;
                     outline:none;
-                    font-family:Arial,sans-serif;
                     min-width:0;
                 "
-                onkeydown="if(event.key==='Enter'){event.preventDefault();_mapCariLokasi();}"
+                oninput="_previewKoordPaste(this.value)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();_terapkanKoordPaste();}"
             />
-            <button type="button" onclick="_mapCariLokasi()" style="
-                padding:10px 14px;
-                background:linear-gradient(135deg,#276a27,#3a9e3a);
-                color:#fff;border:none;border-radius:10px;
-                font-size:0.85em;font-weight:800;
-                cursor:pointer;white-space:nowrap;
-                touch-action:manipulation;flex-shrink:0;
-            ">Cari</button>
         </div>
 
-        <!-- Map container — mengisi sisa layar -->
-        <div id="_mapContainer" style="flex:1;position:relative;min-height:0;"></div>
+        <!-- Preview parse -->
+        <div id="_previewPasteKoord" style="
+            background:#eafaf1;border:1.5px solid #27ae60;border-radius:8px;
+            padding:9px 13px;margin-bottom:14px;
+            font-size:0.83em;color:#155724;text-align:center;
+            font-family:monospace;font-weight:700;
+            display:none;
+        "></div>
 
-        <!-- Koordinat preview + tombol konfirmasi -->
-        <div style="
-            background:#1a2a1a;
-            padding:12px 14px;
-            flex-shrink:0;
-            z-index:10;
-            box-shadow:0 -2px 8px rgba(0,0,0,0.4);
-        ">
-            <div id="_mapKoordPreview" style="
-                background:rgba(255,255,255,0.08);
-                border:1px solid rgba(100,200,100,0.3);
-                border-radius:8px;
-                padding:8px 12px;
-                margin-bottom:10px;
-                text-align:center;
-                font-family:monospace;
-                font-size:0.85em;
-                color:#a8f0a8;
-                line-height:1.6;
-            ">📍 Tap peta untuk memilih titik lokasi</div>
-            <div style="display:flex;gap:8px;">
-                <button type="button" onclick="_mapKonfirmasi()" id="_mapKonfBtn" style="
-                    flex:1;padding:13px;
-                    background:linear-gradient(135deg,#1a4a1a,#276a27);
-                    color:#a8f0a8;border:none;border-radius:10px;
-                    font-size:0.92em;font-weight:800;
-                    cursor:pointer;letter-spacing:0.04em;
-                    touch-action:manipulation;
-                    box-shadow:0 3px 12px rgba(39,106,39,0.5);
-                    opacity:0.5;pointer-events:none;
-                ">✅ Konfirmasi Lokasi Ini</button>
-                <button type="button" onclick="_mapLokasiSaya()" style="
-                    padding:13px 14px;
-                    background:linear-gradient(135deg,#1a3a8a,#2563c5);
-                    color:#fff;border:none;border-radius:10px;
-                    font-size:0.85em;font-weight:800;
-                    cursor:pointer;white-space:nowrap;
-                    touch-action:manipulation;
-                    box-shadow:0 3px 10px rgba(37,99,197,0.4);
-                ">📡 Lokasi<br>Saya</button>
-            </div>
-        </div>
-    `;
+        <!-- Tombol terapkan -->
+        <button type="button" onclick="_terapkanKoordPaste()"
+            style="
+                width:100%;padding:14px;
+                background:linear-gradient(135deg,#1a4a1a,#276a27);
+                color:#a8f0a8;border:none;border-radius:12px;
+                font-size:0.95em;font-weight:800;
+                cursor:pointer;letter-spacing:0.04em;
+                touch-action:manipulation;
+                box-shadow:0 4px 14px rgba(39,106,39,0.4);
+                margin-bottom:8px;
+            ">
+            ✅ Terapkan Koordinat Ini
+        </button>
+        <button type="button" onclick="document.getElementById('_pasteKoordModal').remove()"
+            style="
+                width:100%;padding:11px;
+                background:none;border:1.5px solid #ddd;
+                border-radius:12px;font-size:0.88em;
+                color:#999;cursor:pointer;touch-action:manipulation;
+            ">
+            Batal
+        </button>
+    </div>`;
+
+    // Tutup saat klik backdrop
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.remove();
+    });
 
     document.body.appendChild(modal);
 
-    // Event tutup
-    document.getElementById('_mapClosBtn').addEventListener('click', function() {
-        modal.remove();
-        if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
-    });
-
-    // Muat Leaflet lalu inisialisasi peta
-    _muatLeaflet(function() {
-        setTimeout(function() { _inisialisasiMap(curLat, curLon); }, 80);
-    });
+    // Fokus ke input paste
+    setTimeout(function() {
+        var inp = document.getElementById('_inputPasteKoord');
+        if (inp) inp.focus();
+    }, 400);
 }
 
-function _inisialisasiMap(lat, lon) {
-    var container = document.getElementById('_mapContainer');
-    if (!container || !window.L) return;
-
-    // Hancurkan map lama jika ada
-    if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
-
-    _mapPickerMap = L.map(container, {
-        center: [lat, lon],
-        zoom: 16,
-        zoomControl: true,
-        attributionControl: true
-    });
-
-    // Layer OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
-    }).addTo(_mapPickerMap);
-
-    // Marker awal
-    _mapPickerMarker = L.marker([lat, lon], { draggable: true })
-        .addTo(_mapPickerMap)
-        .bindPopup('📍 Titik Kantor<br><small>Seret atau tap peta untuk pindahkan</small>')
-        .openPopup();
-
-    _mapUpdatePreview(lat, lon);
-    _mapAktifkanKonfirmBtn();
-
-    // Saat marker di-drag
-    _mapPickerMarker.on('dragend', function(e) {
-        var pos = e.target.getLatLng();
-        _mapUpdatePreview(pos.lat, pos.lng);
-    });
-
-    // Klik peta — pindahkan marker
-    _mapPickerMap.on('click', function(e) {
-        var lat2 = e.latlng.lat, lon2 = e.latlng.lng;
-        _mapPickerMarker.setLatLng([lat2, lon2]);
-        _mapUpdatePreview(lat2, lon2);
-        _mapAktifkanKonfirmBtn();
-    });
+// Preview parse koordinat saat user mengetik
+function _previewKoordPaste(val) {
+    var hasil = _parseKoordinatString(val);
+    var prev  = document.getElementById('_previewPasteKoord');
+    if (!prev) return;
+    if (hasil) {
+        prev.style.display = 'block';
+        prev.innerHTML = '✅ Lat: <b>' + hasil.lat.toFixed(6) + '</b> &nbsp;|&nbsp; Lon: <b>' + hasil.lon.toFixed(6) + '</b>';
+        prev.style.background = '#eafaf1';
+        prev.style.borderColor = '#27ae60';
+        prev.style.color = '#155724';
+    } else if (val.trim().length > 3) {
+        prev.style.display = 'block';
+        prev.innerHTML = '⚠️ Format belum dikenali — contoh: <span style="font-family:monospace">-4.481234, 105.196789</span>';
+        prev.style.background = '#fff8e1';
+        prev.style.borderColor = '#f0c040';
+        prev.style.color = '#7a5800';
+    } else {
+        prev.style.display = 'none';
+    }
 }
 
-function _mapUpdatePreview(lat, lon) {
-    var el = document.getElementById('_mapKoordPreview');
-    if (!el) return;
-    el.innerHTML = '📍 Lat: <b>' + lat.toFixed(6) + '</b> &nbsp;|&nbsp; Lon: <b>' + lon.toFixed(6) + '</b>';
+// Parse berbagai format koordinat: "-4.48, 105.19" / "-4.48 105.19" / dll
+function _parseKoordinatString(raw) {
+    if (!raw) return null;
+    var s = raw.trim().replace(/[;\t]/g, ',').replace(/\s*,\s*/g, ',').replace(/\s+/g, ',');
+    var parts = s.split(',').filter(function(p) { return p.trim() !== ''; });
+    if (parts.length < 2) return null;
+    var lat = parseFloat(parts[0]);
+    var lon = parseFloat(parts[1]);
+    if (isNaN(lat) || isNaN(lon)) return null;
+    if (lat < -90 || lat > 90)   return null;
+    if (lon < -180 || lon > 180) return null;
+    return { lat: lat, lon: lon };
 }
 
-function _mapAktifkanKonfirmBtn() {
-    var btn = document.getElementById('_mapKonfBtn');
-    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
-}
+// Terapkan koordinat dari input paste ke form utama
+function _terapkanKoordPaste() {
+    var val    = (document.getElementById('_inputPasteKoord').value || '').trim();
+    var hasil  = _parseKoordinatString(val);
 
-function _mapKonfirmasi() {
-    if (!_mapPickerMarker) return;
-    var pos = _mapPickerMarker.getLatLng();
-    document.getElementById('inputGeoLat').value = pos.lat.toFixed(6);
-    document.getElementById('inputGeoLon').value = pos.lng.toFixed(6);
+    if (!hasil) {
+        alert('⚠️ Format koordinat tidak dikenali.\n\nContoh yang benar:\n-4.481234, 105.196789');
+        return;
+    }
+
+    document.getElementById('inputGeoLat').value = hasil.lat.toFixed(6);
+    document.getElementById('inputGeoLon').value = hasil.lon.toFixed(6);
 
     var info = document.getElementById('jarakGpsInfo');
     if (info) {
-        info.style.background = '#d4edda';
-        info.style.borderColor = '#28a745';
-        info.style.color = '#155724';
-        info.innerHTML = '✅ Koordinat dari peta berhasil disimpan<br>📍 Lat: <b>' + pos.lat.toFixed(6) + '</b> · Lon: <b>' + pos.lng.toFixed(6) + '</b>';
+        info.style.cssText = 'background:#d4edda;border:1.5px solid #28a745;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.88em;color:#155724;text-align:center;font-weight:700;line-height:1.6;';
+        info.innerHTML = '✅ Koordinat dari Maps berhasil diterapkan!<br>📍 Lat: <b>' + hasil.lat.toFixed(6) + '</b> · Lon: <b>' + hasil.lon.toFixed(6) + '</b>';
     }
 
-    var modal = document.getElementById('_mapPickerModal');
+    var modal = document.getElementById('_pasteKoordModal');
     if (modal) modal.remove();
-    if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
-}
-
-function _mapLokasiSaya() {
-    if (!navigator.geolocation) { alert('GPS tidak didukung perangkat ini.'); return; }
-    var preview = document.getElementById('_mapKoordPreview');
-    if (preview) preview.innerHTML = '📡 Mengambil lokasi GPS…';
-    navigator.geolocation.getCurrentPosition(function(pos) {
-        var lat = pos.coords.latitude, lon = pos.coords.longitude;
-        if (_mapPickerMap) {
-            _mapPickerMap.setView([lat, lon], 17);
-            _mapPickerMarker.setLatLng([lat, lon]);
-            _mapUpdatePreview(lat, lon);
-            _mapAktifkanKonfirmBtn();
-        }
-    }, function() {
-        if (preview) preview.innerHTML = '⚠️ GPS gagal. Izinkan akses lokasi.';
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-}
-
-function _mapCariLokasi() {
-    var q = (document.getElementById('_mapSearchInput').value || '').trim();
-    if (!q) return;
-    var preview = document.getElementById('_mapKoordPreview');
-    if (preview) preview.innerHTML = '🔍 Mencari: <i>' + q + '</i>…';
-
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1&countrycodes=id', {
-        headers: { 'Accept-Language': 'id,en', 'User-Agent': 'BukuTamuDigital/1.0' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (!data || data.length === 0) {
-            if (preview) preview.innerHTML = '⚠️ Lokasi tidak ditemukan. Coba kata kunci lain.';
-            return;
-        }
-        var lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
-        var nama = data[0].display_name.split(',').slice(0,3).join(', ');
-        if (_mapPickerMap) {
-            _mapPickerMap.setView([lat, lon], 17);
-            _mapPickerMarker.setLatLng([lat, lon]);
-            _mapUpdatePreview(lat, lon);
-            _mapAktifkanKonfirmBtn();
-            _mapPickerMarker.bindPopup('📍 ' + nama).openPopup();
-        }
-    })
-    .catch(function() {
-        if (preview) preview.innerHTML = '❌ Gagal mencari. Periksa koneksi internet.';
-    });
 }
 
 // ══════════════════════════════════════════════════════
