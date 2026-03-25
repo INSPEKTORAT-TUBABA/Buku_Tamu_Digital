@@ -52,11 +52,6 @@
 
     <!-- Cegah zoom ganda saat tap (iOS) -->
     <meta name="format-detection" content="telephone=no"/>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    <!-- Leaflet JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -1665,203 +1660,6 @@
             from { opacity:0; transform: scale(0.92); }
             to   { opacity:1; transform: scale(1); }
         }
-
-        /* ══════════════════════════════════════
-           MAP PICKER MODAL — FULL SCREEN HP
-           ══════════════════════════════════════ */
-        #mapPickerOverlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 9999999;
-            background: #000;
-            flex-direction: column;
-        }
-        #mapPickerOverlay.aktif {
-            display: flex;
-        }
-        #mapPickerHeader {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            background: linear-gradient(135deg, #0a2a6e, #1a6fd4);
-            color: #f5e07a;
-            font-weight: 800;
-            font-size: 0.90em;
-            letter-spacing: 0.04em;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-            z-index: 2;
-        }
-        #mapPickerHeader .mp-title {
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #mapPickerHeader button {
-            flex-shrink: 0;
-            background: rgba(255,255,255,0.12);
-            border: 1.5px solid rgba(245,224,122,0.50);
-            color: #f5e07a;
-            border-radius: 8px;
-            padding: 7px 14px;
-            font-size: 0.80em;
-            font-weight: 800;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        #mapContainer {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        #leafletMap {
-            width: 100%;
-            height: 100%;
-        }
-        #mapCrosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        #mapCrosshair::before,
-        #mapCrosshair::after {
-            content: '';
-            position: absolute;
-            background: #d4a820;
-        }
-        #mapCrosshair::before {
-            width: 2px;
-            height: 100%;
-            left: 50%;
-            top: 0;
-            transform: translateX(-50%);
-        }
-        #mapCrosshair::after {
-            height: 2px;
-            width: 100%;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-        }
-        #mapCrosshairDot {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            background: #d4a820;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 1001;
-            box-shadow: 0 0 8px rgba(212,168,32,0.8);
-        }
-        #mapPickerFooter {
-            flex-shrink: 0;
-            padding: 12px 14px;
-            background: linear-gradient(0deg, #0a2a6e, #0d2a5e);
-            z-index: 2;
-        }
-        #mapPickerCoordInfo {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(245,224,122,0.30);
-            border-radius: 10px;
-            padding: 9px 13px;
-            margin-bottom: 10px;
-            font-family: monospace;
-            font-size: 0.85em;
-            color: #a8e6ff;
-            text-align: center;
-            letter-spacing: 0.03em;
-            line-height: 1.7;
-        }
-        #mapPickerBtnPilih {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #d4a820, #f5e07a);
-            color: #0d1f45;
-            border: none;
-            border-radius: 12px;
-            font-size: 0.95em;
-            font-weight: 900;
-            cursor: pointer;
-            letter-spacing: 0.04em;
-            touch-action: manipulation;
-            box-shadow: 0 4px 14px rgba(212,168,32,0.5);
-        }
-        #mapPickerBtnBatal {
-            width: 100%;
-            padding: 10px;
-            margin-top: 7px;
-            background: none;
-            border: 1.5px solid rgba(255,255,255,0.20);
-            border-radius: 12px;
-            font-size: 0.85em;
-            color: rgba(255,255,255,0.50);
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        #mapSearchBox {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 0;
-            flex-shrink: 0;
-            padding: 8px 14px 0 14px;
-            background: linear-gradient(180deg, rgba(10,42,110,0.95), rgba(10,42,110,0.80));
-        }
-        #mapSearchInput {
-            flex: 1;
-            padding: 9px 12px;
-            border: 1.5px solid rgba(245,224,122,0.40);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.10);
-            color: #fff;
-            font-size: 0.88em;
-            outline: none;
-        }
-        #mapSearchInput::placeholder { color: rgba(255,255,255,0.40); }
-        #mapSearchBtn {
-            flex-shrink: 0;
-            padding: 9px 14px;
-            background: linear-gradient(135deg, #d4a820, #f5e07a);
-            color: #0d1f45;
-            border: none;
-            border-radius: 8px;
-            font-weight: 800;
-            font-size: 0.82em;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        #mapLocateBtn {
-            position: absolute;
-            bottom: 20px;
-            right: 14px;
-            z-index: 1000;
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #0a2a6e, #1a6fd4);
-            border: 2px solid rgba(245,224,122,0.60);
-            border-radius: 50%;
-            color: #f5e07a;
-            font-size: 1.3em;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            touch-action: manipulation;
-        }
-        /* Override leaflet z-index agar tidak bentrok */
-        .leaflet-control-container { z-index: 900 !important; }
     </style>
     <!-- Three.js untuk logo 3D berputar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -2557,17 +2355,18 @@
                         <input type="number" id="inputGeoLat" step="0.000001" placeholder="-4.481800"
                             style="width:100%;padding:9px 12px;border:1.5px solid #d4a820;border-radius:8px;font-size:0.92em;font-family:monospace;box-sizing:border-box;" />
                     </div>
-                    <div style="margin-bottom:10px;">
+                    <div style="margin-bottom:12px;">
                         <label style="font-size:0.82em;font-weight:700;color:#555;display:block;margin-bottom:4px;">Longitude</label>
                         <input type="number" id="inputGeoLon" step="0.000001" placeholder="105.196000"
                             style="width:100%;padding:9px 12px;border:1.5px solid #d4a820;border-radius:8px;font-size:0.92em;font-family:monospace;box-sizing:border-box;" />
                     </div>
+                    <!-- Tombol pilih di peta -->
                     <button type="button" onclick="_bukaMapPicker()"
-                        style="width:100%;padding:10px;background:linear-gradient(135deg,#0a2a6e,#1a6fd4);color:#f5e07a;border:none;border-radius:8px;font-size:0.85em;font-weight:800;cursor:pointer;margin-bottom:8px;touch-action:manipulation;box-shadow:0 3px 10px rgba(26,111,212,0.4);letter-spacing:0.03em;">
-                        🗺️ Pilih Titik di Peta
+                        style="width:100%;padding:11px;background:linear-gradient(135deg,#1a4a8a,#2563c5);color:#fff;border:none;border-radius:8px;font-size:0.88em;font-weight:800;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation;box-shadow:0 3px 10px rgba(37,99,197,0.35);">
+                        🗺️ Pilih Titik Lokasi di Peta
                     </button>
                     <button type="button" onclick="_ambilKoordinatSekarang()"
-                        style="width:100%;padding:9px;background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:8px;font-size:0.85em;font-weight:800;cursor:pointer;">
+                        style="width:100%;padding:9px;background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:8px;font-size:0.85em;font-weight:800;cursor:pointer;touch-action:manipulation;">
                         📡 Gunakan Lokasi Saya Sekarang
                     </button>
                 </div>
@@ -8156,242 +7955,291 @@ document.addEventListener('touchmove', function(e) {
 
 console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 
-// ══════════════════════════════════════════════════════════
-// MAP PICKER — Pilih Koordinat Kantor via Peta Full Layar
-// Menggunakan Leaflet.js + OpenStreetMap (tanpa API key)
-// ══════════════════════════════════════════════════════════
-(function() {
-    var _map = null;
-    var _marker = null;
-    var _pickedLat = null;
-    var _pickedLon = null;
-    var _mapInited = false;
+// ══════════════════════════════════════════════════════
+// MAP PICKER — Pilih Koordinat Kantor via Leaflet + OSM
+// ══════════════════════════════════════════════════════
 
-    // Default center: Tubaba, Lampung
-    var DEFAULT_LAT = -4.4818;
-    var DEFAULT_LON = 105.1960;
-    var DEFAULT_ZOOM = 15;
+var _mapPickerLoaded = false;
+var _mapPickerMap    = null;
+var _mapPickerMarker = null;
 
-    /* ── Buka overlay peta ── */
-    window._bukaMapPicker = function() {
-        var overlay = document.getElementById('mapPickerOverlay');
-        if (!overlay) { _buatOverlay(); }
-        overlay = document.getElementById('mapPickerOverlay');
-        overlay.classList.add('aktif');
-        document.body.style.overflow = 'hidden';
+function _muatLeaflet(cb) {
+    if (window.L) { cb(); return; }
+    // CSS Leaflet
+    var css = document.createElement('link');
+    css.rel  = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
+    // JS Leaflet
+    var js = document.createElement('script');
+    js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    js.onload = function() { _mapPickerLoaded = true; cb(); };
+    js.onerror = function() { alert('❌ Gagal memuat peta. Periksa koneksi internet Anda.'); };
+    document.head.appendChild(js);
+}
 
-        // Inisialisasi peta (hanya sekali)
-        setTimeout(function() {
-            if (!_mapInited) {
-                _initMap();
-            } else {
-                _map.invalidateSize();
-            }
-        }, 60);
-    };
+function _bukaMapPicker() {
+    // Ambil koordinat saat ini dari input (jika ada)
+    var curLat = parseFloat(document.getElementById('inputGeoLat').value) || -4.4818;
+    var curLon = parseFloat(document.getElementById('inputGeoLon').value) || 105.1960;
 
-    /* ── Tutup overlay ── */
-    window._tutupMapPicker = function() {
-        var overlay = document.getElementById('mapPickerOverlay');
-        if (overlay) overlay.classList.remove('aktif');
-        document.body.style.overflow = '';
-    };
+    // Buat modal fullscreen
+    var existing = document.getElementById('_mapPickerModal');
+    if (existing) existing.remove();
 
-    /* ── Konfirmasi pilihan & isi input koordinat ── */
-    window._konfirmasiMapPicker = function() {
-        if (_pickedLat === null || _pickedLon === null) {
-            alert('Tap/geser peta untuk menentukan titik lokasi kantor.');
+    var modal = document.createElement('div');
+    modal.id = '_mapPickerModal';
+    modal.style.cssText = [
+        'position:fixed',
+        'inset:0',
+        'z-index:9999999',
+        'background:#0a1a0a',
+        'display:flex',
+        'flex-direction:column',
+        'overflow:hidden',
+        '-webkit-overflow-scrolling:touch'
+    ].join(';');
+
+    modal.innerHTML = `
+        <!-- Header bar -->
+        <div style="
+            background:linear-gradient(135deg,#1a4a1a,#276a27);
+            padding:12px 14px 10px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-shrink:0;
+            z-index:10;
+            box-shadow:0 2px 8px rgba(0,0,0,0.4);
+        ">
+            <div style="flex:1;">
+                <div style="color:#fff;font-size:0.95em;font-weight:800;letter-spacing:0.03em;">📍 Pilih Titik Lokasi Kantor</div>
+                <div style="color:rgba(255,255,255,0.65);font-size:0.72em;margin-top:2px;">Tap/klik peta untuk menentukan titik, lalu Konfirmasi</div>
+            </div>
+            <button id="_mapClosBtn" type="button" style="
+                width:36px;height:36px;border-radius:50%;
+                border:none;background:rgba(255,255,255,0.15);
+                color:#fff;font-size:1.1em;cursor:pointer;
+                display:flex;align-items:center;justify-content:center;
+                flex-shrink:0;touch-action:manipulation;
+            ">✕</button>
+        </div>
+
+        <!-- Search box -->
+        <div style="
+            background:#1a2a1a;
+            padding:10px 12px;
+            display:flex;
+            gap:8px;
+            flex-shrink:0;
+            z-index:10;
+        ">
+            <input id="_mapSearchInput" type="text"
+                placeholder="🔍 Cari lokasi (contoh: Inspektorat Tubaba)..."
+                style="
+                    flex:1;padding:10px 14px;
+                    border:1.5px solid rgba(100,200,100,0.5);
+                    border-radius:10px;
+                    font-size:0.88em;
+                    background:rgba(255,255,255,0.95);
+                    color:#0d1f45;
+                    outline:none;
+                    font-family:Arial,sans-serif;
+                    min-width:0;
+                "
+                onkeydown="if(event.key==='Enter'){event.preventDefault();_mapCariLokasi();}"
+            />
+            <button type="button" onclick="_mapCariLokasi()" style="
+                padding:10px 14px;
+                background:linear-gradient(135deg,#276a27,#3a9e3a);
+                color:#fff;border:none;border-radius:10px;
+                font-size:0.85em;font-weight:800;
+                cursor:pointer;white-space:nowrap;
+                touch-action:manipulation;flex-shrink:0;
+            ">Cari</button>
+        </div>
+
+        <!-- Map container — mengisi sisa layar -->
+        <div id="_mapContainer" style="flex:1;position:relative;min-height:0;"></div>
+
+        <!-- Koordinat preview + tombol konfirmasi -->
+        <div style="
+            background:#1a2a1a;
+            padding:12px 14px;
+            flex-shrink:0;
+            z-index:10;
+            box-shadow:0 -2px 8px rgba(0,0,0,0.4);
+        ">
+            <div id="_mapKoordPreview" style="
+                background:rgba(255,255,255,0.08);
+                border:1px solid rgba(100,200,100,0.3);
+                border-radius:8px;
+                padding:8px 12px;
+                margin-bottom:10px;
+                text-align:center;
+                font-family:monospace;
+                font-size:0.85em;
+                color:#a8f0a8;
+                line-height:1.6;
+            ">📍 Tap peta untuk memilih titik lokasi</div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" onclick="_mapKonfirmasi()" id="_mapKonfBtn" style="
+                    flex:1;padding:13px;
+                    background:linear-gradient(135deg,#1a4a1a,#276a27);
+                    color:#a8f0a8;border:none;border-radius:10px;
+                    font-size:0.92em;font-weight:800;
+                    cursor:pointer;letter-spacing:0.04em;
+                    touch-action:manipulation;
+                    box-shadow:0 3px 12px rgba(39,106,39,0.5);
+                    opacity:0.5;pointer-events:none;
+                ">✅ Konfirmasi Lokasi Ini</button>
+                <button type="button" onclick="_mapLokasiSaya()" style="
+                    padding:13px 14px;
+                    background:linear-gradient(135deg,#1a3a8a,#2563c5);
+                    color:#fff;border:none;border-radius:10px;
+                    font-size:0.85em;font-weight:800;
+                    cursor:pointer;white-space:nowrap;
+                    touch-action:manipulation;
+                    box-shadow:0 3px 10px rgba(37,99,197,0.4);
+                ">📡 Lokasi<br>Saya</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event tutup
+    document.getElementById('_mapClosBtn').addEventListener('click', function() {
+        modal.remove();
+        if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
+    });
+
+    // Muat Leaflet lalu inisialisasi peta
+    _muatLeaflet(function() {
+        setTimeout(function() { _inisialisasiMap(curLat, curLon); }, 80);
+    });
+}
+
+function _inisialisasiMap(lat, lon) {
+    var container = document.getElementById('_mapContainer');
+    if (!container || !window.L) return;
+
+    // Hancurkan map lama jika ada
+    if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
+
+    _mapPickerMap = L.map(container, {
+        center: [lat, lon],
+        zoom: 16,
+        zoomControl: true,
+        attributionControl: true
+    });
+
+    // Layer OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(_mapPickerMap);
+
+    // Marker awal
+    _mapPickerMarker = L.marker([lat, lon], { draggable: true })
+        .addTo(_mapPickerMap)
+        .bindPopup('📍 Titik Kantor<br><small>Seret atau tap peta untuk pindahkan</small>')
+        .openPopup();
+
+    _mapUpdatePreview(lat, lon);
+    _mapAktifkanKonfirmBtn();
+
+    // Saat marker di-drag
+    _mapPickerMarker.on('dragend', function(e) {
+        var pos = e.target.getLatLng();
+        _mapUpdatePreview(pos.lat, pos.lng);
+    });
+
+    // Klik peta — pindahkan marker
+    _mapPickerMap.on('click', function(e) {
+        var lat2 = e.latlng.lat, lon2 = e.latlng.lng;
+        _mapPickerMarker.setLatLng([lat2, lon2]);
+        _mapUpdatePreview(lat2, lon2);
+        _mapAktifkanKonfirmBtn();
+    });
+}
+
+function _mapUpdatePreview(lat, lon) {
+    var el = document.getElementById('_mapKoordPreview');
+    if (!el) return;
+    el.innerHTML = '📍 Lat: <b>' + lat.toFixed(6) + '</b> &nbsp;|&nbsp; Lon: <b>' + lon.toFixed(6) + '</b>';
+}
+
+function _mapAktifkanKonfirmBtn() {
+    var btn = document.getElementById('_mapKonfBtn');
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+}
+
+function _mapKonfirmasi() {
+    if (!_mapPickerMarker) return;
+    var pos = _mapPickerMarker.getLatLng();
+    document.getElementById('inputGeoLat').value = pos.lat.toFixed(6);
+    document.getElementById('inputGeoLon').value = pos.lng.toFixed(6);
+
+    var info = document.getElementById('jarakGpsInfo');
+    if (info) {
+        info.style.background = '#d4edda';
+        info.style.borderColor = '#28a745';
+        info.style.color = '#155724';
+        info.innerHTML = '✅ Koordinat dari peta berhasil disimpan<br>📍 Lat: <b>' + pos.lat.toFixed(6) + '</b> · Lon: <b>' + pos.lng.toFixed(6) + '</b>';
+    }
+
+    var modal = document.getElementById('_mapPickerModal');
+    if (modal) modal.remove();
+    if (_mapPickerMap) { _mapPickerMap.remove(); _mapPickerMap = null; _mapPickerMarker = null; }
+}
+
+function _mapLokasiSaya() {
+    if (!navigator.geolocation) { alert('GPS tidak didukung perangkat ini.'); return; }
+    var preview = document.getElementById('_mapKoordPreview');
+    if (preview) preview.innerHTML = '📡 Mengambil lokasi GPS…';
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude, lon = pos.coords.longitude;
+        if (_mapPickerMap) {
+            _mapPickerMap.setView([lat, lon], 17);
+            _mapPickerMarker.setLatLng([lat, lon]);
+            _mapUpdatePreview(lat, lon);
+            _mapAktifkanKonfirmBtn();
+        }
+    }, function() {
+        if (preview) preview.innerHTML = '⚠️ GPS gagal. Izinkan akses lokasi.';
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+}
+
+function _mapCariLokasi() {
+    var q = (document.getElementById('_mapSearchInput').value || '').trim();
+    if (!q) return;
+    var preview = document.getElementById('_mapKoordPreview');
+    if (preview) preview.innerHTML = '🔍 Mencari: <i>' + q + '</i>…';
+
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1&countrycodes=id', {
+        headers: { 'Accept-Language': 'id,en', 'User-Agent': 'BukuTamuDigital/1.0' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data || data.length === 0) {
+            if (preview) preview.innerHTML = '⚠️ Lokasi tidak ditemukan. Coba kata kunci lain.';
             return;
         }
-        var elLat = document.getElementById('inputGeoLat');
-        var elLon = document.getElementById('inputGeoLon');
-        if (elLat) elLat.value = _pickedLat.toFixed(6);
-        if (elLon) elLon.value = _pickedLon.toFixed(6);
-        // Update info box
-        var info = document.getElementById('jarakGpsInfo');
-        if (info) {
-            info.style.background = '#d4edda';
-            info.style.borderColor = '#28a745';
-            info.style.color = '#155724';
-            info.innerHTML = '✅ Koordinat dari peta terpilih<br>📍 Lat: <b>' + _pickedLat.toFixed(6) + '</b> · Lon: <b>' + _pickedLon.toFixed(6) + '</b>';
+        var lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
+        var nama = data[0].display_name.split(',').slice(0,3).join(', ');
+        if (_mapPickerMap) {
+            _mapPickerMap.setView([lat, lon], 17);
+            _mapPickerMarker.setLatLng([lat, lon]);
+            _mapUpdatePreview(lat, lon);
+            _mapAktifkanKonfirmBtn();
+            _mapPickerMarker.bindPopup('📍 ' + nama).openPopup();
         }
-        window._tutupMapPicker();
-    };
-
-    /* ── Cari lokasi (Nominatim/OSM geocoder) ── */
-    window._cariLokasiPeta = function() {
-        var q = document.getElementById('mapSearchInput').value.trim();
-        if (!q) return;
-        var btn = document.getElementById('mapSearchBtn');
-        btn.textContent = '…';
-        btn.disabled = true;
-        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1&accept-language=id')
-            .then(function(r){ return r.json(); })
-            .then(function(data) {
-                btn.textContent = 'Cari';
-                btn.disabled = false;
-                if (data && data.length > 0) {
-                    var lat = parseFloat(data[0].lat);
-                    var lon = parseFloat(data[0].lon);
-                    _map.setView([lat, lon], 17);
-                    _updatePicked(lat, lon);
-                } else {
-                    alert('Lokasi tidak ditemukan. Coba kata kunci lain.');
-                }
-            })
-            .catch(function() {
-                btn.textContent = 'Cari';
-                btn.disabled = false;
-                alert('Gagal mencari lokasi. Periksa koneksi internet.');
-            });
-    };
-
-    /* ── Fungsi ke lokasi GPS saat ini ── */
-    window._lokasiGpsDiPeta = function() {
-        if (!navigator.geolocation) { alert('GPS tidak tersedia.'); return; }
-        var btn = document.getElementById('mapLocateBtn');
-        if (btn) btn.innerHTML = '⏳';
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            if (btn) btn.innerHTML = '📍';
-            var lat = pos.coords.latitude;
-            var lon = pos.coords.longitude;
-            _map.setView([lat, lon], 18);
-            _updatePicked(lat, lon);
-        }, function() {
-            if (btn) btn.innerHTML = '📍';
-            alert('Gagal mendapatkan GPS. Pastikan izin lokasi diaktifkan.');
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    };
-
-    /* ── Update koordinat yang dipilih ── */
-    function _updatePicked(lat, lon) {
-        _pickedLat = lat;
-        _pickedLon = lon;
-        var el = document.getElementById('mapPickerCoordInfo');
-        if (el) el.innerHTML = '📍 Lat: <b>' + lat.toFixed(6) + '</b><br>Lon: <b>' + lon.toFixed(6) + '</b>';
-
-        // Buat/update marker
-        if (_marker) {
-            _marker.setLatLng([lat, lon]);
-        } else {
-            var icon = L.divIcon({
-                html: '<div style="width:22px;height:22px;background:#d4a820;border:3px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(212,168,32,0.8);"></div>',
-                className: '',
-                iconSize: [22, 22],
-                iconAnchor: [11, 11]
-            });
-            _marker = L.marker([lat, lon], { icon: icon, draggable: true }).addTo(_map);
-            _marker.on('dragend', function(e) {
-                var latlng = e.target.getLatLng();
-                _updatePicked(latlng.lat, latlng.lng);
-                _map.setView([latlng.lat, latlng.lng]);
-            });
-        }
-    }
-
-    /* ── Inisialisasi peta Leaflet ── */
-    function _initMap() {
-        if (!window.L) {
-            // Leaflet belum load, coba lagi
-            setTimeout(_initMap, 300);
-            return;
-        }
-
-        // Koordinat awal: dari input yang sudah ada, atau default
-        var startLat = DEFAULT_LAT;
-        var startLon = DEFAULT_LON;
-        var elLat = document.getElementById('inputGeoLat');
-        var elLon = document.getElementById('inputGeoLon');
-        if (elLat && elLon && elLat.value && elLon.value) {
-            var pLat = parseFloat(elLat.value);
-            var pLon = parseFloat(elLon.value);
-            if (!isNaN(pLat) && !isNaN(pLon)) {
-                startLat = pLat;
-                startLon = pLon;
-            }
-        }
-
-        _map = L.map('leafletMap', {
-            center: [startLat, startLon],
-            zoom: DEFAULT_ZOOM,
-            zoomControl: true,
-            attributionControl: false
-        });
-
-        // Tile layer OSM
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 20,
-            subdomains: ['a','b','c']
-        }).addTo(_map);
-
-        // Atribusi ringkas
-        L.control.attribution({ prefix: '© OpenStreetMap', position: 'bottomleft' }).addTo(_map);
-
-        // Klik peta → update koordinat
-        _map.on('click', function(e) {
-            _updatePicked(e.latlng.lat, e.latlng.lng);
-        });
-
-        // Setiap kali peta bergerak → crosshair koordinat update (mode "center pick")
-        _map.on('move', function() {
-            var c = _map.getCenter();
-            var el = document.getElementById('mapPickerCoordInfo');
-            if (el) el.innerHTML = '🎯 Lat: <b>' + c.lat.toFixed(6) + '</b><br>Lon: <b>' + c.lng.toFixed(6) + '</b>';
-        });
-
-        _map.on('moveend', function() {
-            var c = _map.getCenter();
-            _pickedLat = c.lat;
-            _pickedLon = c.lng;
-        });
-
-        _mapInited = true;
-
-        // Tunjukkan lokasi awal
-        _updatePicked(startLat, startLon);
-        _map.invalidateSize();
-    }
-
-    /* ── Buat elemen overlay HTML ── */
-    function _buatOverlay() {
-        var div = document.createElement('div');
-        div.id = 'mapPickerOverlay';
-        div.innerHTML = [
-            '<!-- Header -->',
-            '<div id="mapPickerHeader">',
-            '  <span class="mp-title">🗺️ PILIH LOKASI KANTOR</span>',
-            '  <button onclick="_tutupMapPicker()">✕ Tutup</button>',
-            '</div>',
-            '<!-- Search box -->',
-            '<div id="mapSearchBox">',
-            '  <input type="text" id="mapSearchInput" placeholder="Cari alamat/kota…"',
-            '    onkeydown="if(event.key===\'Enter\'){_cariLokasiPeta();}"',
-            '    style="flex:1;padding:9px 12px;border:1.5px solid rgba(245,224,122,0.40);border-radius:8px;background:rgba(255,255,255,0.10);color:#fff;font-size:0.88em;outline:none;" />',
-            '  <button id="mapSearchBtn" onclick="_cariLokasiPeta()"',
-            '    style="flex-shrink:0;padding:9px 14px;background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:8px;font-weight:800;font-size:0.82em;cursor:pointer;touch-action:manipulation;">',
-            '    🔍',
-            '  </button>',
-            '</div>',
-            '<!-- Map container -->',
-            '<div id="mapContainer">',
-            '  <div id="leafletMap"></div>',
-            '  <!-- Crosshair tengah -->',
-            '  <div id="mapCrosshair"></div>',
-            '  <div id="mapCrosshairDot"></div>',
-            '  <!-- Tombol GPS di peta -->',
-            '  <button id="mapLocateBtn" onclick="_lokasiGpsDiPeta()" title="Lokasi Saya">📍</button>',
-            '</div>',
-            '<!-- Footer -->',
-            '<div id="mapPickerFooter">',
-            '  <div id="mapPickerCoordInfo">Tap peta atau geser untuk memilih titik lokasi kantor</div>',
-            '  <button id="mapPickerBtnPilih" onclick="_konfirmasiMapPicker()">✅ &nbsp;Gunakan Koordinat Ini</button>',
-            '  <button id="mapPickerBtnBatal" onclick="_tutupMapPicker()">Batal</button>',
-            '</div>'
-        ].join('\n');
-        document.body.appendChild(div);
-    }
-
-})();
+    })
+    .catch(function() {
+        if (preview) preview.innerHTML = '❌ Gagal mencari. Periksa koneksi internet.';
+    });
+}
 
 // ══════════════════════════════════════════════════════
 // KEYBOARD VIRTUAL HP — pageScroller + stepIsianModal menyesuaikan tinggi
