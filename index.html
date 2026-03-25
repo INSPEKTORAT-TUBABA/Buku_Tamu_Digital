@@ -52,6 +52,8 @@
 
     <!-- Cegah zoom ganda saat tap (iOS) -->
     <meta name="format-detection" content="telephone=no"/>
+    <!-- Leaflet CSS untuk map picker inline -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -2360,10 +2362,10 @@
                         <input type="number" id="inputGeoLon" step="0.000001" placeholder="105.196000"
                             style="width:100%;padding:9px 12px;border:1.5px solid #d4a820;border-radius:8px;font-size:0.92em;font-family:monospace;box-sizing:border-box;" />
                     </div>
-                    <!-- Tombol buka maps bawaan HP -->
-                    <button type="button" onclick="_bukaAppMaps()"
+                    <!-- Tombol buka peta interaktif inline -->
+                    <button type="button" onclick="_bukaMapPicker()"
                         style="width:100%;padding:11px;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;border-radius:8px;font-size:0.88em;font-weight:800;cursor:pointer;margin-bottom:8px;touch-action:manipulation;box-shadow:0 3px 10px rgba(21,101,192,0.4);">
-                        🗺️ Buka Aplikasi Maps &amp; Tentukan Titik
+                        🗺️ Pilih Titik di Peta (Tap Otomatis)
                     </button>
                     <button type="button" onclick="_ambilKoordinatSekarang()"
                         style="width:100%;padding:9px;background:linear-gradient(135deg,#d4a820,#f5e07a);color:#0d1f45;border:none;border-radius:8px;font-size:0.85em;font-weight:800;cursor:pointer;touch-action:manipulation;">
@@ -8343,6 +8345,156 @@ function _terapkanKoordPaste() {
         });
     }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+// ══════════════════════════════════════════════════════
+// MAP PICKER INLINE — Pilih Titik di Peta Interaktif
+// Koordinat otomatis masuk ke inputGeoLat & inputGeoLon
+// ══════════════════════════════════════════════════════
+function _bukaMapPicker() {
+    // Hindari duplikat modal
+    var existing = document.getElementById('_mapPickerModal');
+    if (existing) { existing.style.display = 'flex'; return; }
+
+    // Koordinat awal: dari input yang sudah ada, fallback ke kantor default
+    var initLat = parseFloat(document.getElementById('inputGeoLat').value) || -4.4818;
+    var initLon = parseFloat(document.getElementById('inputGeoLon').value) || 105.1960;
+
+    // Buat modal overlay
+    var modal = document.createElement('div');
+    modal.id = '_mapPickerModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999999;background:rgba(0,0,0,0.85);display:flex;align-items:flex-end;justify-content:center;box-sizing:border-box;';
+
+    modal.innerHTML = `
+    <div style="background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:0;box-shadow:0 -8px 40px rgba(0,0,0,0.5);box-sizing:border-box;display:flex;flex-direction:column;max-height:92dvh;">
+        <!-- Header -->
+        <div style="padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.6em;">🗺️</span>
+                <div>
+                    <div style="font-size:1em;font-weight:900;color:#0d1f45;">Pilih Titik Koordinat</div>
+                    <div style="font-size:0.76em;color:#888;margin-top:2px;">Tap / klik lokasi kantor di peta</div>
+                </div>
+            </div>
+            <button type="button" id="_mapPickerClose"
+                style="width:34px;height:34px;border-radius:50%;border:none;background:#f0f0f0;color:#555;font-size:1em;cursor:pointer;flex-shrink:0;">✕</button>
+        </div>
+        <!-- Petunjuk singkat -->
+        <div style="padding:10px 16px;background:#f0f8ff;border-bottom:1px solid #dbe8f8;font-size:0.81em;color:#1a4a7a;text-align:center;flex-shrink:0;">
+            📍 <b>Tap & tahan</b> atau <b>klik</b> titik mana saja → koordinat langsung terisi otomatis
+        </div>
+        <!-- Area peta -->
+        <div id="_mapPickerContainer" style="flex:1;min-height:320px;width:100%;position:relative;"></div>
+        <!-- Info koordinat terpilih -->
+        <div id="_mapPickerInfo" style="padding:10px 16px;background:#eafaf1;border-top:1.5px solid #27ae60;font-size:0.85em;color:#155724;font-weight:700;text-align:center;flex-shrink:0;display:none;"></div>
+        <!-- Tombol terapkan -->
+        <div style="padding:12px 16px 20px;flex-shrink:0;">
+            <button type="button" id="_mapPickerApply"
+                style="width:100%;padding:13px;background:linear-gradient(135deg,#1a4a1a,#276a27);color:#a8f0a8;border:none;border-radius:12px;font-size:0.95em;font-weight:800;cursor:pointer;letter-spacing:0.03em;opacity:0.5;pointer-events:none;">
+                ✅ Terapkan Koordinat Ini
+            </button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+
+    // Muat Leaflet JS jika belum ada
+    function _initPetaSetelahLeaflet() {
+        var mapDiv = document.getElementById('_mapPickerContainer');
+        if (!mapDiv) return;
+
+        // Inisialisasi Leaflet map
+        var peta = L.map(mapDiv, { zoomControl: true, tap: true }).setView([initLat, initLon], 17);
+
+        // Tile layer OpenStreetMap (bebas, tanpa API key)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(peta);
+
+        // Marker awal jika sudah ada koordinat
+        var marker = null;
+        if (!isNaN(initLat) && !isNaN(initLon)) {
+            marker = L.marker([initLat, initLon], { draggable: true }).addTo(peta);
+            marker.bindPopup('📍 Titik saat ini').openPopup();
+            marker.on('dragend', function(e) {
+                var pos = e.target.getLatLng();
+                _mapPickerPilih(pos.lat, pos.lng, marker);
+            });
+        }
+
+        // Handler klik pada peta
+        peta.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lon = e.latlng.lng;
+            if (marker) {
+                marker.setLatLng([lat, lon]);
+            } else {
+                marker = L.marker([lat, lon], { draggable: true }).addTo(peta);
+                marker.on('dragend', function(ev) {
+                    var pos = ev.target.getLatLng();
+                    _mapPickerPilih(pos.lat, pos.lng, marker);
+                });
+            }
+            _mapPickerPilih(lat, lon, marker);
+        });
+
+        // Paksa render ulang ukuran peta setelah modal terbuka
+        setTimeout(function() { peta.invalidateSize(); }, 200);
+
+        // Tutup modal
+        document.getElementById('_mapPickerClose').onclick = function() {
+            peta.remove();
+            modal.remove();
+        };
+
+        // Terapkan koordinat ke form utama
+        document.getElementById('_mapPickerApply').onclick = function() {
+            var latVal = this.getAttribute('data-lat');
+            var lonVal = this.getAttribute('data-lon');
+            if (!latVal || !lonVal) return;
+            document.getElementById('inputGeoLat').value = parseFloat(latVal).toFixed(6);
+            document.getElementById('inputGeoLon').value = parseFloat(lonVal).toFixed(6);
+            var info = document.getElementById('jarakGpsInfo');
+            if (info) {
+                info.style.cssText = 'background:#d4edda;border:1.5px solid #28a745;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.88em;color:#155724;text-align:center;font-weight:700;line-height:1.6;';
+                info.innerHTML = '✅ Titik peta berhasil diterapkan!<br>📍 Lat: <b>' + parseFloat(latVal).toFixed(6) + '</b> · Lon: <b>' + parseFloat(lonVal).toFixed(6) + '</b>';
+            }
+            peta.remove();
+            modal.remove();
+        };
+
+        // Tap di luar panel menutup modal
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) { peta.remove(); modal.remove(); }
+        });
+    }
+
+    function _mapPickerPilih(lat, lon, mkr) {
+        if (mkr) { mkr.bindPopup('📍 ' + lat.toFixed(6) + ', ' + lon.toFixed(6)).openPopup(); }
+        var infoEl = document.getElementById('_mapPickerInfo');
+        if (infoEl) {
+            infoEl.style.display = 'block';
+            infoEl.innerHTML = '📍 Lat: <b>' + lat.toFixed(6) + '</b> &nbsp;|&nbsp; Lon: <b>' + lon.toFixed(6) + '</b>';
+        }
+        var applyBtn = document.getElementById('_mapPickerApply');
+        if (applyBtn) {
+            applyBtn.style.opacity = '1';
+            applyBtn.style.pointerEvents = 'auto';
+            applyBtn.setAttribute('data-lat', lat);
+            applyBtn.setAttribute('data-lon', lon);
+        }
+    }
+
+    // Cek apakah Leaflet sudah dimuat
+    if (typeof L !== 'undefined') {
+        _initPetaSetelahLeaflet();
+    } else {
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        script.onload = _initPetaSetelahLeaflet;
+        document.head.appendChild(script);
+    }
+}
 </script>
 </div><!-- /pageScroller -->
 </body>
