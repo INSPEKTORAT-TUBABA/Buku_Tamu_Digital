@@ -8136,18 +8136,26 @@ function _inisialisasiMap(lat, lon) {
         maxZoom: 21
     });
 
-    // Google Maps Road — tampilan peta jalan persis seperti Google Maps bawaan HP
-    // lyrs=m = roadmap (jalan berwarna + nama lengkap, sama persis tampilan native)
-    // hl=id&gl=ID = bahasa Indonesia, region Indonesia
-    // scale=2 = resolusi 2× untuk layar Retina/HiDPI agar tidak blur
-    L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=id&gl=ID&scale=2', {
+    // Google Maps Road — tampilan persis Google Maps bawaan HP
+    // Gunakan tile 512px (scale=2 built-in) agar teks ikut membesar saat zoom
+    // zoomOffset=-1 mengkompensasi tile 512px supaya zoom tetap sinkron
+    var gmLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=id&gl=ID&scale=2', {
         attribution: '© <a href="https://maps.google.com" target="_blank">Google Maps</a>',
         subdomains: ['0','1','2','3'],
         maxZoom: 21,
-        maxNativeZoom: 21,
-        tileSize: 256,
-        detectRetina: true
-    }).addTo(_mapPickerMap);
+        maxNativeZoom: 20,
+        tileSize: 512,
+        zoomOffset: -1,
+        detectRetina: false
+    });
+    gmLayer.addTo(_mapPickerMap);
+
+    // CSS: pastikan tile tidak di-downscale oleh browser — teks ikut membesar natural
+    var gmPane = _mapPickerMap.getPanes().tilePane;
+    if (gmPane) {
+        gmPane.style.imageRendering = 'auto';
+        gmPane.style.willChange = 'transform';
+    }
 
     // Buat custom icon sekali setelah Leaflet tersedia
     if (!_mapCustomIcon && window.L) {
