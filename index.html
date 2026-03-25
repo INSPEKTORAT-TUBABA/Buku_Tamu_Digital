@@ -3540,23 +3540,55 @@ function tampilLoginAdmin(onSuccess) {
             <p style="margin:0 0 18px;color:#666;font-size:0.85em;line-height:1.5;">Masukkan password admin untuk mengakses di luar jam kerja</p>
             <div style="position:relative;margin-bottom:14px;">
                 <input type="password" id="_adminPwInput" placeholder="Password admin"
-                    autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text"
-                    style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #d0c8b8;border-radius:8px;font-size:0.95em;box-sizing:border-box;outline:none;"
-                    onkeydown="if(event.key==='Enter') _cekLoginAdmin()" />
-                <span onclick="var i=document.getElementById('_adminPwInput');i.type=i.type==='password'?'text':'password'"
-                    style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.1rem;user-select:none;">👁</span>
+                    autocomplete="new-password" autocorrect="off" autocapitalize="off"
+                    autocomplete="off" spellcheck="false" inputmode="text"
+                    style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #d0c8b8;border-radius:8px;font-size:0.95em;box-sizing:border-box;outline:none;-webkit-text-security:disc;"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();_cekLoginAdmin();}"
+                    onkeyup="if(event.key==='Enter'){event.preventDefault();_cekLoginAdmin();}" />
+                <span id="_adminEyeBtn"
+                    style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.1rem;user-select:none;padding:8px;-webkit-tap-highlight-color:transparent;">👁</span>
             </div>
             <div id="_adminPwError" style="color:#c0392b;font-size:0.82em;margin-bottom:10px;display:none;">Password salah. Coba lagi.</div>
-            <button onclick="_cekLoginAdmin()"
-                style="background:linear-gradient(135deg,#0d1f45,#1a3560);color:#f5e07a;border:1px solid rgba(212,168,32,0.6);border-radius:50px;padding:12px 0;font-size:0.95em;font-weight:800;cursor:pointer;width:100%;letter-spacing:.04em;margin-bottom:10px;">
+            <button id="_adminLoginBtn"
+                style="background:linear-gradient(135deg,#0d1f45,#1a3560);color:#f5e07a;border:1px solid rgba(212,168,32,0.6);border-radius:50px;padding:12px 0;font-size:0.95em;font-weight:800;cursor:pointer;width:100%;letter-spacing:.04em;margin-bottom:10px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">
                 Masuk sebagai Admin
             </button>
-            <div onclick="document.getElementById('_adminLoginModal').remove()"
-                style="font-size:0.78em;color:#aaa;cursor:pointer;text-decoration:underline;">Batal</div>
+            <div id="_adminBatalBtn"
+                style="font-size:0.78em;color:#aaa;cursor:pointer;text-decoration:underline;padding:8px;-webkit-tap-highlight-color:transparent;">Batal</div>
         </div>`;
     modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
     document.body.appendChild(modal);
-    setTimeout(function(){ var el=document.getElementById('_adminPwInput'); if(el) el.focus(); }, 120);
+    setTimeout(function(){
+        var el = document.getElementById('_adminPwInput');
+        if (el) el.focus();
+
+        // Tombol login — pakai touchend agar 1x tap di HP langsung jalan
+        var btnLogin = document.getElementById('_adminLoginBtn');
+        if (btnLogin) {
+            btnLogin.addEventListener('click', function(e){ e.preventDefault(); _cekLoginAdmin(); });
+            btnLogin.addEventListener('touchend', function(e){ e.preventDefault(); _cekLoginAdmin(); }, { passive: false });
+        }
+
+        // Tombol batal
+        var btnBatal = document.getElementById('_adminBatalBtn');
+        if (btnBatal) {
+            btnBatal.addEventListener('click', function(){ document.getElementById('_adminLoginModal').remove(); });
+            btnBatal.addEventListener('touchend', function(e){ e.preventDefault(); document.getElementById('_adminLoginModal').remove(); }, { passive: false });
+        }
+
+        // Tombol show/hide password
+        var btnEye = document.getElementById('_adminEyeBtn');
+        if (btnEye) {
+            function _togglePw(e) {
+                e.preventDefault();
+                var i = document.getElementById('_adminPwInput');
+                if (!i) return;
+                i.type = i.type === 'password' ? 'text' : 'password';
+            }
+            btnEye.addEventListener('click', _togglePw);
+            btnEye.addEventListener('touchend', _togglePw, { passive: false });
+        }
+    }, 120);
     window._adminLoginSuccess = onSuccess;
 }
 
@@ -3564,7 +3596,9 @@ function _cekLoginAdmin() {
     var input = document.getElementById('_adminPwInput');
     var errEl = document.getElementById('_adminPwError');
     if (!input) return;
-    if (input.value.trim() === ADMIN_PASSWORD) {
+    // Bersihkan karakter tak terlihat (spasi, zero-width, newline) yang sering muncul di keyboard HP
+    var nilai = input.value.replace(/[\s\u200B-\u200D\uFEFF\r\n]/g, '');
+    if (nilai === ADMIN_PASSWORD) {
         aktifkanAdmin();
         document.getElementById('_adminLoginModal').remove();
         if (typeof window._adminLoginSuccess === 'function') window._adminLoginSuccess();
