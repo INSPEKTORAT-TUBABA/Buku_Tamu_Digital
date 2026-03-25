@@ -3540,9 +3540,9 @@ function tampilLoginAdmin(onSuccess) {
             <p style="margin:0 0 18px;color:#666;font-size:0.85em;line-height:1.5;">Masukkan password admin untuk mengakses di luar jam kerja</p>
             <div style="position:relative;margin-bottom:14px;">
                 <input type="password" id="_adminPwInput" placeholder="Password admin"
-                    autocomplete="new-password" autocorrect="off" autocapitalize="off"
-                    autocomplete="off" spellcheck="false" inputmode="text"
-                    style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #d0c8b8;border-radius:8px;font-size:0.95em;box-sizing:border-box;outline:none;-webkit-text-security:disc;"
+                    autocomplete="off" autocorrect="off" autocapitalize="off"
+                    spellcheck="false" inputmode="text"
+                    style="width:100%;padding:11px 44px 11px 14px;border:1.5px solid #d0c8b8;border-radius:8px;font-size:0.95em;box-sizing:border-box;outline:none;"
                     onkeydown="if(event.key==='Enter'){event.preventDefault();_cekLoginAdmin();}"
                     onkeyup="if(event.key==='Enter'){event.preventDefault();_cekLoginAdmin();}" />
                 <span id="_adminEyeBtn"
@@ -3581,9 +3581,15 @@ function tampilLoginAdmin(onSuccess) {
         if (btnEye) {
             function _togglePw(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 var i = document.getElementById('_adminPwInput');
                 if (!i) return;
+                // Simpan nilai sebelum ganti type (iOS Safari kadang reset value)
+                var val = i.value;
                 i.type = i.type === 'password' ? 'text' : 'password';
+                // Kembalikan nilai jika hilang setelah toggle
+                if (i.value !== val) i.value = val;
+                btnEye.textContent = i.type === 'password' ? '👁' : '🙈';
             }
             btnEye.addEventListener('click', _togglePw);
             btnEye.addEventListener('touchend', _togglePw, { passive: false });
@@ -3596,14 +3602,19 @@ function _cekLoginAdmin() {
     var input = document.getElementById('_adminPwInput');
     var errEl = document.getElementById('_adminPwError');
     if (!input) return;
-    // Bersihkan karakter tak terlihat (spasi, zero-width, newline) yang sering muncul di keyboard HP
-    var nilai = input.value.replace(/[\s\u200B-\u200D\uFEFF\r\n]/g, '');
+    // Ambil nilai mentah
+    var raw = input.value || '';
+    // Normalisasi Unicode (NFC) — penting untuk keyboard HP yang hasilkan karakter komposit
+    if (typeof raw.normalize === 'function') raw = raw.normalize('NFC');
+    // Bersihkan: spasi biasa, spasi unicode, zero-width chars, BOM, newline, carriage return,
+    // non-breaking space (U+00A0), narrow no-break space (U+202F), ideographic space (U+3000)
+    var nilai = raw.replace(/[\s\u00A0\u202F\u3000\u200B-\u200D\uFEFF\r\n\t]/g, '');
     if (nilai === ADMIN_PASSWORD) {
         aktifkanAdmin();
         document.getElementById('_adminLoginModal').remove();
         if (typeof window._adminLoginSuccess === 'function') window._adminLoginSuccess();
     } else {
-        errEl.style.display = 'block';
+        if (errEl) errEl.style.display = 'block';
         input.value = '';
         input.focus();
         input.style.borderColor = '#c0392b';
