@@ -7962,6 +7962,7 @@ console.log('[PWA] Buku Tamu Digital PWA siap ✓');
 var _mapPickerLoaded = false;
 var _mapPickerMap    = null;
 var _mapPickerMarker = null;
+var _mapCustomIcon   = null; // icon pin merah tajam, dibuat setelah Leaflet dimuat
 
 function _muatLeaflet(cb) {
     if (window.L) { cb(); return; }
@@ -8129,22 +8130,58 @@ function _inisialisasiMap(lat, lon) {
 
     _mapPickerMap = L.map(container, {
         center: [lat, lon],
-        zoom: 16,
+        zoom: 18,
         zoomControl: true,
-        attributionControl: true
+        attributionControl: true,
+        maxZoom: 21
     });
 
-    // Layer OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
+    // Layer Google Maps Hybrid — satelit resolusi tinggi + label nama jalan/gedung (hl=id → bahasa Indonesia)
+    L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=id&scale=2', {
+        attribution: '© Google Maps',
+        subdomains: ['0','1','2','3'],
+        maxZoom: 21,
+        maxNativeZoom: 21,
+        tileSize: 256,
+        detectRetina: true
     }).addTo(_mapPickerMap);
 
-    // Marker awal
-    _mapPickerMarker = L.marker([lat, lon], { draggable: true })
+    // Buat custom icon sekali setelah Leaflet tersedia
+    if (!_mapCustomIcon && window.L) {
+        _mapCustomIcon = L.divIcon({
+            className: '',
+            html: '<div style="' +
+                'width:28px;height:36px;' +
+                'background:linear-gradient(180deg,#e53935,#b71c1c);' +
+                'border-radius:50% 50% 50% 0;' +
+                'transform:rotate(-45deg);' +
+                'border:3px solid #fff;' +
+                'box-shadow:0 3px 10px rgba(0,0,0,0.5);' +
+                'position:relative;' +
+            '"><div style="' +
+                'position:absolute;top:50%;left:50%;' +
+                'transform:translate(-50%,-50%) rotate(45deg);' +
+                'width:10px;height:10px;' +
+                'background:#fff;border-radius:50%;' +
+            '"></div></div>',
+            iconSize: [28, 36],
+            iconAnchor: [14, 36],
+            popupAnchor: [0, -38]
+        });
+    }
+
+    // Marker custom — ikon pin merah tajam agar mudah dilihat di zoom tinggi
+    var customIcon = _mapCustomIcon;
+
+    _mapPickerMarker = L.marker([lat, lon], { draggable: true, icon: customIcon })
         .addTo(_mapPickerMap)
-        .bindPopup('📍 Titik Kantor<br><small>Seret atau tap peta untuk pindahkan</small>')
+        .bindPopup('<b>📍 Titik Kantor</b><br><small>Seret atau tap peta untuk pindahkan</small>')
         .openPopup();
+
+    // Paksa tile ter-render ulang setelah inisialisasi
+    setTimeout(function() {
+        if (_mapPickerMap) _mapPickerMap.invalidateSize();
+    }, 200);
 
     _mapUpdatePreview(lat, lon);
     _mapAktifkanKonfirmBtn();
@@ -8228,12 +8265,26 @@ function _mapCariLokasi() {
         }
         var lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
         var nama = data[0].display_name.split(',').slice(0,3).join(', ');
-        if (_mapPickerMap) {
-            _mapPickerMap.setView([lat, lon], 17);
+        if (_mapPickerMap && _mapPickerMarker) {
+            // Pindahkan marker ke lokasi hasil pencarian
             _mapPickerMarker.setLatLng([lat, lon]);
+
+            // Tutup & lepas popup lama, pasang popup baru dengan nama lokasi
+            _mapPickerMarker.closePopup();
+            _mapPickerMarker.unbindPopup();
+            _mapPickerMarker.bindPopup('📍 ' + nama);
+
+            // Animasi pindah view ke lokasi yang dicari — zoom 19 agar nama gedung/jalan terlihat tajam
+            _mapPickerMap.flyTo([lat, lon], 19, { animate: true, duration: 1.2 });
+
+            // Setelah animasi selesai, buka popup dan paksa tile ter-render ulang
+            _mapPickerMap.once('moveend', function() {
+                _mapPickerMap.invalidateSize();
+                _mapPickerMarker.openPopup();
+            });
+
             _mapUpdatePreview(lat, lon);
             _mapAktifkanKonfirmBtn();
-            _mapPickerMarker.bindPopup('📍 ' + nama).openPopup();
         }
     })
     .catch(function() {
