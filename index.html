@@ -4338,8 +4338,17 @@ function stepNama() {
         document.getElementById('btnPengaturanJam').style.display = '';
         document.getElementById('btnPengaturanJarak').style.display = '';
         document.getElementById('mainNavigation').style.display = 'block';
+        // Sembunyikan form isian agar tidak tampil di bawah panel admin
+        var stepModal = document.getElementById('stepIsianModal');
+        if (stepModal) { stepModal.classList.remove('aktif'); stepModal.style.display = 'none'; }
+        // Sembunyikan ringkasan isian juga
+        var ringkasan = document.getElementById('ringkasanIsian');
+        if (ringkasan) ringkasan.style.display = 'none';
         // Muat nomor penerima yang tersimpan
         _muatSettingWA();
+        _stepNamaDone = true;
+        clearTimeout(_timerNama);
+        return; // ← hentikan alur form, jangan lanjut ke field-asal
     } else {
         document.getElementById('btnData').style.display = 'none';
         document.getElementById('btnExport').style.display = 'none';
