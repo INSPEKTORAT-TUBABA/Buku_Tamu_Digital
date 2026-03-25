@@ -3051,7 +3051,7 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
     modal.id = '_blokirModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
+        <div id="_blokirModalInner" style="background:#fff;border-radius:16px;padding:34px 28px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.50);border-top:6px solid #d4a820;">
             <div id="_ikonTapAdmin" onclick="_hitungTapAdmin(0)"
                 style="font-size:3rem;margin-bottom:10px;cursor:default;user-select:none;display:inline-block;padding:8px;">${ikonEmoji}</div>
             <h3 style="margin:0 0 10px;color:#0d1f45;font-size:1.15em;font-weight:800;">${judul}</h3>
@@ -3063,6 +3063,76 @@ function tampilModalBlokir(judul, pesan, ikonEmoji) {
             </button>
         </div>`;
     document.body.appendChild(modal);
+
+    // ══════════════════════════════════════════
+    // GESTUR ADMIN #1 — Ketuk 5x di mana saja di area popup (kartu putih)
+    // ══════════════════════════════════════════
+    var _tapAnyCount = 0;
+    var _tapAnyTimer = null;
+    var innerCard = document.getElementById('_blokirModalInner');
+    if (innerCard) {
+        innerCard.addEventListener('touchend', function(e) {
+            // Abaikan jika berasal dari tombol Tutup
+            if (e.target.tagName === 'BUTTON') return;
+            // Abaikan jika berasal dari area ikon (sudah punya handler sendiri)
+            if (e.target.id === '_ikonTapAdmin' || e.target.closest('#_ikonTapAdmin')) return;
+            // Hitung ketukan
+            _tapAnyCount++;
+            clearTimeout(_tapAnyTimer);
+            _tapAnyTimer = setTimeout(function() { _tapAnyCount = 0; }, 2500);
+
+            var hint = document.getElementById('_adminTapHint');
+            if (hint && _tapAnyCount >= 3) {
+                var sisa = 5 - _tapAnyCount;
+                hint.style.display = 'block';
+                hint.textContent = sisa > 0 ? ('🔐 ' + sisa + 'x lagi...') : '🔐 Login Admin...';
+            }
+
+            if (_tapAnyCount >= 5) {
+                _tapAnyCount = 0;
+                clearTimeout(_tapAnyTimer);
+                var bm = document.getElementById('_blokirModal');
+                if (bm) bm.remove();
+                tampilLoginAdmin(startApp);
+            }
+        }, { passive: true });
+    }
+
+    // ══════════════════════════════════════════
+    // GESTUR ADMIN #2 — Pinch-spread (dua jari dipisah) di area popup
+    // ══════════════════════════════════════════
+    var _pinchStartDist = 0;
+    var _pinchTriggered = false;
+    var popupArea = document.getElementById('_blokirModal');
+    if (popupArea) {
+        popupArea.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                var dx = e.touches[0].clientX - e.touches[1].clientX;
+                var dy = e.touches[0].clientY - e.touches[1].clientY;
+                _pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+                _pinchTriggered = false;
+            }
+        }, { passive: true });
+
+        popupArea.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2 && _pinchStartDist > 0 && !_pinchTriggered) {
+                var dx = e.touches[0].clientX - e.touches[1].clientX;
+                var dy = e.touches[0].clientY - e.touches[1].clientY;
+                var currDist = Math.sqrt(dx * dx + dy * dy);
+                // Spread minimal 60px dari posisi awal = gestur spread terdeteksi
+                if (currDist - _pinchStartDist > 60) {
+                    _pinchTriggered = true;
+                    var bm = document.getElementById('_blokirModal');
+                    if (bm) bm.remove();
+                    tampilLoginAdmin(startApp);
+                }
+            }
+        }, { passive: true });
+
+        popupArea.addEventListener('touchend', function() {
+            _pinchStartDist = 0;
+        }, { passive: true });
+    }
 }
 
 // ── Ketuk tersembunyi 5x untuk munculkan login admin ──
