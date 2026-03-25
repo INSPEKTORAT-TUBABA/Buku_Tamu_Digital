@@ -8136,14 +8136,26 @@ function _inisialisasiMap(lat, lon) {
         maxZoom: 21
     });
 
-    // Layer Google Maps Hybrid — satelit resolusi tinggi + label nama jalan/gedung (hl=id → bahasa Indonesia)
-    L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=id&scale=2', {
+    // Layer 1 — Satelit Google (foto udara resolusi tinggi, tanpa label)
+    L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&scale=2', {
         attribution: '© Google Maps',
         subdomains: ['0','1','2','3'],
         maxZoom: 21,
         maxNativeZoom: 21,
         tileSize: 256,
         detectRetina: true
+    }).addTo(_mapPickerMap);
+
+    // Layer 2 — Label saja (nama jalan/gedung Bahasa Indonesia, SELALU tampil di semua zoom)
+    // lyrs=h = hybrid label overlay only — tidak pernah hilang saat zoom tinggi
+    L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&hl=id&gl=ID&scale=2', {
+        attribution: '',
+        subdomains: ['0','1','2','3'],
+        maxZoom: 21,
+        maxNativeZoom: 21,
+        tileSize: 256,
+        detectRetina: true,
+        opacity: 1.0
     }).addTo(_mapPickerMap);
 
     // Buat custom icon sekali setelah Leaflet tersedia
