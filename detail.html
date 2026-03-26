@@ -177,20 +177,27 @@ async function muatDariFirebase(fbKey) {
     try {
         if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
         var db = firebase.database();
+        var refPath = 'bukuTamu/dataFinal/' + fbKey;
 
-        // 1. Coba dataFinal
-        setStatus('Mencari data…');
-        var snap = await db.ref('bukuTamu/dataFinal/' + fbKey).get();
-        if (snap.exists()) { renderDetail(snap.val()); return; }
+        setStatus('Mencari data tamu…');
+        var snap = await db.ref(refPath).get();
 
-        // 2. Coba dataSementara (jika pindah ke final gagal, key lama masih valid)
+        if (snap.exists()) {
+            renderDetail(snap.val());
+            return;
+        }
+
+        // Coba path sementara
         snap = await db.ref('bukuTamu/dataSementara/' + fbKey).get();
-        if (snap.exists()) { renderDetail(snap.val()); return; }
+        if (snap.exists()) {
+            renderDetail(snap.val());
+            return;
+        }
 
-        tampilError('Data tidak ditemukan di server. Link mungkin sudah tidak valid.');
+        tampilError('Data dengan ID tersebut tidak ditemukan. Mungkin sudah dihapus atau link salah.');
     } catch(e) {
         console.error('Firebase error:', e);
-        tampilError('Gagal memuat dari server: ' + e.message);
+        tampilError('Gagal terhubung ke server. Periksa koneksi internet Anda.');
     }
 }
 
