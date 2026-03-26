@@ -1865,7 +1865,7 @@
 
     <div class="app-judul-utama">
         <div class="judul-teks">✦ BUKU TAMU DIGITAL ✦</div>
-        <button id="btnFormHeader" onclick="btnFormHeaderKlik()" style="display:none;">📝 Form Input</button>
+        <button id="btnFormHeader" onclick="startApp()" style="display:none;">📝 Form Input</button>
     </div>
 
     <div id="formSection">
@@ -2217,7 +2217,6 @@
     </div>
 
     <div id="mainNavigation">
-        <button onclick="kembaliKeFormIsian()" id="btnKembaliForm" style="display:none; background:linear-gradient(135deg,#1a6e2a,#27ae60) !important; color:#fff !important; border:1px solid rgba(100,220,100,0.5) !important;">📝 Form Input</button>
         <button onclick="showData()" id="btnData" style="display:none;">📊 Lihat Data (<span id="dataCount">0</span>)</button>
         <button onclick="exportData()" id="btnExport" style="display:none;">📑 Export Tabel Ringkasan</button>
         <button onclick="toggleWaSettings()" id="btnWaSettings" style="display:none; background:linear-gradient(135deg,#075e54,#128c7e) !important; color:#fff !important;">💬 Pengaturan WA</button>
@@ -2745,104 +2744,20 @@ function tampilkanWelcome() {
     drawSpace();
 }
 
-// ── Cek apakah URL mengandung ?tamu= atau ?key= (link dari WA) ──
+// ── Cek apakah URL mengandung ?tamu= (link dari WA) ──
 (function _cekLinkTamu() {
-    const params = new URLSearchParams(window.location.search);
-
-    // ── Handler ?tamu= (data encoded langsung) ──
-    const encoded = params.get('tamu');
-    if (encoded) {
-        try {
-            const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
-            if (data && data.nama) {
-                _tampilHalamanTamu(data);
-                return;
-            }
-        } catch(e) {
-            console.warn('Link tamu tidak valid:', e);
-            _tampilErrorTamu('Format data tidak valid. Link mungkin rusak atau tidak lengkap.');
-        }
-        return;
-    }
-
-    // ── Handler ?key= (ambil dari Firebase) ──
-    const fbKey = params.get('key');
-    if (fbKey) {
-        // Tampilkan loading sementara Firebase dimuat
-        _tampilLoadingTamu();
-        // Tunggu Firebase siap lalu ambil data
-        var _retry = 0;
-        function _ambilDariFirebase() {
-            if (typeof fbDb !== 'undefined' && fbDb) {
-                // Coba dataFinal dulu, jika tidak ada coba dataSementara
-                fbDb.ref('bukuTamu/dataFinal/' + fbKey).get().then(function(snap) {
-                    if (snap.exists()) {
-                        var el = document.getElementById('_loadingTamuEl');
-                        if (el) el.remove();
-                        _tampilHalamanTamu(snap.val());
-                    } else {
-                        return fbDb.ref('bukuTamu/dataSementara/' + fbKey).get().then(function(snap2) {
-                            var el = document.getElementById('_loadingTamuEl');
-                            if (el) el.remove();
-                            if (snap2.exists()) {
-                                _tampilHalamanTamu(snap2.val());
-                            } else {
-                                _tampilErrorTamu('Data tidak ditemukan di server. Link mungkin sudah tidak valid.');
-                            }
-                        });
-                    }
-                }).catch(function(err) {
-                    var el = document.getElementById('_loadingTamuEl');
-                    if (el) el.remove();
-                    _tampilErrorTamu('Gagal mengambil data: ' + err.message);
-                });
-            } else if (_retry < 30) {
-                _retry++;
-                setTimeout(_ambilDariFirebase, 300);
-            } else {
-                var el = document.getElementById('_loadingTamuEl');
-                if (el) el.remove();
-                _tampilErrorTamu('Koneksi Firebase gagal. Coba buka ulang link ini.');
-            }
-        }
-        _ambilDariFirebase();
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const encoded = params.get('tamu');
+        if (!encoded) return;
+        const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        if (!data || !data.nama) return;
+        // Tampilkan halaman detail tamu tanpa password
+        _tampilHalamanTamu(data);
+    } catch(e) {
+        console.warn('Link tamu tidak valid:', e);
     }
 })();
-
-function _tampilLoadingTamu() {
-    var el = document.createElement('div');
-    el.id = '_loadingTamuEl';
-    el.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:Arial,sans-serif;';
-    el.innerHTML = '<div style="font-size:2.5em;">📋</div>' +
-        '<div style="font-weight:800;color:#0d1f45;font-size:1.1em;">Memuat Data Tamu...</div>' +
-        '<div style="width:40px;height:40px;border:3px solid rgba(13,31,69,0.2);border-top:3px solid #0d1f45;border-radius:50%;animation:_spin .8s linear infinite;"></div>' +
-        '<style>@keyframes _spin{to{transform:rotate(360deg)}}</style>';
-    document.body.appendChild(el);
-    var wp = document.getElementById('welcomePage');
-    if (wp) wp.style.display = 'none';
-}
-
-function _tampilErrorTamu(pesan) {
-    var wp = document.getElementById('welcomePage');
-    if (wp) wp.style.display = 'none';
-    var el = document.createElement('div');
-    el.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;';
-    el.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.10);overflow:hidden;">' +
-        '<div style="background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:20px;text-align:center;">' +
-        '<div style="font-size:2em;margin-bottom:6px;">📋</div>' +
-        '<div style="font-weight:900;font-size:1.05em;letter-spacing:0.04em;">BUKU TAMU DIGITAL</div>' +
-        '<div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:4px;">Inspektorat Daerah Kab. Tulang Bawang Barat</div>' +
-        '</div>' +
-        '<div style="padding:28px 24px;text-align:center;">' +
-        '<div style="font-size:2.5em;margin-bottom:12px;">⚠️</div>' +
-        '<div style="font-weight:800;color:#c0392b;font-size:1.05em;margin-bottom:10px;">Data Tidak Ditemukan</div>' +
-        '<div style="color:#666;font-size:0.92em;line-height:1.6;">' + pesan + '</div>' +
-        '</div>' +
-        '<div style="padding:14px 24px;background:#f8f9fa;text-align:center;font-size:0.78em;color:#888;border-top:1px solid #eee;">' +
-        '🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WA</div>' +
-        '</div>';
-    document.body.appendChild(el);
-}
 
 function _tampilHalamanTamu(data) {
     // Sembunyikan welcome page, tampilkan halaman detail tamu langsung
@@ -2892,28 +2807,6 @@ function _tampilHalamanTamu(data) {
                 <a href="https://wa.me/${(data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'')}" style="color:#075e54;font-weight:bold;">${data.nomorHp||'-'}</a>
             </div></div>
             <div class="dt-row"><div class="dt-lbl">Waktu Kunjungan</div><div class="dt-val">${data.timestamp||'-'}</div></div>
-            ${(data.fotoFront || data.fotoBack) ? `
-            <div class="dt-row" style="flex-direction:column;padding:14px;">
-                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">📷 Dokumentasi Foto</div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
-                    ${data.fotoFront ? `<div style="text-align:center;">
-                        <img src="${data.fotoFront}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Depan">
-                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Depan</div>
-                    </div>` : ''}
-                    ${data.fotoBack ? `<div style="text-align:center;">
-                        <img src="${data.fotoBack}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Suasana">
-                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Suasana</div>
-                    </div>` : ''}
-                </div>
-            </div>` : ''}
-            ${data.tandaTangan ? `
-            <div class="dt-row" style="flex-direction:column;padding:14px;">
-                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">✍️ Tanda Tangan</div>
-                <div style="background:#f9f9f9;border:1.5px solid #d0c8b8;border-radius:8px;padding:10px;display:inline-block;">
-                    <img src="${data.tandaTangan}" style="max-width:240px;height:80px;object-fit:contain;display:block;" alt="Tanda Tangan">
-                    <div style="font-size:0.8em;color:#555;font-weight:600;text-align:center;margin-top:6px;border-top:1px solid #ddd;padding-top:6px;">${data.nama||''}</div>
-                </div>
-            </div>` : ''}
             <div class="dt-footer">
                 🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WA<br>
                 Inspektorat Daerah Kabupaten Tulang Bawang Barat
@@ -4438,8 +4331,6 @@ function stepNama() {
     if (hurufCount < 5) { namaInput.classList.add('error'); return; }
     /* Admin check */
     if (namaValue === 'Untung1') {
-        document.getElementById('btnKembaliForm').style.display = '';
-        document.getElementById('btnFormHeader').style.display = 'none';
         document.getElementById('btnData').style.display = '';
         document.getElementById('btnExport').style.display = '';
         document.getElementById('btnReset').style.display = '';
@@ -4449,9 +4340,7 @@ function stepNama() {
         document.getElementById('mainNavigation').style.display = 'block';
         // Sembunyikan form isian agar tidak tampil di bawah panel admin
         var stepModal = document.getElementById('stepIsianModal');
-        if (stepModal) { stepModal.classList.remove('aktif'); stepModal.style.display = ''; }
-        var stepBackdrop = document.getElementById('stepIsianBackdrop');
-        if (stepBackdrop) stepBackdrop.style.display = 'none';
+        if (stepModal) { stepModal.classList.remove('aktif'); stepModal.style.display = 'none'; }
         // Sembunyikan ringkasan isian juga
         var ringkasan = document.getElementById('ringkasanIsian');
         if (ringkasan) ringkasan.style.display = 'none';
@@ -4461,7 +4350,6 @@ function stepNama() {
         clearTimeout(_timerNama);
         return; // ← hentikan alur form, jangan lanjut ke field-asal
     } else {
-        document.getElementById('btnKembaliForm').style.display = 'none';
         document.getElementById('btnData').style.display = 'none';
         document.getElementById('btnExport').style.display = 'none';
         document.getElementById('btnReset').style.display = 'none';
@@ -5931,50 +5819,6 @@ function showForm() {
     });
 }
 
-// ── Tombol Form Input di header (lama) — tetap kompatibel
-function btnFormHeaderKlik() { kembaliKeFormIsian(); }
-
-// ── Kembali ke form isian dari area admin ──
-function kembaliKeFormIsian() {
-    // 1. Pastikan formSection tampil & dataSection sembunyi
-    var formSec = document.getElementById('formSection');
-    var dataSec = document.getElementById('dataSection');
-    if (formSec) { formSec.style.display = 'block'; formSec.style.visibility = ''; }
-    if (dataSec) dataSec.style.display = 'none';
-
-    // 2. Reset state
-    _editBebasMode = false; isEditMode = false;
-    editingIndex = -1; editingSementara = false;
-    _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
-    clearTimeout(_timerNama); clearTimeout(_timerUraian); clearTimeout(_timerHp);
-    hasSignature = false; hasPhoto = false;
-    fotoDataURLFront = null; fotoDataURLBack = null;
-    totalStrokeLength = 0; signatureDataURL = null;
-    var frm = document.getElementById('bukuTamuForm');
-    if (frm) frm.reset();
-    bersihJawab();
-    hideAllFields();
-
-    // 3. Buka stepIsianModal ke field-nama
-    //    Paksa tutup dulu jika masih aktif, lalu buka ulang
-    var modal = document.getElementById('stepIsianModal');
-    var backdrop = document.getElementById('stepIsianBackdrop');
-    var card = document.getElementById('siCard');
-    if (modal) modal.classList.remove('aktif');
-    if (backdrop) backdrop.style.display = 'none';
-    if (card) { card.classList.remove('keluar'); }
-
-    // Beri satu frame agar DOM update sebelum tampil
-    setTimeout(function() {
-        _tampilStepIsian('field-nama');
-        // Fokus ke input nama
-        setTimeout(function() {
-            var inputNama = document.getElementById('nama');
-            if (inputNama) inputNama.focus();
-        }, 120);
-    }, 60);
-}
-
 function showData() {
     // Tutup overlay step isian & kembalikan area ke form sebelum sembunyikan formSection
     _tutupStepIsian(() => {
@@ -7263,58 +7107,47 @@ function simpanNomorWA() { simpanRoutingWA(); }
 // ================================================================
 
 function _buatPesanWA(data, adaPdf) {
-    // Buat link: utamakan ?key= (pendek) agar foto & TTD termuat dari Firebase
-    // Fallback ke ?tamu= (encoded teks) jika tidak ada Firebase key
+    let asalInfo = '';
+    if (data.asal === 'INSTANSI')
+        asalInfo = `🏢 *Instansi:* ${data.instansi || '-'}`;
+    else if (data.asal === 'MASYARAKAT')
+        asalInfo = `📍 *Kecamatan:* ${data.kecamatan || '-'}\n📌 *Desa/Kel:* ${data.desa || '-'}`;
+    else
+        asalInfo = `📍 *Asal:* ${data.asal || '-'}`;
+
+    // Buat link ke detail.html dengan Firebase key (jika ada) atau encoded data
     const BASE_URL = 'https://inspektorat-tubaba.github.io/Buku_Tamu_Digital/';
     let linkDetail = BASE_URL;
-    if (data._fbKey) {
-        // Link pendek — halaman detail akan muat data lengkap + foto + TTD dari Firebase
-        linkDetail = BASE_URL + '?key=' + encodeURIComponent(data._fbKey);
-    } else {
-        // Fallback: encode data teks saja (tanpa foto, karena foto terlalu besar untuk URL)
-        try {
+    try {
+        if (data._fbKey) {
+            // Link dengan Firebase key — foto & TTD ikut tampil
+            linkDetail = BASE_URL + 'detail.html?key=' + encodeURIComponent(data._fbKey);
+        } else {
+            // Fallback: encode data teks saja (tanpa foto)
             const dataRingkas = {
-                nama: data.nama || '',
-                asal: data.asal || '',
-                instansi: data.instansi || '',
-                kecamatan: data.kecamatan || '',
-                desa: data.desa || '',
-                pihakDitemui: data.pihakDitemui || '',
-                jenisLayanan: data.jenisLayanan || '',
-                uraian: (data.uraian || '').substring(0, 300),
-                nomorHp: (data.nomorHp || '').replace(/^C\s*/, ''),
-                timestamp: data.timestamp || ''
+                nama: data.nama, asal: data.asal,
+                instansi: data.instansi||'', kecamatan: data.kecamatan||'', desa: data.desa||'',
+                pihakDitemui: data.pihakDitemui, jenisLayanan: data.jenisLayanan,
+                uraian: data.uraian, nomorHp: (data.nomorHp||'').replace(/^C\s*/,''),
+                timestamp: data.timestamp
             };
             const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataRingkas))));
-            linkDetail = BASE_URL + '?tamu=' + encoded;
-        } catch(e) { linkDetail = BASE_URL; }
-    }
-
-    // Susun baris asal
-    let asalBaris = '';
-    if (data.asal === 'INSTANSI') {
-        asalBaris = `🏢 *Instansi / Unit Kerja:* ${data.instansi || '-'}`;
-    } else if (data.asal === 'MASYARAKAT') {
-        asalBaris = `🏠 *Asal:* Masyarakat\n📍 *Kecamatan:* ${data.kecamatan || '-'}\n🏘️ *Desa / Kelurahan:* ${data.desa || '-'}`;
-    } else {
-        asalBaris = `📍 *Asal:* ${data.asal || '-'}`;
-    }
+            linkDetail = BASE_URL + 'detail.html?tamu=' + encoded;
+        }
+    } catch(e) { linkDetail = BASE_URL; }
 
     return `🔔 *NOTIFIKASI TAMU BARU*
 _Buku Tamu Digital — Inspektorat Daerah Kab. Tulang Bawang Barat_
-━━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *Nama Lengkap:* ${data.nama || '-'}
-${asalBaris}
-🎯 *Pihak yang Ditemui:* ${data.pihakDitemui || '-'}
-📋 *Jenis Layanan:* ${data.jenisLayanan || '-'}
-📝 *Uraian Keperluan:*
-${data.uraian || '-'}
-📱 *No. WhatsApp Tamu:* ${(data.nomorHp || '').replace(/^C\s*/, '') || '-'}
-🕐 *Waktu Kunjungan:* ${data.timestamp || '-'}
+👤 *Nama:* ${data.nama}
+${asalInfo}
+🎯 *Pihak Ditemui:* ${data.pihakDitemui}
+📋 *Jenis Layanan:* ${data.jenisLayanan}
+📝 *Uraian:* ${data.uraian}
+📱 *No WA Tamu:* ${(data.nomorHp||'').replace(/^C\s*/,'')}
+🕐 *Waktu:* ${data.timestamp}
 
-━━━━━━━━━━━━━━━━━━━━━━━
-🔗 *Klik untuk lihat foto & tanda tangan:*
+🔗 *Klik untuk lihat detail tamu lengkap (foto & TTD):*
 ${linkDetail}`;
 }
 
