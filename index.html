@@ -8386,6 +8386,95 @@ function _mapCariLokasi() {
         pasangGestureAdmin();
     }
 })();
+    // ================== PERBAIKAN v17: PDF DENGAN FOTO & TANDA TANGAN ==================
+
+async function generatePDF(data) {
+    if (typeof window.jspdf === 'undefined') {
+        alert('jsPDF belum dimuat. Silakan refresh halaman.');
+        return null;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    let y = 25;
+
+    doc.setFontSize(18);
+    doc.text("BUKU TAMU DIGITAL", 105, y, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT", 105, y + 10, { align: "center" });
+    y += 32;
+
+    const fields = [
+        ["Nama Lengkap", data.nama || "-"],
+        ["Asal", data.asal || "-"],
+        ["Instansi", data.instansi || "-"],
+        ["Kecamatan", data.kecamatan || "-"],
+        ["Desa / Kelurahan", data.desa || "-"],
+        ["Pihak yang Ditemui", data.pihakDitemui || "-"],
+        ["Jenis Layanan", data.jenisLayanan || "-"],
+        ["Uraian Keperluan", data.uraian || "-"],
+        ["Nomor WhatsApp", data.nomorHp || "-"],
+        ["Waktu Kunjungan", data.timestamp || "-"]
+    ];
+
+    doc.setFontSize(11);
+    fields.forEach(([label, value]) => {
+        doc.text(label + ":", 20, y);
+        doc.text(String(value), 85, y);
+        y += 9;
+    });
+
+    y += 15;
+
+    doc.setFontSize(14);
+    doc.text("DOKUMENTASI FOTO & TANDA TANGAN", 105, y, { align: "center" });
+    y += 20;
+
+    if (data.fotoFront && data.fotoFront.startsWith('data:image')) {
+        try { doc.addImage(data.fotoFront, 'JPEG', 20, y, 85, 65); y += 72; } catch(e) {}
+    }
+    if (data.fotoBack && data.fotoBack.startsWith('data:image')) {
+        try { doc.addImage(data.fotoBack, 'JPEG', 20, y, 85, 65); y += 72; } catch(e) {}
+    }
+    if (data.tandaTangan && data.tandaTangan.startsWith('data:image')) {
+        try {
+            doc.text("Tanda Tangan:", 20, y);
+            y += 8;
+            doc.addImage(data.tandaTangan, 'PNG', 20, y, 120, 50);
+        } catch(e) {}
+    }
+
+    doc.setFontSize(10);
+    doc.text("Dicetak otomatis: " + new Date().toLocaleString('id-ID'), 20, 285);
+
+    return doc;
+}
+
+async function buatPDFBlob(data) {
+    const doc = await generatePDF(data);
+    if (!doc) return null;
+    return doc.output('blob');
+}
+
+async function kirimViaFonnteDenganPDF(data) {
+    if (!data || !data.nomorHp) return false;
+
+    const pdfBlob = await buatPDFBlob(data);
+    if (!pdfBlob) return false;
+
+    const namaFile = `BukuTamu_${(data.nama || "Tamu").replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const pesan = `✅ Data Tamu Baru\nNama: ${data.nama}\nPihak: ${data.pihakDitemui || '-'}\nWaktu: ${data.timestamp}`;
+
+    return await _kirimFonnteRutin(
+        data.nomorHp.replace(/[^0-9]/g, ''),
+        pesan,
+        pesan,
+        pdfBlob,
+        namaFile
+    );
+}
+
+console.log("✅ v17 - Fungsi PDF dengan foto & tanda tangan sudah ditambahkan");
 </script>
 </div><!-- /pageScroller -->
 </body>
