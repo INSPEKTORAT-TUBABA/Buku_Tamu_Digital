@@ -2749,6 +2749,12 @@ function tampilkanWelcome() {
 (function _cekLinkTamu() {
     const params = new URLSearchParams(window.location.search);
 
+    // ── Handler ?error=link (fallback jika semua encode gagal) ──
+    if (params.get('error') === 'link') {
+        _tampilErrorTamu('Data tamu tidak dapat dimuat. Link mungkin rusak saat pengiriman. Hubungi petugas Inspektorat untuk informasi lebih lanjut.');
+        return;
+    }
+
     // ── Handler ?tamu= (data encoded langsung) ──
     const encoded = params.get('tamu');
     if (encoded) {
@@ -2892,6 +2898,28 @@ function _tampilHalamanTamu(data) {
                 <a href="https://wa.me/${(data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'')}" style="color:#075e54;font-weight:bold;">${data.nomorHp||'-'}</a>
             </div></div>
             <div class="dt-row"><div class="dt-lbl">Waktu Kunjungan</div><div class="dt-val">${data.timestamp||'-'}</div></div>
+            ${(data.fotoFront || data.fotoBack) ? `
+            <div class="dt-row" style="flex-direction:column;padding:14px;">
+                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">📷 Dokumentasi Foto</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+                    ${data.fotoFront ? `<div style="text-align:center;">
+                        <img src="${data.fotoFront}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Depan">
+                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Depan</div>
+                    </div>` : ''}
+                    ${data.fotoBack ? `<div style="text-align:center;">
+                        <img src="${data.fotoBack}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Suasana">
+                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Suasana</div>
+                    </div>` : ''}
+                </div>
+            </div>` : ''}
+            ${data.tandaTangan ? `
+            <div class="dt-row" style="flex-direction:column;padding:14px;">
+                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">✍️ Tanda Tangan</div>
+                <div style="background:#f9f9f9;border:1.5px solid #d0c8b8;border-radius:8px;padding:10px;display:inline-block;">
+                    <img src="${data.tandaTangan}" style="max-width:240px;height:80px;object-fit:contain;display:block;" alt="Tanda Tangan">
+                    <div style="font-size:0.8em;color:#555;font-weight:600;text-align:center;margin-top:6px;border-top:1px solid #ddd;padding-top:6px;">${data.nama||''}</div>
+                </div>
+            </div>` : ''}
             <div class="dt-footer">
                 🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WA<br>
                 Inspektorat Daerah Kabupaten Tulang Bawang Barat
@@ -5470,6 +5498,9 @@ async function simpanDariEditBebas() {
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
 
     // ── Pastikan _fbKey tersedia sebelum PDF/WA dikirim ──
+    // PERBAIKAN: goToWelcome() dipanggil di DALAM async block setelah
+    // _fbKey dipastikan ada, bukan dengan setTimeout terpisah yang
+    // menyebabkan WA terkirim sebelum key siap (link jadi base URL kosong).
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
         (async () => {
             const editedData = dataBukuTamu[pdfIndex];
@@ -5486,10 +5517,12 @@ async function simpanDariEditBebas() {
                     if (k) { editedData._fbKey = k; break; }
                 }
             }
-            exportDetailPerTamuPDF(pdfIndex);
+            await exportDetailPerTamuPDF(pdfIndex);
+            goToWelcome();
         })();
+    } else {
+        setTimeout(() => { goToWelcome(); }, 800);
     }
-    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 function selesaiEditBebas() {
@@ -6060,9 +6093,11 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     await lsSave();
 
     // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
+    // PERBAIKAN: await exportDetailPerTamuPDF agar goToWelcome dipanggil
+    // setelah WA (beserta link detail) sudah benar-benar terkirim.
     const finalIndex = dataBukuTamu.length - 1;
-    exportDetailPerTamuPDF(finalIndex);
-    setTimeout(() => { goToWelcome(); }, 800);
+    await exportDetailPerTamuPDF(finalIndex);
+    goToWelcome();
 }
 
 // ── Helper: simpan langsung ke dataFinal, return key atau null ──
@@ -6648,7 +6683,7 @@ async function exportDetailPerTamuPDF(index) {
     }
     doc.setGState(doc.GState({opacity:0.038})); drawGeometricPattern(); doc.setGState(doc.GState({opacity:1.0}));
 
-    function renderKonten(logoDataUrl) {
+    function renderKonten(logoDataUrl, resolve) {
         if(logoDataUrl){try{doc.setGState(doc.GState({opacity:0.052}));doc.addImage(logoDataUrl,'PNG',(pageWidth-170)/2,(pageHeight-170)/2,170,170);}catch(e){}}
         doc.setGState(doc.GState({opacity:1.0}));
         doc.setDrawColor(180,140,20); doc.setLineWidth(0.65); doc.rect(8,8,pageWidth-16,pageHeight-16,'S');
@@ -6726,20 +6761,24 @@ async function exportDetailPerTamuPDF(index) {
         }
         doc.save(pdfFileName);
         alert('✅ PDF detail tamu telah diunduh!');
-        // Kirim otomatis ke WhatsApp jika nomor tujuan sudah dikonfigurasi
-        // Ambil nomor dari config/localStorage lalu kirim ke WA
+        // PERBAIKAN: await kirimPdfKeWA agar link WA (dengan ?key=) sudah pasti
+        // terisi _fbKey sebelum fungsi ini resolve dan goToWelcome dipanggil.
         const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
         if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
-            setTimeout(() => { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
+            await kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName);
         }
+        resolve(); // <<< selesai — caller (await exportDetailPerTamuPDF) bisa lanjut
     }
 
+    // PERBAIKAN: bungkus seluruh proses logo + render dalam Promise
+    // agar exportDetailPerTamuPDF bisa di-await dengan benar.
+    await new Promise(function(resolve) {
     const logoImg=new Image(); logoImg.crossOrigin="anonymous";
     let logoResolved = false;
     function panggalRenderKonten(dataUrl) {
         if (logoResolved) return;
         logoResolved = true;
-        renderKonten(dataUrl);
+        renderKonten(dataUrl, resolve);
     }
     logoImg.onload=function(){
         try{
@@ -6755,6 +6794,7 @@ async function exportDetailPerTamuPDF(index) {
     // Timeout 5 detik — jika logo tidak muat, lanjutkan tanpa logo
     setTimeout(function(){ panggalRenderKonten(null); }, 5000);
     logoImg.src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Lambang_Kabupaten_Tulang_Bawang_Barat.png";
+    }); // akhir new Promise
 }
 
 // ══ Fungsi Pengaturan WA Otomatis ══
@@ -7241,45 +7281,42 @@ function simpanNomorWA() { simpanRoutingWA(); }
 // ================================================================
 
 function _buatPesanWA(data, adaPdf) {
-    let asalInfo = '';
-    if (data.asal === 'INSTANSI')
-        asalInfo = `🏢 *Instansi:* ${data.instansi || '-'}`;
-    else if (data.asal === 'MASYARAKAT')
-        asalInfo = `📍 *Kecamatan:* ${data.kecamatan || '-'}\n📌 *Desa/Kel:* ${data.desa || '-'}`;
-    else
-        asalInfo = `📍 *Asal:* ${data.asal || '-'}`;
-
-    // Buat link ke halaman viewer detail tamu dengan semua data ter-encode
+    // Buat link: utamakan ?key= (pendek) agar foto & TTD termuat dari Firebase
+    // Fallback ke ?tamu= (encoded teks) jika tidak ada Firebase key
     const BASE_URL = 'https://inspektorat-tubaba.github.io/Buku_Tamu_Digital/';
     let linkDetail = BASE_URL;
-    try {
-        // Selalu encode semua data teks ke dalam link (tanpa foto agar URL tidak terlalu panjang)
-        // Jika ada Firebase key, sertakan juga agar halaman bisa muat foto & TTD dari Firebase
-        const uraianSingkat = (data.uraian || '').substring(0, 500);
-        const dataRingkas = {
-            nama: data.nama || '',
-            asal: data.asal || '',
-            instansi: data.instansi || '',
-            kecamatan: data.kecamatan || '',
-            desa: data.desa || '',
-            pihakDitemui: data.pihakDitemui || '',
-            jenisLayanan: data.jenisLayanan || '',
-            uraian: uraianSingkat,
-            nomorHp: (data.nomorHp || '').replace(/^C\s*/, ''),
-            timestamp: data.timestamp || ''
-        };
-        // Sertakan Firebase key jika tersedia, agar foto & TTD bisa dimuat di halaman detail
-        if (data._fbKey) dataRingkas._fbKey = data._fbKey;
-        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataRingkas))));
-        linkDetail = BASE_URL + '?tamu=' + encoded;
-    } catch(e) {
-        // Fallback: hanya gunakan Firebase key jika ada
-        if (data._fbKey) {
-            linkDetail = BASE_URL + '?key=' + encodeURIComponent(data._fbKey);
+    if (data._fbKey) {
+        // Link pendek — halaman detail akan muat data lengkap + foto + TTD dari Firebase
+        linkDetail = BASE_URL + '?key=' + encodeURIComponent(data._fbKey);
+    } else {
+        // Fallback: encode data teks saja (tanpa foto, karena foto terlalu besar untuk URL)
+        try {
+            const dataRingkas = {
+                nama: data.nama || '',
+                asal: data.asal || '',
+                instansi: data.instansi || '',
+                kecamatan: data.kecamatan || '',
+                desa: data.desa || '',
+                pihakDitemui: data.pihakDitemui || '',
+                jenisLayanan: data.jenisLayanan || '',
+                uraian: (data.uraian || '').substring(0, 300),
+                nomorHp: (data.nomorHp || '').replace(/^C\s*/, ''),
+                timestamp: data.timestamp || ''
+            };
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataRingkas))));
+            linkDetail = BASE_URL + '?tamu=' + encoded;
+        } catch(e) {
+            // PERBAIKAN: jika encode gagal, coba encode versi minimal (hanya nama & timestamp)
+            // sehingga penerima tetap mendapat halaman detail, bukan halaman biru welcome.
+            try {
+                const dataMinimal = { nama: data.nama || 'Tamu', timestamp: data.timestamp || '' };
+                const encodedMin = btoa(unescape(encodeURIComponent(JSON.stringify(dataMinimal))));
+                linkDetail = BASE_URL + '?tamu=' + encodedMin;
+            } catch(e2) { linkDetail = BASE_URL + '?error=link'; }
         }
     }
 
-    // Susun baris asal lengkap untuk pesan teks (tanpa perlu klik link)
+    // Susun baris asal
     let asalBaris = '';
     if (data.asal === 'INSTANSI') {
         asalBaris = `🏢 *Instansi / Unit Kerja:* ${data.instansi || '-'}`;
@@ -7298,12 +7335,12 @@ ${asalBaris}
 🎯 *Pihak yang Ditemui:* ${data.pihakDitemui || '-'}
 📋 *Jenis Layanan:* ${data.jenisLayanan || '-'}
 📝 *Uraian Keperluan:*
-${(data.uraian || '-')}
+${data.uraian || '-'}
 📱 *No. WhatsApp Tamu:* ${(data.nomorHp || '').replace(/^C\s*/, '') || '-'}
 🕐 *Waktu Kunjungan:* ${data.timestamp || '-'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔗 *Link Detail Lengkap (foto & TTD):*
+🔗 *Klik untuk lihat foto & tanda tangan:*
 ${linkDetail}`;
 }
 
