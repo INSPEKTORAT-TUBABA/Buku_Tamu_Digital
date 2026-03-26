@@ -2749,12 +2749,6 @@ function tampilkanWelcome() {
 (function _cekLinkTamu() {
     const params = new URLSearchParams(window.location.search);
 
-    // ── Handler ?error=link (fallback jika semua encode gagal) ──
-    if (params.get('error') === 'link') {
-        _tampilErrorTamu('Data tamu tidak dapat dimuat. Link mungkin rusak saat pengiriman. Hubungi petugas Inspektorat untuk informasi lebih lanjut.');
-        return;
-    }
-
     // ── Handler ?tamu= (data encoded langsung) ──
     const encoded = params.get('tamu');
     if (encoded) {
@@ -5498,9 +5492,6 @@ async function simpanDariEditBebas() {
     const pdfIndex = (!savedSementara && savedIndex >= 0) ? savedIndex : dataBukuTamu.length - 1;
 
     // ── Pastikan _fbKey tersedia sebelum PDF/WA dikirim ──
-    // PERBAIKAN: goToWelcome() dipanggil di DALAM async block setelah
-    // _fbKey dipastikan ada, bukan dengan setTimeout terpisah yang
-    // menyebabkan WA terkirim sebelum key siap (link jadi base URL kosong).
     if (pdfIndex >= 0 && pdfIndex < dataBukuTamu.length) {
         (async () => {
             const editedData = dataBukuTamu[pdfIndex];
@@ -5517,12 +5508,10 @@ async function simpanDariEditBebas() {
                     if (k) { editedData._fbKey = k; break; }
                 }
             }
-            await exportDetailPerTamuPDF(pdfIndex);
-            goToWelcome();
+            exportDetailPerTamuPDF(pdfIndex);
         })();
-    } else {
-        setTimeout(() => { goToWelcome(); }, 800);
     }
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 function selesaiEditBebas() {
@@ -6093,11 +6082,9 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     await lsSave();
 
     // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
-    // PERBAIKAN: await exportDetailPerTamuPDF agar goToWelcome dipanggil
-    // setelah WA (beserta link detail) sudah benar-benar terkirim.
     const finalIndex = dataBukuTamu.length - 1;
-    await exportDetailPerTamuPDF(finalIndex);
-    goToWelcome();
+    exportDetailPerTamuPDF(finalIndex);
+    setTimeout(() => { goToWelcome(); }, 800);
 }
 
 // ── Helper: simpan langsung ke dataFinal, return key atau null ──
@@ -6683,7 +6670,7 @@ async function exportDetailPerTamuPDF(index) {
     }
     doc.setGState(doc.GState({opacity:0.038})); drawGeometricPattern(); doc.setGState(doc.GState({opacity:1.0}));
 
-    function renderKonten(logoDataUrl, resolve) {
+    function renderKonten(logoDataUrl) {
         if(logoDataUrl){try{doc.setGState(doc.GState({opacity:0.052}));doc.addImage(logoDataUrl,'PNG',(pageWidth-170)/2,(pageHeight-170)/2,170,170);}catch(e){}}
         doc.setGState(doc.GState({opacity:1.0}));
         doc.setDrawColor(180,140,20); doc.setLineWidth(0.65); doc.rect(8,8,pageWidth-16,pageHeight-16,'S');
@@ -6761,24 +6748,20 @@ async function exportDetailPerTamuPDF(index) {
         }
         doc.save(pdfFileName);
         alert('✅ PDF detail tamu telah diunduh!');
-        // PERBAIKAN: await kirimPdfKeWA agar link WA (dengan ?key=) sudah pasti
-        // terisi _fbKey sebelum fungsi ini resolve dan goToWelcome dipanggil.
+        // Kirim otomatis ke WhatsApp jika nomor tujuan sudah dikonfigurasi
+        // Ambil nomor dari config/localStorage lalu kirim ke WA
         const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
         if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
-            await kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName);
+            setTimeout(() => { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
         }
-        resolve(); // <<< selesai — caller (await exportDetailPerTamuPDF) bisa lanjut
     }
 
-    // PERBAIKAN: bungkus seluruh proses logo + render dalam Promise
-    // agar exportDetailPerTamuPDF bisa di-await dengan benar.
-    await new Promise(function(resolve) {
     const logoImg=new Image(); logoImg.crossOrigin="anonymous";
     let logoResolved = false;
     function panggalRenderKonten(dataUrl) {
         if (logoResolved) return;
         logoResolved = true;
-        renderKonten(dataUrl, resolve);
+        renderKonten(dataUrl);
     }
     logoImg.onload=function(){
         try{
@@ -6794,7 +6777,6 @@ async function exportDetailPerTamuPDF(index) {
     // Timeout 5 detik — jika logo tidak muat, lanjutkan tanpa logo
     setTimeout(function(){ panggalRenderKonten(null); }, 5000);
     logoImg.src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Lambang_Kabupaten_Tulang_Bawang_Barat.png";
-    }); // akhir new Promise
 }
 
 // ══ Fungsi Pengaturan WA Otomatis ══
@@ -7305,15 +7287,7 @@ function _buatPesanWA(data, adaPdf) {
             };
             const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataRingkas))));
             linkDetail = BASE_URL + '?tamu=' + encoded;
-        } catch(e) {
-            // PERBAIKAN: jika encode gagal, coba encode versi minimal (hanya nama & timestamp)
-            // sehingga penerima tetap mendapat halaman detail, bukan halaman biru welcome.
-            try {
-                const dataMinimal = { nama: data.nama || 'Tamu', timestamp: data.timestamp || '' };
-                const encodedMin = btoa(unescape(encodeURIComponent(JSON.stringify(dataMinimal))));
-                linkDetail = BASE_URL + '?tamu=' + encodedMin;
-            } catch(e2) { linkDetail = BASE_URL + '?error=link'; }
-        }
+        } catch(e) { linkDetail = BASE_URL; }
     }
 
     // Susun baris asal
