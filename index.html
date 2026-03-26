@@ -6078,10 +6078,28 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
     const finalIndex = dataBukuTamu.length - 1;
 
-    // Kirim notifikasi WA ke pihak yang dituju LANGSUNG dari sini,
-    // agar _fbKey dijamin sudah ada di objek data sebelum pesan dibuat.
+    // Kirim notifikasi WA ke pihak yang dituju.
+    // PENTING: Verifikasi dulu bahwa data benar-benar bisa dibaca dari Firebase
+    // sebelum link dikirim — agar penerima tidak mendapat error "Data Tidak Ditemukan".
     (async () => {
         try {
+            // Verifikasi data bisa dibaca dari Firebase sebelum kirim link
+            if (data._fbKey && fbDb) {
+                tampilStatusSync('⏳ Memverifikasi data di server sebelum kirim WA…', '#3498db');
+                const terkonfirmasi = await fbVerifikasiDataTersimpan(data._fbKey, 10);
+                if (!terkonfirmasi) {
+                    // Data belum terbaca — coba simpan ulang sekali lagi
+                    console.warn('[konfirmasi] Data belum terkonfirmasi, mencoba simpan ulang…');
+                    tampilStatusSync('⚠️ Mencoba simpan ulang ke server…', '#e67e22');
+                    const retryKey = await fbSimpanKeDataFinal(data);
+                    if (retryKey) {
+                        data._fbKey = retryKey;
+                        // Verifikasi sekali lagi setelah simpan ulang
+                        await fbVerifikasiDataTersimpan(data._fbKey, 6);
+                    }
+                }
+            }
+
             if (!window.jspdf) await new Promise(res => _muatJsPDF(res));
             const pdfBlob = await buatPDFBlob(data);
             const pdfFileName = 'Detail_Tamu_' + (data.nama||'Tamu').replace(/[^a-zA-Z0-9]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
@@ -6110,6 +6128,30 @@ async function fbSimpanKeDataFinal(formData) {
         console.warn('[fbSimpanKeDataFinal] error:', e);
         return null;
     }
+}
+
+// ── Helper: verifikasi data benar-benar bisa dibaca dari Firebase ──
+// Dipanggil SEBELUM mengirim link ke WA, agar penerima tidak dapat error "Data Tidak Ditemukan"
+async function fbVerifikasiDataTersimpan(fbKey, maxRetry) {
+    if (!fbKey || !fbDb) return false;
+    maxRetry = maxRetry || 8; // coba maks 8x (total ~12 detik)
+    for (var i = 0; i < maxRetry; i++) {
+        try {
+            var snap = await fbDb.ref('bukuTamu/dataFinal/' + fbKey).get();
+            if (snap.exists()) {
+                console.log('[fbVerifikasi] Data terkonfirmasi bisa dibaca (percobaan ' + (i+1) + ')');
+                return true;
+            }
+        } catch(e) {
+            console.warn('[fbVerifikasi] Error saat cek:', e.message);
+        }
+        // Tunggu sebelum retry: 500ms, 1s, 1.5s, dst
+        var tunggu = 500 + (i * 500);
+        tampilStatusSync('⏳ Menunggu konfirmasi server… (' + (i+1) + '/' + maxRetry + ')', '#e67e22');
+        await new Promise(function(r){ setTimeout(r, tunggu); });
+    }
+    console.warn('[fbVerifikasi] Data tidak terkonfirmasi setelah ' + maxRetry + ' percobaan');
+    return false;
 }
 
 async function hapusSementara(sIndex) {
@@ -7789,6 +7831,9 @@ async function fbPindahKeFinal(fbKeySementara, formData) {
         await newRef.set(dataKirim);
         if (fbKeySementara) await fbDb.ref(`bukuTamu/dataSementara/${fbKeySementara}`).remove();
         tampilStatusSync('✅ Data terkonfirmasi & tersimpan di server', '#27ae60');
+        // Verifikasi data bisa dibaca sebelum return key (agar link WA tidak broken)
+        const bisa = await fbVerifikasiDataTersimpan(newRef.key, 5);
+        if (!bisa) console.warn('[fbPindahKeFinal] Data tersimpan tapi belum terbaca — mungkin rules Firebase perlu dicek');
         return newRef.key;
     } catch (e) {
         _fbOnWrites = Math.max(0, _fbOnWrites - 2);
