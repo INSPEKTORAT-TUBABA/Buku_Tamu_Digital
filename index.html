@@ -2912,236 +2912,151 @@ function _tampilErrorTamu(pesan) {
 
 function _tampilHalamanTamu(data) {
     // Sembunyikan welcome page
-    document.body.style.background = '#dde6f5';
+    document.body.style.overflow = 'hidden';
     const wp = document.getElementById('welcomePage');
     if (wp) wp.style.display = 'none';
 
-    // Format timestamp: "27/3/2026, 14.27.41"
-    function _fmtTs(ts) {
-        if (!ts) return '-';
-        try {
-            const d = new Date(ts);
-            if (isNaN(d)) return ts;
-            const dd = d.getDate(), mm = d.getMonth()+1, yy = d.getFullYear();
-            const hh = String(d.getHours()).padStart(2,'0');
-            const mi = String(d.getMinutes()).padStart(2,'0');
-            const ss = String(d.getSeconds()).padStart(2,'0');
-            return dd+'/'+mm+'/'+yy+', '+hh+'.'+mi+'.'+ss;
-        } catch(e) { return ts; }
-    }
+    // Helper escHtml lokal
+    function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-    // Format header: tgl="Jum, 27 Mar 2026"  jam="14.27"
+    // Format timestamp header: "Jum, 27 Mar 2026" & "14.27"
     function _fmtHdr(ts) {
         if (!ts) return {tgl:'',jam:''};
         try {
             const d = new Date(ts);
             if (isNaN(d)) return {tgl:ts,jam:''};
-            const hariArr=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-            const blnArr=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
-            const tgl = hariArr[d.getDay()]+', '+d.getDate()+' '+blnArr[d.getMonth()]+' '+d.getFullYear();
-            const jam = String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0');
-            return {tgl,jam};
-        } catch(e) { return {tgl:ts,jam:''}; }
+            const H=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+            const B=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+            return {
+                tgl: H[d.getDay()]+', '+d.getDate()+' '+B[d.getMonth()]+' '+d.getFullYear(),
+                jam: String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')
+            };
+        } catch(e){ return {tgl:ts,jam:''}; }
+    }
+
+    // Format waktu tabel: "27/3/2026, 14.27.41"
+    function _fmtTs(ts) {
+        if (!ts) return '-';
+        try {
+            const d = new Date(ts);
+            if (isNaN(d)) return ts;
+            return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+', '+
+                   String(d.getHours()).padStart(2,'0')+'.'+
+                   String(d.getMinutes()).padStart(2,'0')+'.'+
+                   String(d.getSeconds()).padStart(2,'0');
+        } catch(e){ return ts; }
     }
 
     const noWa = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
     const hdr  = _fmtHdr(data.timestamp||data.waktu||'');
 
+    // Baris tabel
+    const rows = [];
+    if (data.nama)        rows.push({lbl:'Nama Lengkap',         val:'<b>'+_esc(data.nama)+'</b>'});
+    if (data.asal)        rows.push({lbl:'Asal',                 val:_esc(data.asal)});
+    if (data.asal==='INSTANSI'&&data.instansi)
+                          rows.push({lbl:'Instansi / Unit Kerja',val:_esc(data.instansi)});
+    if (data.asal==='MASYARAKAT'&&data.kecamatan)
+                          rows.push({lbl:'Kecamatan',            val:_esc(data.kecamatan)});
+    if (data.asal==='MASYARAKAT'&&data.desa)
+                          rows.push({lbl:'Desa / Kelurahan',     val:_esc(data.desa)});
+    if (data.pihakDitemui)rows.push({lbl:'Pihak yang Ditemui',  val:_esc(data.pihakDitemui)});
+    if (data.jenisLayanan)rows.push({lbl:'Jenis Layanan',        val:_esc(data.jenisLayanan)});
+    if (data.uraian)      rows.push({lbl:'Uraian Keperluan',     val:_esc(data.uraian)});
+    if (data.nomorHp)     rows.push({lbl:'Nomor WhatsApp',       val:'<a href="https://wa.me/'+noWa+'" style="color:#075e54;font-weight:700;text-decoration:none;">'+_esc(data.nomorHp)+'</a>'});
+    const tsRaw = data.timestamp||data.waktu||'';
+    if (tsRaw)            rows.push({lbl:'Waktu Kunjungan',      val:_esc(_fmtTs(tsRaw))});
+
+    const rowsHtml = rows.map(r=>
+        '<div class="op-row">'+
+          '<div class="op-rlbl">'+r.lbl+'</div>'+
+          '<div class="op-rsep">:</div>'+
+          '<div class="op-rval">'+r.val+'</div>'+
+        '</div>'
+    ).join('');
+
+    const fotoHtml =
+        '<div class="op-foto-grid">'+
+          '<div class="op-foto-box">'+
+            '<div class="op-foto-label">Foto Depan</div>'+
+            (data.fotoFront
+              ? '<img class="op-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" style="display:block;" loading="lazy">'
+              : '<div class="op-foto-empty">Belum ada foto</div>')+
+          '</div>'+
+          '<div class="op-foto-box">'+
+            '<div class="op-foto-label">Foto Belakang</div>'+
+            (data.fotoBack
+              ? '<img class="op-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" style="display:block;" loading="lazy">'
+              : '<div class="op-foto-empty">Belum ada foto</div>')+
+          '</div>'+
+        '</div>';
+
+    const ttdHtml = data.tandaTangan
+        ? '<div class="op-ttd-wrap">'+
+            '<div class="op-foto-label">Tanda Tangan</div>'+
+            '<div class="op-ttd-box">'+
+              '<img class="op-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan" style="display:block;">'+
+            '</div>'+
+            '<div class="op-nama-ttd">'+_esc(data.nama||'')+'</div>'+
+          '</div>'
+        : '';
+
+    // Container — z-index di bawah bingkai emas (99999) agar bingkai tetap terlihat
     const modal = document.createElement('div');
     modal.id = 'halamanTamuPublik';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#dde6f5;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:Arial,sans-serif;padding-bottom:30px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99500;display:flex;align-items:flex-end;justify-content:center;background:rgba(5,8,30,0.86);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);';
 
-    modal.innerHTML = `
-<style>
-#halamanTamuPublik *{box-sizing:border-box;margin:0;padding:0;}
+    modal.innerHTML =
+        // Panel pakai class op-panel PERSIS sama seperti overlayPratinjau
+        '<div class="op-panel" style="max-height:100dvh;max-height:100vh;border-radius:20px 20px 0 0;">'+
 
-/* Bingkai emas */
-#_tpF1{position:fixed;inset:0;pointer-events:none;z-index:1000010;
-  border:9px solid transparent;
-  border-image:linear-gradient(135deg,#f5e07a 0%,#d4a820 20%,#a07810 40%,#f5e07a 55%,#d4a820 70%,#c8960e 85%,#f5e07a 100%) 1;
-  box-shadow:inset 0 0 16px 3px rgba(212,168,32,0.45),0 0 18px 4px rgba(212,168,32,0.25);}
-#_tpF2{position:fixed;inset:15px;pointer-events:none;z-index:1000010;
-  border:1.5px solid rgba(212,168,32,0.38);border-radius:2px;}
+          // Header identik overlayPratinjau
+          '<div class="op-header">'+
+            '<div class="op-header-logo">'+
+              '<img src="logo-tubaba.png" alt="Logo" class="op-logo-img" onerror="this.style.display='none'">'+
+              '<div class="op-header-text">'+
+                '<div class="op-htitle">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
+                '<div class="op-hsubtitle">INSPEKTORAT DAERAH &middot; KAB. TULANG BAWANG BARAT</div>'+
+              '</div>'+
+            '</div>'+
+            '<div class="op-timestamp">'+_esc(hdr.tgl)+'<br>'+_esc(hdr.jam)+'</div>'+
+            '<button class="op-close-btn" title="Tutup" onclick="var m=document.getElementById('halamanTamuPublik');if(m)m.remove();document.body.style.overflow='';">&#10005;</button>'+
+          '</div>'+
 
-/* Ornamen sudut */
-.tp-corner{position:fixed;width:44px;height:44px;z-index:1000011;pointer-events:none;}
-.tp-corner::before,.tp-corner::after{content:'';position:absolute;background:linear-gradient(135deg,#f5e07a,#d4a820,#a07810);}
-.tp-corner::before{width:26px;height:2px;top:9px;}
-.tp-corner::after{width:2px;height:26px;left:9px;}
-.tp-corner .gem{position:absolute;top:5px;left:5px;width:8px;height:8px;
-  background:radial-gradient(circle at 35% 35%,#fff7a0,#d4a820,#7a5800);
-  border-radius:50%;box-shadow:0 0 5px 2px rgba(212,168,32,0.7);}
-.tp-corner.tl{top:9px;left:9px;}
-.tp-corner.tr{top:9px;right:9px;transform:scaleX(-1);}
-.tp-corner.bl{bottom:9px;left:9px;transform:scaleY(-1);}
-.tp-corner.br{bottom:9px;right:9px;transform:scale(-1,-1);}
+          // Body scrollable
+          '<div class="op-body">'+
 
-/* Kartu */
-.tp-card{
-  width:100%;background:#fff;
-  box-shadow:0 4px 24px rgba(13,31,69,0.16),0 0 0 1.5px rgba(212,168,32,0.35);
-  margin-bottom:20px;
-}
+            // Kartu 1: Data Tamu
+            '<div class="op-card">'+
+              '<div class="op-card-title">&#128203; DATA TAMU</div>'+
+              '<div class="op-table">'+rowsHtml+'</div>'+
+            '</div>'+
 
-/* Header */
-.tp-hdr{
-  background:linear-gradient(160deg,#071a3e 0%,#0d2a5e 35%,#1246b5 100%);
-  color:#f5e07a;
-  padding:14px 14px 14px 14px;
-  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
-}
-.tp-hdr-left{display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;}
-.tp-hdr-icon{font-size:1.5em;flex-shrink:0;margin-top:1px;}
-.tp-hdr-ttl{font-size:0.98em;font-weight:900;letter-spacing:0.05em;line-height:1.3;color:#f5e07a;}
-.tp-hdr-sub{font-size:0.70em;color:rgba(200,220,255,0.82);letter-spacing:0.02em;line-height:1.5;margin-top:3px;}
-.tp-hdr-right{display:flex;align-items:flex-start;gap:8px;flex-shrink:0;}
-.tp-hdr-meta{text-align:right;font-size:0.73em;color:rgba(200,220,255,0.85);line-height:1.6;white-space:nowrap;}
-.tp-hdr-meta b{color:#f5e07a;display:block;font-size:1.05em;}
-.tp-x{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.30);
-  color:#fff;border-radius:50%;width:30px;height:30px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1em;}
+            // Kartu 2: Dokumentasi & TTD
+            ((data.fotoFront||data.fotoBack||data.tandaTangan)
+              ? '<div class="op-card">'+
+                  '<div class="op-card-title">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
+                  fotoHtml+
+                  ttdHtml+
+                '</div>'
+              : '')+
 
-/* Tabel */
-.tp-tbl{width:100%;border-collapse:collapse;}
-.tp-tbl tr{border-bottom:1px solid #e8e0ce;}
-.tp-tbl tr:last-child{border-bottom:none;}
-.tp-l{width:38%;padding:12px 10px 12px 14px;background:#fdf8ee;
-  font-weight:700;font-size:0.82em;color:#444;vertical-align:middle;}
-.tp-s{width:18px;padding:12px 3px;background:#fdf8ee;
-  font-weight:700;font-size:0.85em;color:#888;vertical-align:middle;text-align:center;}
-.tp-v{padding:12px 14px 12px 6px;font-size:0.87em;color:#1a1a2e;
-  vertical-align:middle;word-break:break-word;}
+          '</div>'+
+          // Tanpa footer tombol
 
-/* Seksi dokumentasi */
-.tp-dok-hdr{
-  background:linear-gradient(135deg,#071a3e 0%,#1246b5 100%);
-  color:#f5e07a;padding:10px 16px;
-  font-size:0.80em;font-weight:800;letter-spacing:0.07em;
-  display:flex;align-items:center;gap:8px;
-}
+        '</div>';
 
-/* Area foto */
-.tp-foto-area{padding:14px 14px 10px 14px;background:#fff;}
-.tp-foto-grid{display:flex;gap:10px;}
-.tp-foto-col{flex:1;display:flex;flex-direction:column;gap:6px;}
-.tp-foto-lbl{font-size:0.75em;font-weight:800;color:#333;letter-spacing:0.05em;}
-.tp-foto-col img{
-  width:100%;aspect-ratio:1/1;object-fit:cover;
-  border-radius:8px;border:1.5px solid #d4a820;
-  display:block;
-}
-.tp-foto-empty{
-  width:100%;aspect-ratio:1/1;background:#f5f5f5;
-  border-radius:8px;border:1.5px solid #d0c8b8;
-  display:flex;align-items:center;justify-content:center;
-  color:#ccc;font-size:1.8em;
-}
-
-/* Tanda tangan */
-.tp-ttd-area{padding:14px 14px 16px 14px;background:#fff;}
-.tp-ttd-lbl{font-size:0.75em;font-weight:800;color:#333;letter-spacing:0.05em;margin-bottom:8px;}
-.tp-ttd-box{
-  width:100%;min-height:130px;
-  border:1.5px solid #d0c8b8;border-radius:8px;
-  background:#fff;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-  padding:10px;
-}
-.tp-ttd-box img{max-width:100%;max-height:120px;object-fit:contain;display:block;}
-.tp-nama-box{
-  width:100%;margin-top:10px;
-  border:1.5px solid #d0c8b8;border-radius:8px;
-  padding:12px 16px;
-  text-align:center;
-  font-size:1.05em;font-weight:700;color:#1a1a2e;
-  letter-spacing:0.02em;background:#fff;
-}
-</style>
-
-<!-- Bingkai emas + ornamen sudut -->
-<div id="_tpF1"></div>
-<div id="_tpF2"></div>
-<div class="tp-corner tl"><div class="gem"></div></div>
-<div class="tp-corner tr"><div class="gem"></div></div>
-<div class="tp-corner bl"><div class="gem"></div></div>
-<div class="tp-corner br"><div class="gem"></div></div>
-
-<div class="tp-card">
-
-  <!-- HEADER -->
-  <div class="tp-hdr">
-    <div class="tp-hdr-left">
-      <span class="tp-hdr-icon">📋</span>
-      <div>
-        <div class="tp-hdr-ttl">✦ BUKU TAMU DIGITAL ✦</div>
-        <div class="tp-hdr-sub">INSPEKTORAT DAERAH · KAB. TULANG<br>BAWANG BARAT</div>
-      </div>
-    </div>
-    <div class="tp-hdr-right">
-      <div class="tp-hdr-meta">
-        <b>${hdr.tgl}</b>
-        ${hdr.jam}
-      </div>
-      <div class="tp-x" onclick="document.getElementById('halamanTamuPublik').remove();var w=document.getElementById('welcomePage');if(w)w.style.display='';">✕</div>
-    </div>
-  </div>
-
-  <!-- TABEL DATA -->
-  <table class="tp-tbl">
-    ${data.nama ? `<tr><td class="tp-l">Nama Lengkap</td><td class="tp-s">:</td><td class="tp-v"><b>${data.nama}</b></td></tr>` : ''}
-    ${data.asal ? `<tr><td class="tp-l">Asal</td><td class="tp-s">:</td><td class="tp-v">${data.asal}</td></tr>` : ''}
-    ${data.asal==='INSTANSI' && data.instansi ? `<tr><td class="tp-l">Instansi / Unit Kerja</td><td class="tp-s">:</td><td class="tp-v">${data.instansi}</td></tr>` : ''}
-    ${data.asal==='MASYARAKAT' && data.kecamatan ? `<tr><td class="tp-l">Kecamatan</td><td class="tp-s">:</td><td class="tp-v">${data.kecamatan}</td></tr>` : ''}
-    ${data.asal==='MASYARAKAT' && data.desa ? `<tr><td class="tp-l">Desa / Kelurahan</td><td class="tp-s">:</td><td class="tp-v">${data.desa}</td></tr>` : ''}
-    ${data.pihakDitemui ? `<tr><td class="tp-l">Pihak yang Ditemui</td><td class="tp-s">:</td><td class="tp-v">${data.pihakDitemui}</td></tr>` : ''}
-    ${data.jenisLayanan ? `<tr><td class="tp-l">Jenis Layanan</td><td class="tp-s">:</td><td class="tp-v">${data.jenisLayanan}</td></tr>` : ''}
-    ${data.uraian ? `<tr><td class="tp-l">Uraian Keperluan</td><td class="tp-s">:</td><td class="tp-v">${data.uraian}</td></tr>` : ''}
-    ${data.nomorHp ? `<tr><td class="tp-l">Nomor WhatsApp</td><td class="tp-s">:</td><td class="tp-v"><a href="https://wa.me/${noWa}" style="color:#075e54;font-weight:700;text-decoration:none;">${data.nomorHp}</a></td></tr>` : ''}
-    ${(data.timestamp||data.waktu) ? `<tr><td class="tp-l">Waktu Kunjungan</td><td class="tp-s">:</td><td class="tp-v">${_fmtTs(data.timestamp||data.waktu)}</td></tr>` : ''}
-  </table>
-
-  <!-- DOKUMENTASI & TANDA TANGAN -->
-  ${(data.fotoFront || data.fotoBack || data.tandaTangan) ? `
-  <div class="tp-dok-hdr">📸 DOKUMENTASI &amp; TANDA TANGAN</div>` : ''}
-
-  <!-- FOTO -->
-  ${(data.fotoFront || data.fotoBack) ? `
-  <div class="tp-foto-area">
-    <div class="tp-foto-grid">
-      <div class="tp-foto-col">
-        <div class="tp-foto-lbl">FOTO DEPAN</div>
-        ${data.fotoFront
-          ? `<img src="${data.fotoFront}" alt="Foto Depan" loading="lazy">`
-          : `<div class="tp-foto-empty">📷</div>`}
-      </div>
-      <div class="tp-foto-col">
-        <div class="tp-foto-lbl">FOTO BELAKANG</div>
-        ${data.fotoBack
-          ? `<img src="${data.fotoBack}" alt="Foto Belakang" loading="lazy">`
-          : `<div class="tp-foto-empty">📷</div>`}
-      </div>
-    </div>
-  </div>` : ''}
-
-  <!-- TANDA TANGAN + NAMA -->
-  ${data.tandaTangan ? `
-  <div class="tp-ttd-area">
-    <div class="tp-ttd-lbl">TANDA TANGAN</div>
-    <div class="tp-ttd-box">
-      <img src="${data.tandaTangan}" alt="Tanda Tangan">
-    </div>
-    <div class="tp-nama-box">${data.nama||''}</div>
-  </div>` : ''}
-
-</div>
-`;
     document.body.appendChild(modal);
 }
 
-// Helper baris tabel
-function _dtRow(lbl, val) {
-    return '<tr><td class="tp-l">'+lbl+'</td><td class="tp-s">:</td><td class="tp-v">'+val+'</td></tr>';
+// Helper escHtml jika belum ada di scope ini
+if (typeof escHtml === 'undefined') {
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 }
+
+
 
 
 
