@@ -7622,13 +7622,14 @@ function _tampilInfoWA(pesan, warna, loading) {
 }
 
 const FB_CONFIG = {
-    apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
+    apiKey:            "AIzaSyACuriSEyGO1xPORV8Xksrgtq1UFN-QQV8",
     authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
     databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId:         "buku-tamu-digital-64d8f",
     storageBucket:     "buku-tamu-digital-64d8f.firebasestorage.app",
     messagingSenderId: "778866088048",
-    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
+    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5",
+    measurementId:     "G-H3ESB972NG"
 };
 
 let fbDb = null;
@@ -7645,52 +7646,32 @@ function tampilStatusSync(pesan, warna) {
     el._ft = setTimeout(() => { el.style.opacity = '0.45'; }, 5000);
 }
 
-// ══════════════════════════════════════════════════════
-// KONFIGURASI FIREBASE — Buku Tamu Digital Tubaba
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// ══════════════════════════════════════════════════════
-const FB_CONFIG = {
-    apiKey: "AIzaSyACuriSEyGO1xPORV8Xksrgtq1UFN-QQV8",
-    authDomain: "buku-tamu-digital-64d8f.firebaseapp.com",
-    databaseURL: "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "buku-tamu-digital-64d8f",
-    storageBucket: "buku-tamu-digital-64d8f.firebasestorage.app",
-    messagingSenderId: "778866088048",
-    appId: "1:778866088048:web:0d2976288b5bfcdf90bcb5",
-    measurementId: "G-H3ESB972NG"
-};
-
 // ── Inisialisasi Firebase saat app mulai ──
 async function inisialisasiFirebase() {
     if (FB_CONFIG.apiKey === 'GANTI_API_KEY') {
         tampilStatusSync('⚠️ Firebase belum dikonfigurasi — mode lokal aktif', '#e67e22');
         return;
     }
-
     try {
-        // Inisialisasi Firebase hanya sekali
-        if (!firebase.apps.length) {
-            firebase.initializeApp(FB_CONFIG);
-        }
-
+        if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
         fbDb = firebase.database();
-
         tampilStatusSync('🔄 Menghubungkan ke server...', '#888');
 
         // Muat data tamu dari Firebase
         await fbMuatSemua();
 
-        // Muat konfigurasi tambahan (token WA, dll)
+        // Muat konfigurasi (token Fonnte, routing WA, URL Worker) dari Firebase
+        // → ini yang membuat HP bisa kirim WA otomatis sama seperti laptop
         await fbMuatKonfigurasi();
 
-        // Pasang listener real-time
+        // Pasang listener real-time agar perangkat lain auto-sinkron
         fbPasangListener();
-
     } catch (e) {
         console.warn('Firebase init gagal:', e);
         tampilStatusSync('⚠️ Tidak terhubung — mode lokal aktif', '#e67e22');
     }
 }
+
 // ── Muat semua data dari Firebase ──
 async function fbMuatSemua() {
     if (!fbDb) return;
