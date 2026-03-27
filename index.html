@@ -1865,7 +1865,7 @@
 
     <div class="app-judul-utama">
         <div class="judul-teks">✦ BUKU TAMU DIGITAL ✦</div>
-        <button id="btnFormHeader" onclick="startApp()" style="display:none;">📝 Form Input</button>
+        <button id="btnFormHeader" onclick="btnFormHeaderKlik()" style="display:none;">📝 Form Input</button>
     </div>
 
     <div id="formSection">
@@ -2217,6 +2217,7 @@
     </div>
 
     <div id="mainNavigation">
+        <button onclick="kembaliKeFormIsian()" id="btnKembaliForm" style="display:none; background:linear-gradient(135deg,#1a6e2a,#27ae60) !important; color:#fff !important; border:1px solid rgba(100,220,100,0.5) !important;">📝 Form Input</button>
         <button onclick="showData()" id="btnData" style="display:none;">📊 Lihat Data (<span id="dataCount">0</span>)</button>
         <button onclick="exportData()" id="btnExport" style="display:none;">📑 Export Tabel Ringkasan</button>
         <button onclick="toggleWaSettings()" id="btnWaSettings" style="display:none; background:linear-gradient(135deg,#075e54,#128c7e) !important; color:#fff !important;">💬 Pengaturan WA</button>
@@ -2744,141 +2745,133 @@ function tampilkanWelcome() {
     drawSpace();
 }
 
-// ── Cek apakah URL mengandung ?key= atau ?tamu= atau ?test= (link dari WA / mode uji) ──
-(function _cekLinkTamu() {
+// ── Fungsi loadDetailFromKey — bisa dipanggil dari luar IIFE ──
+async function loadDetailFromKey(key) {
+    if (!fbDb || !key) return;
     try {
-        const params = new URLSearchParams(window.location.search);
-
-        // ── Mode 0: ?test=1 (mode uji cepat tanpa Firebase, untuk admin/developer) ──
-        const modeTest = params.get('test');
-        if (modeTest === '1') {
-            const dataTest = {
-                nama: 'CONTOH TAMU (Mode Uji)',
-                asal: 'INSTANSI',
-                instansi: 'Inspektorat Daerah Tubaba',
-                pihakDitemui: 'Kepala Inspektorat',
-                jenisLayanan: 'Konsultasi',
-                uraian: 'Ini adalah tampilan uji sistem buku tamu digital. Data ini dibuat otomatis.',
-                nomorHp: '628123456789',
-                timestamp: new Date().toLocaleString('id-ID'),
-                fotoFront: null,
-                fotoBack: null,
-                tandaTangan: null
-            };
-            _tampilHalamanTamu(dataTest);
-            return;
+        // Coba dari dataFinal dulu, jika tidak ada coba dataSementara
+        let snap = await fbDb.ref('bukuTamu/dataFinal/' + key).get();
+        if (!snap.exists()) {
+            snap = await fbDb.ref('bukuTamu/dataSementara/' + key).get();
         }
-
-        // ── Mode 1: ?key=FIREBASE_KEY (link pendek, data lengkap dari Firebase) ──
-        const fbKey = params.get('key');
-        if (fbKey) {
-            // Tunggu Firebase siap lalu ambil data
-            function _ambilDariFirebase(retryCount) {
-                retryCount = retryCount || 0;
-                if (retryCount > 20) {
-                    _tampilPesanError('❌ Gagal memuat data. Pastikan koneksi internet aktif.');
-                    return;
-                }
-                if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
-                    setTimeout(function() { _ambilDariFirebase(retryCount + 1); }, 300);
-                    return;
-                }
-                try {
-                    const db = firebase.database();
-                    // Coba dari dataFinal dulu, lalu dataSementara
-                    db.ref('bukuTamu/dataFinal/' + fbKey).get().then(function(snap) {
-                        if (snap.exists()) {
-                            const data = snap.val();
-                            data._fbKey = fbKey;
-                            _tampilHalamanTamu(data);
-                        } else {
-                            // Coba dari dataSementara
-                            db.ref('bukuTamu/dataSementara/' + fbKey).get().then(function(snap2) {
-                                if (snap2.exists()) {
-                                    const data2 = snap2.val();
-                                    data2._fbKey = fbKey;
-                                    _tampilHalamanTamu(data2);
-                                } else {
-                                    _tampilPesanError('⚠️ Data tamu tidak ditemukan di server.<br><small style="color:#888;font-size:0.82em;">Key: ' + fbKey + '</small>');
-                                }
-                            }).catch(function(e) {
-                                _tampilPesanError('❌ Gagal memuat data: ' + e.message);
-                            });
-                        }
-                    }).catch(function(e) {
-                        _tampilPesanError('❌ Gagal memuat data: ' + e.message);
-                    });
-                } catch(e2) {
-                    _tampilPesanError('❌ Gagal inisialisasi database: ' + e2.message);
-                }
-            }
-            // Tampilkan loading dulu
-            _tampilLoading();
-            setTimeout(function() { _ambilDariFirebase(0); }, 500);
-            return;
+        if (snap.exists()) {
+            const data = snap.val();
+            // Render data ke halaman detail (sesuaikan dengan elemen HTML Anda)
+            console.log("Data loaded via key:", data);
+            // Isi nama, asal, foto, ttd, dll.
+            _tampilHalamanTamu(data);
+        } else {
+            _tampilErrorTamu('Data tidak ditemukan di server. Link mungkin sudah tidak valid.');
         }
-
-        // ── Mode 2: ?tamu=BASE64 (fallback lama, tanpa foto/TTD) ──
-        const encoded = params.get('tamu');
-        if (encoded) {
-            try {
-                const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
-                if (data && data.nama) {
-                    _tampilHalamanTamu(data);
-                    return;
-                }
-            } catch(e) {
-                console.warn('Link tamu (mode tamu=) tidak valid:', e);
-            }
-        }
-
-        // ── Tidak ada parameter — tampilkan welcome screen normal ──
-        // (tidak lakukan apa-apa, welcome screen sudah tampil by default)
-
     } catch(e) {
-        console.warn('Link tamu tidak valid:', e);
+        console.error("Gagal load detail via key", e);
+        _tampilErrorTamu('Gagal mengambil data: ' + e.message);
+    }
+}
+
+// ── urlParams global — akses parameter URL dari mana saja ──
+const urlParams = new URLSearchParams(window.location.search);
+
+
+(function _cekLinkTamu() {
+    const params = new URLSearchParams(window.location.search);
+
+    // ── Handler ?tamu= (data encoded langsung) ──
+    const encoded = params.get('tamu');
+    if (encoded) {
+        try {
+            const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+            if (data && data.nama) {
+                _tampilHalamanTamu(data);
+                return;
+            }
+        } catch(e) {
+            console.warn('Link tamu tidak valid:', e);
+            _tampilErrorTamu('Format data tidak valid. Link mungkin rusak atau tidak lengkap.');
+        }
+        return;
+    }
+
+    // ── Handler ?key= (ambil dari Firebase) ──
+    const fbKey = params.get('key');
+    if (fbKey) {
+        // Tampilkan loading sementara Firebase dimuat
+        _tampilLoadingTamu();
+        // Tunggu Firebase siap lalu ambil data
+        var _retry = 0;
+        function _ambilDariFirebase() {
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                // Coba dataFinal dulu, jika tidak ada coba dataSementara
+                fbDb.ref('bukuTamu/dataFinal/' + fbKey).get().then(function(snap) {
+                    if (snap.exists()) {
+                        var el = document.getElementById('_loadingTamuEl');
+                        if (el) el.remove();
+                        _tampilHalamanTamu(snap.val());
+                    } else {
+                        return fbDb.ref('bukuTamu/dataSementara/' + fbKey).get().then(function(snap2) {
+                            var el = document.getElementById('_loadingTamuEl');
+                            if (el) el.remove();
+                            if (snap2.exists()) {
+                                _tampilHalamanTamu(snap2.val());
+                            } else {
+                                _tampilErrorTamu('Data tidak ditemukan di server. Link mungkin sudah tidak valid.');
+                            }
+                        });
+                    }
+                }).catch(function(err) {
+                    var el = document.getElementById('_loadingTamuEl');
+                    if (el) el.remove();
+                    _tampilErrorTamu('Gagal mengambil data: ' + err.message);
+                });
+            } else if (_retry < 30) {
+                _retry++;
+                setTimeout(_ambilDariFirebase, 300);
+            } else {
+                var el = document.getElementById('_loadingTamuEl');
+                if (el) el.remove();
+                _tampilErrorTamu('Koneksi Firebase gagal. Coba buka ulang link ini.');
+            }
+        }
+        _ambilDariFirebase();
     }
 })();
 
-function _tampilLoading() {
-    const wp = document.getElementById('welcomePage');
+function _tampilLoadingTamu() {
+    var el = document.createElement('div');
+    el.id = '_loadingTamuEl';
+    el.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:Arial,sans-serif;';
+    el.innerHTML = '<div style="font-size:2.5em;">📋</div>' +
+        '<div style="font-weight:800;color:#0d1f45;font-size:1.1em;">Memuat Data Tamu...</div>' +
+        '<div style="width:40px;height:40px;border:3px solid rgba(13,31,69,0.2);border-top:3px solid #0d1f45;border-radius:50%;animation:_spin .8s linear infinite;"></div>' +
+        '<style>@keyframes _spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+    var wp = document.getElementById('welcomePage');
     if (wp) wp.style.display = 'none';
-    document.body.style.background = '#f0f4f8';
-    const div = document.createElement('div');
-    div.id = 'loadingTamu';
-    div.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;';
-    div.innerHTML = '<div style="font-size:2.5em;">⏳</div><div style="font-size:1em;color:#1a3a6e;font-weight:bold;">Memuat data tamu...</div>';
-    document.body.appendChild(div);
 }
 
-function _tampilPesanError(pesan) {
-    const loading = document.getElementById('loadingTamu');
-    if (loading) loading.remove();
-    const wp = document.getElementById('welcomePage');
+function _tampilErrorTamu(pesan) {
+    var wp = document.getElementById('welcomePage');
     if (wp) wp.style.display = 'none';
-    document.body.style.background = '#f0f4f8';
-    const div = document.createElement('div');
-    div.id = '_pesanErrorTamu';
-    div.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;align-items:center;justify-content:center;padding:20px;';
-    div.innerHTML =
-        '<div style="background:#fff;border-radius:16px;padding:30px 28px 24px;text-align:center;max-width:360px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.14);border-top:5px solid #d4a820;">' +
-            '<div style="font-size:2.4em;margin-bottom:10px;">⚠️</div>' +
-            '<div style="color:#c0392b;font-weight:800;font-size:1em;margin-bottom:10px;">Data Tidak Ditemukan</div>' +
-            '<div style="color:#555;font-size:0.88em;line-height:1.6;margin-bottom:20px;">' + pesan + '</div>' +
-            '<button onclick="window.location.href=window.location.pathname" ' +
-                'style="background:linear-gradient(135deg,#0d1f45,#1a3560);color:#f5e07a;border:none;border-radius:50px;padding:11px 32px;font-size:0.92em;font-weight:800;cursor:pointer;letter-spacing:.03em;width:100%;margin-bottom:10px;">' +
-                '🏠 Kembali ke Halaman Utama' +
-            '</button>' +
-            '<div style="font-size:0.76em;color:#aaa;">Inspektorat Daerah Kab. Tulang Bawang Barat</div>' +
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;';
+    el.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.10);overflow:hidden;">' +
+        '<div style="background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:20px;text-align:center;">' +
+        '<div style="font-size:2em;margin-bottom:6px;">📋</div>' +
+        '<div style="font-weight:900;font-size:1.05em;letter-spacing:0.04em;">BUKU TAMU DIGITAL</div>' +
+        '<div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:4px;">Inspektorat Daerah Kab. Tulang Bawang Barat</div>' +
+        '</div>' +
+        '<div style="padding:28px 24px;text-align:center;">' +
+        '<div style="font-size:2.5em;margin-bottom:12px;">⚠️</div>' +
+        '<div style="font-weight:800;color:#c0392b;font-size:1.05em;margin-bottom:10px;">Data Tidak Ditemukan</div>' +
+        '<div style="color:#666;font-size:0.92em;line-height:1.6;">' + pesan + '</div>' +
+        '</div>' +
+        '<div style="padding:14px 24px;background:#f8f9fa;text-align:center;font-size:0.78em;color:#888;border-top:1px solid #eee;">' +
+        '🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WA</div>' +
         '</div>';
-    document.body.appendChild(div);
+    document.body.appendChild(el);
 }
 
 function _tampilHalamanTamu(data) {
-    // Hapus loading jika ada
-    const loadingEl = document.getElementById('loadingTamu');
-    if (loadingEl) loadingEl.remove();
-
     // Sembunyikan welcome page, tampilkan halaman detail tamu langsung
     document.body.style.background = '#f0f4f8';
     const wp = document.getElementById('welcomePage');
@@ -2892,73 +2885,64 @@ function _tampilHalamanTamu(data) {
                     <div class="dt-row"><div class="dt-lbl">Desa / Kelurahan</div><div class="dt-val">${data.desa||'-'}</div></div>`;
     }
 
-    // ── Dokumentasi Foto ──
-    const nomorBersih = (data.nomorHp||'').replace(/^C\s*/,'').replace(/^0/,'62').replace(/[^0-9]/g,'');
-    let fotoHtml = '';
-    if (data.fotoFront || data.fotoBack) {
-        const f1 = data.fotoFront ? `<div style="text-align:center"><small style="font-size:0.75em;color:#888;display:block;margin-bottom:4px;">Foto Wajah</small><img src="${data.fotoFront}" style="max-width:140px;border-radius:8px;border:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.1);" alt="Foto Wajah"></div>` : '';
-        const f2 = data.fotoBack  ? `<div style="text-align:center"><small style="font-size:0.75em;color:#888;display:block;margin-bottom:4px;">Foto Suasana</small><img src="${data.fotoBack}" style="max-width:140px;border-radius:8px;border:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,0.1);" alt="Foto Suasana"></div>` : '';
-        fotoHtml = `<div class="dt-row" style="flex-direction:column;padding:12px 14px;gap:10px;">
-            <div style="font-weight:600;font-size:0.85em;color:#555;margin-bottom:6px;">📷 Foto Dokumentasi</div>
-            <div style="display:flex;gap:14px;flex-wrap:wrap;">${f1}${f2}</div>
-        </div>`;
-    } else {
-        fotoHtml = `<div class="dt-row"><div class="dt-lbl">Foto Dokumentasi</div><div class="dt-val" style="color:#aaa;font-style:italic;font-size:0.85em;">Tidak ada foto tersedia</div></div>`;
-    }
-
-    // ── Tanda Tangan ──
-    let ttdHtml = '';
-    if (data.tandaTangan) {
-        ttdHtml = `<div class="dt-row" style="flex-direction:column;padding:12px 14px;">
-            <div style="font-weight:600;font-size:0.85em;color:#555;margin-bottom:8px;">✍️ Tanda Tangan</div>
-            <div style="background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;padding:8px;display:inline-block;">
-                <img src="${data.tandaTangan}" style="max-width:260px;max-height:100px;display:block;" alt="Tanda Tangan">
-            </div>
-        </div>`;
-    } else {
-        ttdHtml = `<div class="dt-row"><div class="dt-lbl">Tanda Tangan</div><div class="dt-val" style="color:#aaa;font-style:italic;font-size:0.85em;">Tidak ada tanda tangan tersedia</div></div>`;
-    }
-
     const modal = document.createElement('div');
     modal.id = 'halamanTamuPublik';
     modal.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#f0f4f8;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px;box-sizing:border-box;';
     modal.innerHTML = `
         <style>
-            .dt-card{background:#fff;border-radius:14px;max-width:500px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.10);overflow:hidden;margin-top:10px;margin-bottom:24px;}
+            .dt-card{background:#fff;border-radius:14px;max-width:500px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.10);overflow:hidden;margin-top:10px;}
             .dt-header{background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:20px 22px;text-align:center;}
             .dt-header h2{margin:0;font-size:1.1em;letter-spacing:0.04em;}
             .dt-header p{margin:4px 0 0;font-size:0.82em;color:rgba(255,255,255,0.7);}
-            .dt-header .dt-ts{margin:6px 0 0;font-size:0.80em;color:#f5e07a;opacity:0.85;}
             .dt-row{display:flex;border-bottom:1px solid #eee;min-height:44px;}
             .dt-lbl{width:140px;padding:12px 14px;background:#fdf8ee;font-weight:600;font-size:0.85em;color:#555;flex-shrink:0;display:flex;align-items:center;}
             .dt-val{flex:1;padding:12px 14px;font-size:0.9em;color:#222;display:flex;align-items:center;word-break:break-word;}
             .dt-badge{display:inline-block;background:#0d6efd;color:#fff;padding:2px 10px;border-radius:20px;font-size:0.78em;margin-right:6px;}
             .dt-badge.masy{background:#28a745;}
-            .dt-section-hdr{background:linear-gradient(135deg,#0d1f45,#1a3a6e);color:#f5e07a;padding:10px 16px;font-weight:800;font-size:0.82em;letter-spacing:0.07em;text-align:center;}
-            .dt-footer{padding:16px 20px;text-align:center;background:#f8f9fa;font-size:0.78em;color:#888;border-top:1px solid #eee;}
+            .dt-footer{padding:16px 20px;text-align:center;background:#f8f9fa;font-size:0.78em;color:#888;}
         </style>
         <div class="dt-card">
             <div class="dt-header">
-                <div style="font-size:1.8em;margin-bottom:4px;">✦ BUKU TAMU DIGITAL ✦</div>
-                <h2>INSPEKTORAT DAERAH<br>KABUPATEN TULANG BAWANG BARAT</h2>
-                <div class="dt-ts">${data.timestamp||''}</div>
+                <div style="font-size:2em;margin-bottom:6px;">📋</div>
+                <h2>DETAIL TAMU</h2>
+                <p>Buku Tamu Digital — Inspektorat Daerah Kab. Tulang Bawang Barat</p>
             </div>
-            <div class="dt-row"><div class="dt-lbl">Nama Lengkap</div><div class="dt-val">
-                <b>${data.nama}</b>&nbsp;<span class="dt-badge ${data.asal==='MASYARAKAT'?'masy':''}" style="font-size:0.72em;">${data.asal||'-'}</span>
+            <div class="dt-row"><div class="dt-lbl">Nama Lengkap</div><div class="dt-val"><b>${data.nama}</b></div></div>
+            <div class="dt-row"><div class="dt-lbl">Asal</div><div class="dt-val">
+                <span class="dt-badge ${data.asal==='MASYARAKAT'?'masy':''}">${data.asal||'-'}</span>
             </div></div>
-            <div class="dt-row"><div class="dt-lbl">Asal</div><div class="dt-val">${data.asal==='MASYARAKAT'?'Masyarakat':(data.asal||'-')}</div></div>
             ${asalHtml}
-            <div class="dt-row"><div class="dt-lbl">Pihak yang Ditemui</div><div class="dt-val">${data.pihakDitemui||'-'}</div></div>
+            <div class="dt-row"><div class="dt-lbl">Pihak Ditemui</div><div class="dt-val">${data.pihakDitemui||'-'}</div></div>
             <div class="dt-row"><div class="dt-lbl">Jenis Layanan</div><div class="dt-val">${data.jenisLayanan||'-'}</div></div>
             <div class="dt-row"><div class="dt-lbl">Uraian Keperluan</div><div class="dt-val">${data.uraian||'-'}</div></div>
-            <div class="dt-row"><div class="dt-lbl">Nomor WhatsApp</div><div class="dt-val">
-                <a href="https://wa.me/${nomorBersih}" style="color:#075e54;font-weight:bold;">${(data.nomorHp||'').replace(/^C\s*/,'')||'-'}</a>
+            <div class="dt-row"><div class="dt-lbl">No WA Tamu</div><div class="dt-val">
+                <a href="https://wa.me/${(data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'')}" style="color:#075e54;font-weight:bold;">${data.nomorHp||'-'}</a>
             </div></div>
             <div class="dt-row"><div class="dt-lbl">Waktu Kunjungan</div><div class="dt-val">${data.timestamp||'-'}</div></div>
-            <div class="dt-section-hdr">DOKUMENTASI FOTO &amp; TANDA TANGAN</div>
-            ${fotoHtml}
-            ${ttdHtml}
+            ${(data.fotoFront || data.fotoBack) ? `
+            <div class="dt-row" style="flex-direction:column;padding:14px;">
+                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">📷 Dokumentasi Foto</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+                    ${data.fotoFront ? `<div style="text-align:center;">
+                        <img src="${data.fotoFront}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Depan">
+                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Depan</div>
+                    </div>` : ''}
+                    ${data.fotoBack ? `<div style="text-align:center;">
+                        <img src="${data.fotoBack}" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:2px solid #d4a820;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Foto Suasana">
+                        <div style="font-size:0.75em;color:#888;margin-top:4px;">Foto Suasana</div>
+                    </div>` : ''}
+                </div>
+            </div>` : ''}
+            ${data.tandaTangan ? `
+            <div class="dt-row" style="flex-direction:column;padding:14px;">
+                <div class="dt-lbl" style="width:100%;border-right:none;border-bottom:1px solid #eee;margin-bottom:10px;padding:0 0 8px 0;background:none;">✍️ Tanda Tangan</div>
+                <div style="background:#f9f9f9;border:1.5px solid #d0c8b8;border-radius:8px;padding:10px;display:inline-block;">
+                    <img src="${data.tandaTangan}" style="max-width:240px;height:80px;object-fit:contain;display:block;" alt="Tanda Tangan">
+                    <div style="font-size:0.8em;color:#555;font-weight:600;text-align:center;margin-top:6px;border-top:1px solid #ddd;padding-top:6px;">${data.nama||''}</div>
+                </div>
+            </div>` : ''}
             <div class="dt-footer">
+                🔒 Halaman ini hanya bisa dibuka melalui link notifikasi WA<br>
                 Inspektorat Daerah Kabupaten Tulang Bawang Barat
             </div>
         </div>
@@ -4481,6 +4465,8 @@ function stepNama() {
     if (hurufCount < 5) { namaInput.classList.add('error'); return; }
     /* Admin check */
     if (namaValue === 'Untung1') {
+        document.getElementById('btnKembaliForm').style.display = '';
+        document.getElementById('btnFormHeader').style.display = 'none';
         document.getElementById('btnData').style.display = '';
         document.getElementById('btnExport').style.display = '';
         document.getElementById('btnReset').style.display = '';
@@ -4490,7 +4476,9 @@ function stepNama() {
         document.getElementById('mainNavigation').style.display = 'block';
         // Sembunyikan form isian agar tidak tampil di bawah panel admin
         var stepModal = document.getElementById('stepIsianModal');
-        if (stepModal) { stepModal.classList.remove('aktif'); stepModal.style.display = 'none'; }
+        if (stepModal) { stepModal.classList.remove('aktif'); stepModal.style.display = ''; }
+        var stepBackdrop = document.getElementById('stepIsianBackdrop');
+        if (stepBackdrop) stepBackdrop.style.display = 'none';
         // Sembunyikan ringkasan isian juga
         var ringkasan = document.getElementById('ringkasanIsian');
         if (ringkasan) ringkasan.style.display = 'none';
@@ -4500,6 +4488,7 @@ function stepNama() {
         clearTimeout(_timerNama);
         return; // ← hentikan alur form, jangan lanjut ke field-asal
     } else {
+        document.getElementById('btnKembaliForm').style.display = 'none';
         document.getElementById('btnData').style.display = 'none';
         document.getElementById('btnExport').style.display = 'none';
         document.getElementById('btnReset').style.display = 'none';
@@ -5969,6 +5958,50 @@ function showForm() {
     });
 }
 
+// ── Tombol Form Input di header (lama) — tetap kompatibel
+function btnFormHeaderKlik() { kembaliKeFormIsian(); }
+
+// ── Kembali ke form isian dari area admin ──
+function kembaliKeFormIsian() {
+    // 1. Pastikan formSection tampil & dataSection sembunyi
+    var formSec = document.getElementById('formSection');
+    var dataSec = document.getElementById('dataSection');
+    if (formSec) { formSec.style.display = 'block'; formSec.style.visibility = ''; }
+    if (dataSec) dataSec.style.display = 'none';
+
+    // 2. Reset state
+    _editBebasMode = false; isEditMode = false;
+    editingIndex = -1; editingSementara = false;
+    _stepNamaDone = false; _stepUraianDone = false; _stepHpDone = false;
+    clearTimeout(_timerNama); clearTimeout(_timerUraian); clearTimeout(_timerHp);
+    hasSignature = false; hasPhoto = false;
+    fotoDataURLFront = null; fotoDataURLBack = null;
+    totalStrokeLength = 0; signatureDataURL = null;
+    var frm = document.getElementById('bukuTamuForm');
+    if (frm) frm.reset();
+    bersihJawab();
+    hideAllFields();
+
+    // 3. Buka stepIsianModal ke field-nama
+    //    Paksa tutup dulu jika masih aktif, lalu buka ulang
+    var modal = document.getElementById('stepIsianModal');
+    var backdrop = document.getElementById('stepIsianBackdrop');
+    var card = document.getElementById('siCard');
+    if (modal) modal.classList.remove('aktif');
+    if (backdrop) backdrop.style.display = 'none';
+    if (card) { card.classList.remove('keluar'); }
+
+    // Beri satu frame agar DOM update sebelum tampil
+    setTimeout(function() {
+        _tampilStepIsian('field-nama');
+        // Fokus ke input nama
+        setTimeout(function() {
+            var inputNama = document.getElementById('nama');
+            if (inputNama) inputNama.focus();
+        }, 120);
+    }, 60);
+}
+
 function showData() {
     // Tutup overlay step isian & kembalikan area ke form sebelum sembunyikan formSection
     _tutupStepIsian(() => {
@@ -6077,38 +6110,6 @@ async function konfirmasiDanSimpanPDF(sIndex) {
 
     // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
     const finalIndex = dataBukuTamu.length - 1;
-
-    // Kirim notifikasi WA ke pihak yang dituju.
-    // PENTING: Verifikasi dulu bahwa data benar-benar bisa dibaca dari Firebase
-    // sebelum link dikirim — agar penerima tidak mendapat error "Data Tidak Ditemukan".
-    (async () => {
-        try {
-            // Verifikasi data bisa dibaca dari Firebase sebelum kirim link
-            if (data._fbKey && fbDb) {
-                tampilStatusSync('⏳ Memverifikasi data di server sebelum kirim WA…', '#3498db');
-                const terkonfirmasi = await fbVerifikasiDataTersimpan(data._fbKey, 10);
-                if (!terkonfirmasi) {
-                    // Data belum terbaca — coba simpan ulang sekali lagi
-                    console.warn('[konfirmasi] Data belum terkonfirmasi, mencoba simpan ulang…');
-                    tampilStatusSync('⚠️ Mencoba simpan ulang ke server…', '#e67e22');
-                    const retryKey = await fbSimpanKeDataFinal(data);
-                    if (retryKey) {
-                        data._fbKey = retryKey;
-                        // Verifikasi sekali lagi setelah simpan ulang
-                        await fbVerifikasiDataTersimpan(data._fbKey, 6);
-                    }
-                }
-            }
-
-            if (!window.jspdf) await new Promise(res => _muatJsPDF(res));
-            const pdfBlob = await buatPDFBlob(data);
-            const pdfFileName = 'Detail_Tamu_' + (data.nama||'Tamu').replace(/[^a-zA-Z0-9]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
-            await kirimPdfKeWA(pdfBlob, data, null, pdfFileName);
-        } catch(e) {
-            console.warn('[konfirmasi] Gagal kirim WA ke pihak:', e);
-        }
-    })();
-
     exportDetailPerTamuPDF(finalIndex);
     setTimeout(() => { goToWelcome(); }, 800);
 }
@@ -6128,30 +6129,6 @@ async function fbSimpanKeDataFinal(formData) {
         console.warn('[fbSimpanKeDataFinal] error:', e);
         return null;
     }
-}
-
-// ── Helper: verifikasi data benar-benar bisa dibaca dari Firebase ──
-// Dipanggil SEBELUM mengirim link ke WA, agar penerima tidak dapat error "Data Tidak Ditemukan"
-async function fbVerifikasiDataTersimpan(fbKey, maxRetry) {
-    if (!fbKey || !fbDb) return false;
-    maxRetry = maxRetry || 8; // coba maks 8x (total ~12 detik)
-    for (var i = 0; i < maxRetry; i++) {
-        try {
-            var snap = await fbDb.ref('bukuTamu/dataFinal/' + fbKey).get();
-            if (snap.exists()) {
-                console.log('[fbVerifikasi] Data terkonfirmasi bisa dibaca (percobaan ' + (i+1) + ')');
-                return true;
-            }
-        } catch(e) {
-            console.warn('[fbVerifikasi] Error saat cek:', e.message);
-        }
-        // Tunggu sebelum retry: 500ms, 1s, 1.5s, dst
-        var tunggu = 500 + (i * 500);
-        tampilStatusSync('⏳ Menunggu konfirmasi server… (' + (i+1) + '/' + maxRetry + ')', '#e67e22');
-        await new Promise(function(r){ setTimeout(r, tunggu); });
-    }
-    console.warn('[fbVerifikasi] Data tidak terkonfirmasi setelah ' + maxRetry + ' percobaan');
-    return false;
 }
 
 async function hapusSementara(sIndex) {
@@ -7313,48 +7290,49 @@ function simpanNomorWA() { simpanRoutingWA(); }
 // ================================================================
 
 function _buatPesanWA(data, adaPdf) {
-    let asalInfo = '';
-    if (data.asal === 'INSTANSI')
-        asalInfo = `🏢 *Instansi:* ${data.instansi || '-'}`;
-    else if (data.asal === 'MASYARAKAT')
-        asalInfo = `📍 *Kecamatan:* ${data.kecamatan || '-'}\n📌 *Desa/Kel:* ${data.desa || '-'}`;
-    else
-        asalInfo = `📍 *Asal:* ${data.asal || '-'}`;
-
-    // Buat link ke halaman ini sendiri dengan Firebase key
-    // Gunakan URL dinamis agar selalu sesuai domain yang aktif
-    const BASE_URL = (typeof window !== 'undefined')
-        ? (window.location.origin + window.location.pathname)
-        : 'https://at-tubaba.github.io/buku_tamu_geo_v18.html';
+    const BASE_URL = 'https://inspektorat-tubaba.github.io/Buku_Tamu_Digital/';  // ganti jika domain berbeda
     let linkDetail = BASE_URL;
-    try {
-        if (data._fbKey) {
-            // Link dengan Firebase key — foto & TTD ikut tampil
-            linkDetail = BASE_URL + '?key=' + data._fbKey;
+    if (data._fbKey) {
+        // ← INI YANG BARU & PALING PENTING
+        linkDetail += '?key=' + encodeURIComponent(data._fbKey);
+    } else {
+        // Fallback (jika belum ada key)
+        console.warn('[WA] _fbKey belum ada, pakai fallback base64');
+        try {
+            const dataMinimal = {
+                nama: data.nama || 'Tamu',
+                timestamp: data.timestamp || '',
+                _fbKey: data._fbKey || ''
+            };
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataMinimal))));
+            linkDetail += '?tamu=' + encoded;
+        } catch(e) {
+            linkDetail += '?error=link';
         }
-        // Jika belum ada _fbKey, link tetap ke halaman utama
-        // Data lengkap sudah ada di pesan WA di atas
-    } catch(e) { linkDetail = BASE_URL; }
-
-    // Catatan format WA: link HARUS berada di baris tersendiri, tanpa bold/italic,
-    // tanpa teks apapun di baris yang sama, agar WhatsApp mengenali sebagai link yang bisa diklik.
-    // Link selalu ditampilkan — jika ada _fbKey pakai ?key=, jika tidak pakai link utama
-    const barisLink = `\n${linkDetail}\n`;
-
-    return `🔔 *NOTIFIKASI TAMU BARU*
-_Buku Tamu Digital — Inspektorat Daerah Kab. Tulang Bawang Barat_
-
-👤 *Nama:* ${data.nama}
-${asalInfo}
-🎯 *Pihak Ditemui:* ${data.pihakDitemui}
-📋 *Jenis Layanan:* ${data.jenisLayanan}
-📝 *Uraian:* ${data.uraian}
-📱 *No WA Tamu:* ${(data.nomorHp||'').replace(/^C\s*/,'')}
-🕐 *Waktu:* ${data.timestamp}
-
-Detail tamu lengkap (foto & TTD):${barisLink}`;
+    }
+    let asalBaris = '';
+    if (data.asal === 'INSTANSI') {
+        asalBaris = `🏢 *Instansi:* ${data.instansi || '-'}`;
+    } else if (data.asal === 'MASYARAKAT') {
+        asalBaris = `🏠 *Asal:* Masyarakat\n📍 *Kecamatan:* ${data.kecamatan || '-'}\n🏘️ *Desa:* ${data.desa || '-'}`;
+    } else {
+        asalBaris = `📍 *Asal:* ${data.asal || '-'}`;
+    }
+    return `🔔 *NOTIFIKASI TAMU BARU - Inspektorat Tubaba*
+━━━━━━━━━━━━━━━━━━━━━━━
+👤 *Nama:* ${data.nama || '-'}
+${asalBaris}
+🎯 *Pihak Ditemui:* ${data.pihakDitemui || '-'}
+📋 *Layanan:* ${data.jenisLayanan || '-'}
+📝 *Uraian:* 
+${(data.uraian || '-').substring(0, 180)}${(data.uraian || '').length > 180 ? '...' : ''}
+📱 *WA Tamu:* ${data.nomorHp || '-'}
+🕒 *Waktu:* ${data.timestamp || '-'}
+━━━━━━━━━━━━━━━━━━━━━━━
+🔗 *Lihat foto & tanda tangan lengkap:*
+${linkDetail}
+_Hanya bisa dibuka melalui link ini._`;
 }
-
 // ── Konversi Blob → Base64 string ──
 function _blobKeBase64(blob) {
     return new Promise((resolve, reject) => {
@@ -7644,14 +7622,15 @@ function _tampilInfoWA(pesan, warna, loading) {
 }
 
 const FB_CONFIG = {
-  apiKey: "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
-  authDomain: "buku-tamu-digital-64d8f.firebaseapp.com",
-  databaseURL: "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "buku-tamu-digital-64d8f",
-  storageBucket: "buku-tamu-digital-64d8f.appspot.com",
-  messagingSenderId: "778866088048",
-  appId: "1:778866088048:web:0d2976288b5bfcdf90bcb5"
+    apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
+    authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
+    databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "buku-tamu-digital-64d8f",
+    storageBucket:     "buku-tamu-digital-64d8f.firebasestorage.app",
+    messagingSenderId: "778866088048",
+    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
 };
+
 let fbDb = null;
 let _fbOnWrites = 0; // menghindari listener memproses tulisan kita sendiri
 
@@ -7771,36 +7750,20 @@ async function fbSimpan(formData, isSementara) {
     if (!fbDb) return null;
     const path = isSementara ? 'bukuTamu/dataSementara' : 'bukuTamu/dataFinal';
     try {
-        tampilStatusSync('💾 Menyimpan ke server...', '#3498db');
         const dataKirim = await _fbKompresData(formData);
-        _fbOnWrites++;
         const ref = fbDb.ref(path).push();
         await ref.set(dataKirim);
-        tampilStatusSync('✅ Tersimpan di server', '#27ae60');
-        return ref.key;
+        
+        const fbKey = ref.key;
+        formData._fbKey = fbKey;   // ← Tambahkan ini!
+        
+        tampilStatusSync('✅ Tersimpan', '#27ae60');
+        return fbKey;
     } catch (e) {
-        _fbOnWrites = Math.max(0, _fbOnWrites - 1);
-        console.warn('fbSimpan error:', e);
-        tampilStatusSync('⚠️ Gagal simpan ke server', '#e74c3c');
+        console.error(e);
         return null;
     }
 }
-
-// ── Hapus record dari Firebase ──
-async function fbHapus(fbKey, isSementara) {
-    if (!fbDb || !fbKey) return;
-    const path = isSementara
-        ? `bukuTamu/dataSementara/${fbKey}`
-        : `bukuTamu/dataFinal/${fbKey}`;
-    try {
-        _fbOnWrites++;
-        await fbDb.ref(path).remove();
-    } catch (e) {
-        _fbOnWrites = Math.max(0, _fbOnWrites - 1);
-        console.warn('fbHapus error:', e);
-    }
-}
-
 // ── Update record yang ada di Firebase ──
 async function fbUpdate(fbKey, formData, isSementara) {
     if (!fbDb || !fbKey) return;
@@ -7831,9 +7794,6 @@ async function fbPindahKeFinal(fbKeySementara, formData) {
         await newRef.set(dataKirim);
         if (fbKeySementara) await fbDb.ref(`bukuTamu/dataSementara/${fbKeySementara}`).remove();
         tampilStatusSync('✅ Data terkonfirmasi & tersimpan di server', '#27ae60');
-        // Verifikasi data bisa dibaca sebelum return key (agar link WA tidak broken)
-        const bisa = await fbVerifikasiDataTersimpan(newRef.key, 5);
-        if (!bisa) console.warn('[fbPindahKeFinal] Data tersimpan tapi belum terbaca — mungkin rules Firebase perlu dicek');
         return newRef.key;
     } catch (e) {
         _fbOnWrites = Math.max(0, _fbOnWrites - 2);
@@ -8591,98 +8551,6 @@ function _mapCariLokasi() {
     } else {
         pasangGestureAdmin();
     }
-// ================== PERBAIKAN v18: PDF DENGAN FOTO & TANDA TANGAN ==================
-
-async function generatePDF(data) {
-    if (typeof window.jspdf === 'undefined') {
-        alert('jsPDF belum dimuat. Silakan refresh halaman.');
-        return null;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    let y = 25;
-
-    doc.setFontSize(18);
-    doc.text("BUKU TAMU DIGITAL", 105, y, { align: "center" });
-    doc.setFontSize(12);
-    doc.text("INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT", 105, y + 10, { align: "center" });
-    y += 32;
-
-    const fields = [
-        ["Nama Lengkap", data.nama || "-"],
-        ["Asal", data.asal || "-"],
-        ["Instansi", data.instansi || "-"],
-        ["Kecamatan", data.kecamatan || "-"],
-        ["Desa / Kelurahan", data.desa || "-"],
-        ["Pihak yang Ditemui", data.pihakDitemui || "-"],
-        ["Jenis Layanan", data.jenisLayanan || "-"],
-        ["Uraian Keperluan", data.uraian || "-"],
-        ["Nomor WhatsApp", data.nomorHp || "-"],
-        ["Waktu Kunjungan", data.timestamp || "-"]
-    ];
-
-    doc.setFontSize(11);
-    fields.forEach(([label, value]) => {
-        doc.text(label + ":", 20, y);
-        doc.text(String(value), 85, y);
-        y += 9;
-    });
-
-    y += 15;
-
-    doc.setFontSize(14);
-    doc.text("DOKUMENTASI FOTO & TANDA TANGAN", 105, y, { align: "center" });
-    y += 20;
-
-    if (data.fotoFront && data.fotoFront.startsWith('data:image')) {
-        try { doc.addImage(data.fotoFront, 'JPEG', 20, y, 85, 65); y += 72; } catch(e) {}
-    }
-    if (data.fotoBack && data.fotoBack.startsWith('data:image')) {
-        try { doc.addImage(data.fotoBack, 'JPEG', 20, y, 85, 65); y += 72; } catch(e) {}
-    }
-    if (data.tandaTangan && data.tandaTangan.startsWith('data:image')) {
-        try {
-            doc.text("Tanda Tangan:", 20, y);
-            y += 8;
-            doc.addImage(data.tandaTangan, 'PNG', 20, y, 120, 50);
-        } catch(e) {}
-    }
-
-    doc.setFontSize(10);
-    doc.text("Dicetak otomatis: " + new Date().toLocaleString('id-ID'), 20, 285);
-
-    return doc;
-}
-
-async function buatPDFBlob(data) {
-    const doc = await generatePDF(data);
-    if (!doc) return null;
-    return doc.output('blob');
-}
-
-async function kirimViaFonnteDenganPDF(data) {
-    if (!data || !data.nomorHp) return false;
-
-    const pdfBlob = await buatPDFBlob(data);
-    if (!pdfBlob) return false;
-
-    const namaFile = `BukuTamu_${(data.nama || "Tamu").replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().slice(0,10)}.pdf`;
-    const pesan = `✅ Data Tamu Baru\nNama: ${data.nama}\nPihak: ${data.pihakDitemui || '-'}\nWaktu: ${data.timestamp}`;
-
-    return await _kirimFonnteRutin(
-        data.nomorHp.replace(/[^0-9]/g, ''),
-        pesan,
-        pesan,
-        pdfBlob,
-        namaFile
-    );
-}
- 
-console.log("✅ v18 - Fungsi PDF baru sudah ditambahkan");
-
-// Baris ini tetap ada di paling bawah
-})();
 })();
 </script>
 </div><!-- /pageScroller -->
