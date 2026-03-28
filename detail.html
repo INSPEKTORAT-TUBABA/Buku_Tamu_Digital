@@ -8,6 +8,7 @@
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #e8f4fd; margin: 0; padding: 0; }
 
+        /* Bingkai emas dekoratif */
         body::before {
             content: ''; position: fixed; inset: 0;
             border: 10px solid transparent;
@@ -23,18 +24,28 @@
 
         .wrapper { max-width: 680px; margin: 28px auto 48px; padding: 0 18px; }
 
+        /* ── Header kartu ── */
         .card-header {
             background: linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%);
             color: #f5e07a; padding: 20px 20px 16px; text-align: center;
             border-radius: 12px 12px 0 0;
         }
+        .card-header h1 { margin:0; font-size:1.15em; letter-spacing:.09em; text-transform:uppercase; }
+        .card-header .org { margin:5px 0 0; font-size:.80em; color:rgba(255,255,255,.78); line-height:1.5; }
+        .card-header .divider {
+            width: 70px; height: 1.5px; margin: 10px auto 6px;
+            background: linear-gradient(90deg,transparent,#f5e07a,transparent);
+        }
+        .card-header .ts { font-size:.74em; color:rgba(245,224,122,.80); }
 
+        /* ── Body info tamu ── */
         .card-body {
             background: #fff;
             border: 1px solid rgba(212,168,32,.22);
             border-top: none;
         }
 
+        /* Setiap baris data */
         .info-row {
             display: flex;
             align-items: flex-start;
@@ -42,47 +53,287 @@
             border-bottom: 1px solid #f2ece0;
             gap: 10px;
         }
+        .info-row:last-child { border-bottom: none; }
+        .info-row:nth-child(even) { background: #fafaf7; }
 
-        .card-footer {
-            background: #f0ead8;
+        .info-icon { font-size: 1.05em; flex-shrink: 0; width: 22px; text-align: center; padding-top: 1px; }
+        .info-label { font-weight: 700; color: #0d1f45; min-width: 140px; font-size: .86em; flex-shrink: 0; }
+        .info-sep { color: #aaa; margin-right: 4px; font-size: .86em; }
+        .info-value { color: #222; font-size: .88em; flex: 1; word-break: break-word; line-height: 1.5; }
+        .info-value a { color: #1a6e2a; }
+
+        /* Badge asal */
+        .badge {
+            display: inline-block; padding: 2px 9px; border-radius: 20px;
+            font-size: .74em; font-weight: bold; margin-left: 6px; vertical-align: middle;
+        }
+        .badge-masy { background: #28a745; color: #fff; }
+        .badge-inst { background: #0d6efd; color: #fff; }
+
+        /* Separator ── */
+        .section-sep {
+            background: linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%);
+            color: #f5e07a; font-weight: 800; font-size: .85em; letter-spacing: .07em;
+            padding: 9px 16px; border: 1px solid rgba(212,168,32,.22); border-top: none;
+        }
+
+        /* ── Area foto & TTD ── */
+        .foto-area {
+            background: #fffef8;
             border: 1px solid rgba(212,168,32,.22);
             border-top: none;
-            padding: 11px 16px;
-            text-align: center;
-            font-size: .70em;
-            color: #888;
+            padding: 18px 16px 20px;
+        }
+        .foto-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-bottom: 16px; }
+        .foto-item { text-align: center; }
+        .foto-item small {
+            display: block; font-size: .72em; color: #666;
+            font-weight: 700; letter-spacing: .05em; margin-bottom: 5px; text-transform: uppercase;
+        }
+        .foto-item img {
+            width: 160px; height: 160px; object-fit: cover;
+            border: 2px solid rgba(212,168,32,.45); border-radius: 8px; display: block;
+        }
+
+        .ttd-wrap { text-align: center; margin-top: 8px; }
+        .ttd-wrap small {
+            display: block; font-size: .72em; color: #666;
+            font-weight: 700; letter-spacing: .05em; margin-bottom: 6px; text-transform: uppercase;
+        }
+        .ttd-box {
+            display: inline-block; border: 2px solid rgba(212,168,32,.45);
+            border-radius: 6px; background: #fff; overflow: hidden;
+            max-width: 320px; width: 100%;
+        }
+        .ttd-box img { max-width: 100%; max-height: 130px; object-fit: contain; display: block; }
+        .ttd-nama {
+            font-size: .90em; font-weight: 800; color: #0d1f45;
+            letter-spacing: .03em; padding: 5px 10px 8px; text-align: center;
+        }
+        .empty-box {
+            background: #f8f8f4; border: 2px dashed rgba(212,168,32,.4); border-radius: 8px;
+            padding: 22px 16px; color: #aaa; font-size: .84em; text-align: center;
+            font-style: italic; margin: 6px 0;
+        }
+
+        /* Footer */
+        .card-footer {
+            background: #f0ead8; border: 1px solid rgba(212,168,32,.22); border-top: none;
+            padding: 11px 16px; text-align: center; font-size: .70em; color: #888;
             border-radius: 0 0 12px 12px;
-            line-height: 1.5;
+            line-height: 1.7;
+        }
+        .card-footer .footer-line1 { display: block; }
+        .card-footer .footer-line2 { display: block; }
+
+        /* Loading & Error */
+        #loadingBox, #errorBox { text-align: center; padding: 50px 20px; }
+        #loadingBox { color: #1a3a6e; font-size: 1.05em; }
+        .spinner {
+            width: 44px; height: 44px; border: 5px solid #e0d8b8;
+            border-top-color: #d4a820; border-radius: 50%;
+            animation: spin .8s linear infinite; margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loadingStatus { font-size: .76em; color: #888; margin-top: 7px; }
+        #errorBox {
+            color: #c0392b; background: #fff5f5; border: 2px solid #e74c3c;
+            border-radius: 10px; font-size: .92em;
+        }
+        #errorBox h3 { margin: 0 0 10px; }
+
+        @media (max-width: 480px) {
+            .info-label { min-width: 110px; font-size: .82em; }
+            .info-value { font-size: .84em; }
+            .foto-item img { width: 130px; height: 130px; }
         }
     </style>
 </head>
 <body>
+<div class="wrapper">
+    <div id="loadingBox">
+        <div class="spinner"></div>
+        Memuat data tamu…
+        <div id="loadingStatus">Menghubungkan ke server…</div>
+    </div>
+    <div id="errorBox" style="display:none;">
+        <h3>⚠️ Data Tidak Ditemukan</h3>
+        <p id="errorMsg">Link tidak valid atau data telah dihapus.</p>
+    </div>
+    <div id="mainContent" style="display:none;"></div>
+</div>
 
-<div id="mainContent"></div>
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-function renderDetail() {
+const FB_CONFIG = {
+    apiKey:            "AIzaSyACuriSEyGO1xPORV8XksrgtqIUFN-QQV8",
+    authDomain:        "buku-tamu-digital-64d8f.firebaseapp.com",
+    databaseURL:       "https://buku-tamu-digital-64d8f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "buku-tamu-digital-64d8f",
+    storageBucket:     "buku-tamu-digital-64d8f.firebasestorage.app",
+    messagingSenderId: "778866088048",
+    appId:             "1:778866088048:web:0d2976288b5bfcdf90bcb5"
+};
 
-    var html =
-        '<div class="card-header">'
-            + '<h1>✦ BUKU TAMU DIGITAL ✦</h1>'
-        + '</div>'
-
-        + '<div class="card-body">'
-            + '<div class="info-row">Contoh isi data</div>'
-        + '</div>'
-
-        /* FOOTER SUDAH DIPERBAIKI */
-        + '<div class="card-footer">'
-            + 'Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital<br>'
-            + '<strong>Inspektorat Kab. Tulang Bawang Barat</strong>'
-        + '</div>';
-
-    document.getElementById('mainContent').innerHTML = html;
+function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-renderDetail();
-</script>
+function infoRow(icon, label, value) {
+    return '<div class="info-row">'
+        + '<div class="info-icon">' + icon + '</div>'
+        + '<div class="info-label">' + esc(label) + '</div>'
+        + '<div class="info-sep">:</div>'
+        + '<div class="info-value">' + value + '</div>'
+        + '</div>';
+}
 
+function setStatus(msg) {
+    var el = document.getElementById('loadingStatus');
+    if (el) el.textContent = msg;
+}
+
+function renderDetail(data) {
+    /* ── Badge asal ── */
+    var badge = data.asal === 'INSTANSI'
+        ? '<span class="badge badge-inst">INSTANSI</span>'
+        : '<span class="badge badge-masy">MASYARAKAT</span>';
+
+    /* ── Baris asal (sesuai format pesan WA) ── */
+    var asalBaris = '';
+    if (data.asal === 'INSTANSI') {
+        asalBaris = infoRow('🏢', 'Instansi', esc(data.instansi || '-'));
+    } else if (data.asal === 'MASYARAKAT') {
+        asalBaris  = infoRow('🏠', 'Asal',        'Masyarakat');
+        asalBaris += infoRow('📍', 'Kecamatan',    esc(data.kecamatan || '-'));
+        asalBaris += infoRow('🏘️', 'Desa',         esc(data.desa || '-'));
+    } else {
+        asalBaris = infoRow('📍', 'Asal', esc(data.asal || '-'));
+    }
+
+    /* ── Nomor WA — strip prefix C jika ada ── */
+    var nomorHp = (data.nomorHp || '').replace(/^C\s*/, '');
+    var nomorVal = nomorHp
+        ? '<a href="https://wa.me/' + nomorHp.replace(/^0/, '62') + '">' + esc(nomorHp) + '</a>'
+        : '-';
+
+    /* ── Foto & TTD ── */
+    var fotoFront = data.fotoFront || data.foto || data.fotoDepan || '';
+    var fotoBack  = data.fotoBack  || data.fotoBelakang || '';
+    var ttd       = data.tandaTangan || '';
+
+    var fotoGridHtml = '';
+    if (fotoFront) fotoGridHtml += '<div class="foto-item"><small>📷 Foto Wajah</small><img src="' + fotoFront + '" alt="Foto Wajah" loading="lazy"></div>';
+    if (fotoBack)  fotoGridHtml += '<div class="foto-item"><small>📸 Foto Suasana</small><img src="' + fotoBack  + '" alt="Foto Suasana" loading="lazy"></div>';
+
+    var fotoHtml = fotoGridHtml
+        ? '<div class="foto-grid">' + fotoGridHtml + '</div>'
+        : '<div class="empty-box">Tidak ada foto tersedia</div>';
+
+    var ttdHtml = ttd
+        ? '<div class="ttd-wrap"><small>✍️ Tanda Tangan</small>'
+            + '<div class="ttd-box">'
+            + '<img src="' + ttd + '" alt="Tanda Tangan" loading="lazy">'
+            + '<div class="ttd-nama">' + esc(data.nama || '-') + '</div>'
+            + '</div></div>'
+        : '<div class="empty-box" style="margin-top:10px;">Tidak ada tanda tangan tersedia</div>';
+
+    /* ── Rakit HTML lengkap ── */
+    var html =
+        /* HEADER */
+        '<div class="card-header">'
+            + '<h1>✦ BUKU TAMU DIGITAL ✦</h1>'
+            + '<p class="org">INSPEKTORAT DAERAH<br>KABUPATEN TULANG BAWANG BARAT</p>'
+            + '<div class="divider"></div>'
+            + '<div class="ts">🕒 ' + esc(data.timestamp || '') + '</div>'
+        + '</div>'
+
+        /* BODY — urutan sama persis dengan pesan WA */
+        + '<div class="card-body">'
+            + infoRow('👤', 'Nama Lengkap',    esc(data.nama || '-') + badge)
+            + asalBaris
+            + infoRow('🎯', 'Pihak Ditemui',   esc(data.pihakDitemui || '-'))
+            + infoRow('📋', 'Layanan',          esc(data.jenisLayanan || '-'))
+            + infoRow('📝', 'Uraian Keperluan', esc(data.uraian || '-'))
+            + infoRow('📱', 'WA Tamu',          nomorVal)
+            + infoRow('🕒', 'Waktu Kunjungan',  esc(data.timestamp || '-'))
+        + '</div>'
+
+        /* SEPARATOR DOKUMENTASI */
+        + '<div class="section-sep">📎 DOKUMENTASI FOTO &amp; TANDA TANGAN</div>'
+
+        /* FOTO & TTD */
+        + '<div class="foto-area">'
+            + fotoHtml
+            + ttdHtml
+        + '</div>'
+
+        /* FOOTER */
+        + '<div class="card-footer">'
+            + '<span class="footer-line1">Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital</span>'
+            + '<span class="footer-line2">— Inspektorat Daerah Kabupaten Tulang Bawang Barat</span>'
+        + '</div>';
+
+    document.getElementById('loadingBox').style.display = 'none';
+    var mc = document.getElementById('mainContent');
+    mc.innerHTML = html;
+    mc.style.display = 'block';
+}
+
+function tampilError(msg) {
+    document.getElementById('loadingBox').style.display = 'none';
+    document.getElementById('errorMsg').textContent = msg || 'Data tidak ditemukan.';
+    document.getElementById('errorBox').style.display = 'block';
+}
+
+async function muatDariFirebase(fbKey) {
+    setStatus('Menghubungkan ke database…');
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+        var db = firebase.database();
+
+        setStatus('Mencari data…');
+
+        // 1. Coba dataFinal
+        var snap = await db.ref('bukuTamu/dataFinal/' + fbKey).get();
+        if (snap.exists()) { renderDetail(snap.val()); return; }
+
+        // 2. Coba dataSementara (data belum dikonfirmasi — link dikirim WA saat masih sementara)
+        snap = await db.ref('bukuTamu/dataSementara/' + fbKey).get();
+        if (snap.exists()) { renderDetail(snap.val()); return; }
+
+        tampilError('Data tidak ditemukan di server. Link mungkin sudah tidak valid.');
+    } catch(e) {
+        console.error('Firebase error:', e);
+        tampilError('Gagal memuat dari server: ' + e.message);
+    }
+}
+
+function muatDariBase64(encoded) {
+    try {
+        setStatus('Membaca data dari link…');
+        var json = decodeURIComponent(escape(atob(encoded)));
+        var data = JSON.parse(json);
+        renderDetail(data);
+    } catch(e) {
+        tampilError('Format link tidak valid atau data rusak.');
+    }
+}
+
+(function init() {
+    var params = new URLSearchParams(window.location.search);
+    var fbKey  = params.get('key');
+    var tamu   = params.get('tamu');
+
+    if (fbKey) {
+        muatDariFirebase(decodeURIComponent(fbKey));
+    } else if (tamu) {
+        muatDariBase64(tamu);
+    } else {
+        tampilError('Tidak ada parameter di URL. Pastikan link yang dibuka sudah benar.');
+    }
+})();
+</script>
 </body>
 </html>
