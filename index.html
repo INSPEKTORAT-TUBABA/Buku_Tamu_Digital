@@ -2911,22 +2911,21 @@ function _tampilErrorTamu(pesan) {
 }
 
 function _tampilHalamanTamu(data) {
-    // Sembunyikan welcome page & seluruh app
+    // ── Sembunyikan seluruh halaman app ──
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    const wp = document.getElementById('welcomePage');
-    if (wp) wp.style.display = 'none';
-    const mainApp = document.getElementById('mainApp');
-    if (mainApp) mainApp.style.display = 'none';
+    ['welcomePage','mainApp','pageScroller'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
 
-    // Helper escHtml lokal
+    // ── Helper ──
     function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-    // Format waktu tabel: "27/3/2026, 14.27.41"
     function _fmtTs(ts) {
         if (!ts) return '-';
         try {
-            const d = new Date(ts);
+            var d = new Date(ts);
             if (isNaN(d)) return String(ts);
             return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+', '+
                    String(d.getHours()).padStart(2,'0')+'.'+
@@ -2935,14 +2934,13 @@ function _tampilHalamanTamu(data) {
         } catch(e){ return String(ts); }
     }
 
-    // Format header timestamp
     function _fmtHdr(ts) {
         if (!ts) return {tgl:'',jam:''};
         try {
-            const d = new Date(ts);
+            var d = new Date(ts);
             if (isNaN(d)) return {tgl:String(ts),jam:''};
-            const H=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-            const B=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+            var H=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+            var B=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
             return {
                 tgl: H[d.getDay()]+', '+d.getDate()+' '+B[d.getMonth()]+' '+d.getFullYear(),
                 jam: String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')
@@ -2950,12 +2948,12 @@ function _tampilHalamanTamu(data) {
         } catch(e){ return {tgl:String(ts),jam:''}; }
     }
 
-    const noWa = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
-    const hdr  = _fmtHdr(data.timestamp||data.waktu||'');
-    const tsRaw = data.timestamp||data.waktu||'';
+    var noWa = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
+    var hdr  = _fmtHdr(data.timestamp||data.waktu||'');
+    var tsRaw = data.timestamp||data.waktu||'';
 
-    // ── Isi tabel data ke overlayPratinjau ──
-    const rows = [];
+    // ── Baris tabel ──
+    var rows = [];
     if (data.nama)        rows.push({lbl:'Nama Lengkap',         val:'<b>'+_esc(data.nama)+'</b>'});
     if (data.asal)        rows.push({lbl:'Asal',                 val:_esc(data.asal==='INSTANSI'?'Instansi / Unit Kerja':'Masyarakat')});
     if (data.asal==='INSTANSI'&&data.instansi)
@@ -2970,92 +2968,149 @@ function _tampilHalamanTamu(data) {
     if (data.nomorHp)     rows.push({lbl:'Nomor WhatsApp',       val:'<a href="https://wa.me/'+noWa+'" style="color:#075e54;font-weight:700;text-decoration:none;">'+_esc(data.nomorHp)+'</a>'});
     if (tsRaw)            rows.push({lbl:'Waktu Kunjungan',      val:_esc(_fmtTs(tsRaw))});
 
-    // Isi opDataTable
-    const tbl = document.getElementById('opDataTable');
-    if (tbl) {
-        tbl.innerHTML = rows.map(r=>
-            '<div class="op-row">'+
-              '<div class="op-rlbl">'+r.lbl+'</div>'+
-              '<div class="op-rsep">:</div>'+
-              '<div class="op-rval">'+r.val+'</div>'+
-            '</div>'
-        ).join('');
-    }
+    var rowsHtml = rows.map(function(r){
+        return '<div class="op-row">'+
+               '<div class="op-rlbl">'+r.lbl+'</div>'+
+               '<div class="op-rsep">:</div>'+
+               '<div class="op-rval">'+r.val+'</div>'+
+               '</div>';
+    }).join('');
 
-    // ── Timestamp di header overlay ──
-    const ts = document.getElementById('opTimestamp');
-    if (ts) ts.innerHTML = _esc(hdr.tgl)+(hdr.jam?'<br>'+_esc(hdr.jam):'');
+    // ── HTML foto & TTD ──
+    var fotoHtml =
+        '<div class="op-foto-grid">'+
+          '<div class="op-foto-box">'+
+            '<div class="op-foto-label">Foto Depan</div>'+
+            (data.fotoFront
+              ? '<img class="op-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" loading="lazy" style="display:block;">'
+              : '<div class="op-foto-empty">Belum ada foto</div>')+
+          '</div>'+
+          '<div class="op-foto-box">'+
+            '<div class="op-foto-label">Foto Belakang</div>'+
+            (data.fotoBack
+              ? '<img class="op-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" loading="lazy" style="display:block;">'
+              : '<div class="op-foto-empty">Belum ada foto</div>')+
+          '</div>'+
+        '</div>';
 
-    // ── Foto depan ──
-    const opFront  = document.getElementById('opImgFront');
-    const opFrontE = document.getElementById('opImgFrontEmpty');
-    if (data.fotoFront) {
-        if (opFront)  { opFront.src = data.fotoFront; opFront.style.display = 'block'; }
-        if (opFrontE) opFrontE.style.display = 'none';
-    } else {
-        if (opFront)  opFront.style.display = 'none';
-        if (opFrontE) opFrontE.style.display = 'flex';
-    }
-
-    // ── Foto belakang ──
-    const opBack  = document.getElementById('opImgBack');
-    const opBackE = document.getElementById('opImgBackEmpty');
-    if (data.fotoBack) {
-        if (opBack)  { opBack.src = data.fotoBack; opBack.style.display = 'block'; }
-        if (opBackE) opBackE.style.display = 'none';
-    } else {
-        if (opBack)  opBack.style.display = 'none';
-        if (opBackE) opBackE.style.display = 'flex';
-    }
-
-    // ── Tanda Tangan ──
-    const opTTD  = document.getElementById('opImgTTD');
-    const opTTDE = document.getElementById('opTTDEmpty');
-    const opNama = document.getElementById('opNamaTTD');
+    var ttdHtml = '';
     if (data.tandaTangan) {
-        if (opTTD)  { opTTD.src = data.tandaTangan; opTTD.style.display = 'block'; }
-        if (opTTDE) opTTDE.style.display = 'none';
-    } else {
-        if (opTTD)  opTTD.style.display = 'none';
-        if (opTTDE) opTTDE.style.display = 'flex';
-    }
-    if (opNama) opNama.textContent = data.nama||'';
-
-    // ── Sembunyikan kartu foto jika tidak ada sama sekali ──
-    const opCardFoto = document.getElementById('opCardFoto');
-    if (opCardFoto) {
-        opCardFoto.style.display = (data.fotoFront||data.fotoBack||data.tandaTangan) ? '' : 'none';
+        ttdHtml =
+            '<div class="op-ttd-wrap">'+
+              '<div class="op-foto-label">Tanda Tangan</div>'+
+              '<div class="op-ttd-box">'+
+                '<img class="op-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan" style="display:block;">'+
+              '</div>'+
+              '<div class="op-nama-ttd">'+_esc(data.nama||'')+'</div>'+
+            '</div>';
     }
 
-    // ── Sembunyikan footer tombol (Edit & Simpan) — hanya view saja untuk pihak yang dituju ──
-    const opFooter = document.querySelector('#overlayPratinjau .op-footer');
-    if (opFooter) opFooter.style.display = 'none';
+    var adaFotoDok = !!(data.fotoFront || data.fotoBack || data.tandaTangan);
 
-    // ── Tampilkan overlayPratinjau full-screen ──
-    const overlay = document.getElementById('overlayPratinjau');
-    if (!overlay) return;
+    // ── Buat elemen overlay baru langsung di body (BEBAS dari pageScroller) ──
+    var existing = document.getElementById('_tamuOverlay');
+    if (existing) existing.remove();
 
-    // Paksa overlay tampil sebagai full-screen
-    overlay.style.display = 'flex';
-    overlay.style.zIndex  = '99500';
+    var overlay = document.createElement('div');
+    overlay.id = '_tamuOverlay';
+    overlay.style.cssText = [
+        'position:fixed',
+        'inset:0',
+        'z-index:999999',
+        'display:flex',
+        'align-items:flex-end',
+        'justify-content:center',
+        'background:rgba(5,8,30,0.92)',
+        'font-family:Arial,sans-serif'
+    ].join(';');
 
-    // Backdrop tidak perlu klik-tutup — biarkan tersembunyi
-    const backdrop = overlay.querySelector('.op-backdrop');
-    if (backdrop) backdrop.style.display = 'none';
+    overlay.innerHTML =
+        '<div style="'+[
+            'position:relative',
+            'width:100%',
+            'max-width:680px',
+            'height:100dvh',
+            'height:100vh',
+            'display:flex',
+            'flex-direction:column',
+            'background:#f7f3eb',
+            'overflow:hidden',
+            'box-shadow:0 -8px 40px rgba(13,31,69,0.45),0 0 0 1.5px rgba(212,168,32,0.45)'
+        ].join(';')+'">'+
 
-    // Panel naik ke full height (tidak ada sheet-bottom lagi)
-    const panel = document.getElementById('opPanel');
-    if (panel) {
-        panel.style.maxHeight = '100dvh';
-        panel.style.maxHeight = '100vh';
-        panel.style.borderRadius = '0';
-        panel.style.margin = '0';
-        panel.style.animation = 'opSlideUp 0.42s cubic-bezier(0.22,1,0.36,1) both';
+            // ── Header ──
+            '<div style="'+[
+                'flex-shrink:0',
+                'background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%)',
+                'padding:14px 16px 12px',
+                'border-bottom:2.5px solid #d4a820',
+                'display:flex',
+                'align-items:center',
+                'justify-content:center',
+                'gap:10px'
+            ].join(';')+'">'+
+                '<img src="logo-tubaba.png" alt="Logo" onerror="this.style.display=\'none\'" style="width:38px;height:38px;object-fit:contain;flex-shrink:0;">'+
+                '<div style="text-align:center;flex:1;min-width:0;">'+
+                    '<div style="font-size:0.80em;font-weight:800;color:#f5e07a;letter-spacing:0.08em;white-space:nowrap;">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
+                    '<div style="font-size:0.64em;color:rgba(245,224,122,0.70);letter-spacing:0.04em;margin-top:2px;">INSPEKTORAT DAERAH &middot; KAB. TULANG BAWANG BARAT</div>'+
+                    (hdr.tgl ? '<div style="font-size:0.62em;color:rgba(245,224,122,0.55);margin-top:3px;">'+_esc(hdr.tgl)+(hdr.jam?' &nbsp;|&nbsp; '+_esc(hdr.jam):'')+'</div>' : '')+
+                '</div>'+
+            '</div>'+
+
+            // ── Body scrollable ──
+            '<div style="'+[
+                'flex:1',
+                'overflow-y:auto',
+                '-webkit-overflow-scrolling:touch',
+                'padding:14px 14px 18px',
+                'box-sizing:border-box'
+            ].join(';')+'">'+
+
+                // Kartu Data Tamu
+                '<div style="background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 10px rgba(13,31,69,0.08);">'+
+                    '<div style="background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;">&#128203; DATA TAMU</div>'+
+                    '<div>'+rowsHtml+'</div>'+
+                '</div>'+
+
+                // Kartu Dokumentasi & TTD (hanya jika ada)
+                (adaFotoDok ?
+                '<div style="background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 10px rgba(13,31,69,0.08);">'+
+                    '<div style="background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
+                    fotoHtml+
+                    ttdHtml+
+                '</div>'
+                : '')+
+
+            '</div>'+
+        '</div>';
+
+    // Inject style op-row ke head jika belum ada
+    if (!document.getElementById('_tamuOverlayStyle')) {
+        var st = document.createElement('style');
+        st.id = '_tamuOverlayStyle';
+        st.textContent = [
+            '#_tamuOverlay .op-row{display:grid;grid-template-columns:140px 12px 1fr;border-bottom:1px solid rgba(212,168,32,0.14);min-height:38px;}',
+            '#_tamuOverlay .op-row:last-child{border-bottom:none;}',
+            '#_tamuOverlay .op-row:nth-child(odd){background:#fffef8;}',
+            '#_tamuOverlay .op-row:nth-child(even){background:#fff;}',
+            '#_tamuOverlay .op-rlbl{padding:9px 8px 9px 14px;font-size:0.78em;font-weight:700;color:#0d1f45;border-right:2px solid rgba(212,168,32,0.28);background:rgba(253,242,220,0.50);display:flex;align-items:center;line-height:1.3;}',
+            '#_tamuOverlay .op-rsep{display:flex;align-items:center;justify-content:center;font-weight:800;color:#b8860b;font-size:0.85em;}',
+            '#_tamuOverlay .op-rval{padding:9px 12px;font-size:0.84em;font-weight:600;color:#1a1a2e;display:flex;align-items:center;word-break:break-word;line-height:1.4;}',
+            '#_tamuOverlay .op-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 6px;}',
+            '#_tamuOverlay .op-foto-box{display:flex;flex-direction:column;align-items:center;gap:6px;}',
+            '#_tamuOverlay .op-foto-label{font-size:0.72em;font-weight:700;color:#0d1f45;letter-spacing:0.05em;text-transform:uppercase;align-self:flex-start;}',
+            '#_tamuOverlay .op-foto-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,168,32,0.35);box-shadow:0 2px 8px rgba(13,31,69,0.14);}',
+            '#_tamuOverlay .op-foto-empty{width:100%;aspect-ratio:4/3;background:#f0ead8;border:1.5px dashed rgba(212,168,32,0.40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72em;color:#aaa;}',
+            '#_tamuOverlay .op-ttd-wrap{padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;}',
+            '#_tamuOverlay .op-ttd-box{width:100%;max-width:340px;min-height:80px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
+            '#_tamuOverlay .op-ttd-img{width:100%;max-height:110px;object-fit:contain;}',
+            '#_tamuOverlay .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:8px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:340px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
+            '@media(max-width:480px){#_tamuOverlay .op-row{grid-template-columns:110px 10px 1fr;}#_tamuOverlay .op-rlbl{font-size:0.74em;padding:8px 6px 8px 10px;}}'
+        ].join('\n');
+        document.head.appendChild(st);
     }
 
-    // Scroll ke atas
-    const opBody = document.getElementById('opBody');
-    if (opBody) opBody.scrollTop = 0;
+    document.body.appendChild(overlay);
 }
 
 // Helper escHtml jika belum ada di scope ini
