@@ -1173,26 +1173,16 @@
         }
 
         /* ── Header ── */
-       .op-htitle {
-    font-size: 1.18em;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-    margin: 0;
-    text-align: center;
-    flex: 1;
-}
         .op-header {
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #0d1f45 0%, #1a3a6e 60%, #0d1f45 100%);
-    padding: 16px 20px;
-    border-bottom: 2.5px solid transparent;
-    border-image: linear-gradient(90deg, transparent, #d4a820, #f5e07a, #d4a820, transparent) 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;     /* ← Baris ini yang membuat teks di tengah */
-    gap: 12px;
-    text-align: center;
-}
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #0d1f45 0%, #1a3a6e 60%, #0d1f45 100%);
+            padding: 14px 16px 12px;
+            border-bottom: 2.5px solid transparent;
+            border-image: linear-gradient(90deg, transparent, #d4a820, #f5e07a, #d4a820, transparent) 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .op-header-logo {
             display: flex;
             align-items: center;
@@ -2409,32 +2399,26 @@
                 <!-- JAM TUTUP — satu baris penuh -->
                <!-- HEADER BARU - VERSI KIRIM KE PIHAK TUJUAN -->
 <!-- HEADER BARU - TEKS BUKU TAMU DIGITAL DI TENGAH -->
-<!-- HEADER BARU - TEKS BUKU TAMU DIGITAL DI TENGAH (untuk pratinjau kirim) -->
 <div style="background: linear-gradient(135deg, #0d1f45 0%, #1a3560 100%); 
             color: white; 
-            padding: 40px 20px 32px 20px; 
+            padding: 38px 20px 30px 20px; 
             text-align: center; 
             border-bottom: 5px solid #d4a820; 
-            margin-bottom: 16px;">
+            position: relative;
+            margin-bottom: 15px;">
 
-    <div style="font-size: 1.58em; 
+    <!-- Teks Utama di Tengah -->
+    <div style="font-size: 1.55em; 
                 font-weight: 900; 
-                letter-spacing: 0.16em; 
+                letter-spacing: 0.15em; 
                 text-transform: uppercase; 
-                margin-bottom: 12px;
+                margin-bottom: 10px;
                 background: linear-gradient(90deg, #f5e07a, #ffffff, #f5e07a);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;">
         BUKU TAMU DIGITAL
     </div>
     
-    <div style="font-size: 0.98em; 
-                font-weight: 600; 
-                letter-spacing: 0.07em; 
-                opacity: 0.93;">
-        INSPEKTORAT DAERAH • KAB. TULANG BAWANG BARAT
-    </div>
-</div>    
     <!-- Nama Instansi -->
     <div style="font-size: 0.97em; 
                 font-weight: 600; 
@@ -2485,7 +2469,9 @@
                         <div class="op-hsubtitle">INSPEKTORAT DAERAH · KAB. TULANG BAWANG BARAT</div>
                     </div>
                 </div>
-               
+                <div class="op-timestamp" id="opTimestamp"></div>
+                <button class="op-close-btn" onclick="tutupOverlay()" title="Tutup">✕</button>
+            </div>
 
             <!-- Body scrollable -->
             <div class="op-body" id="opBody">
