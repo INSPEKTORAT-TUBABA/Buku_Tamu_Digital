@@ -2916,7 +2916,7 @@ function _tampilHalamanTamu(data) {
     document.documentElement.style.overflow = 'hidden';
     ['welcomePage','mainApp','pageScroller'].forEach(function(id){
         var el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+        if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
     });
 
     // ── Helper ──
@@ -2948,172 +2948,163 @@ function _tampilHalamanTamu(data) {
         } catch(e){ return {tgl:String(ts),jam:''}; }
     }
 
-    var noWa = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
-    var hdr  = _fmtHdr(data.timestamp||data.waktu||'');
+    var noWa  = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
+    var hdr   = _fmtHdr(data.timestamp||data.waktu||'');
     var tsRaw = data.timestamp||data.waktu||'';
 
     // ── Baris tabel ──
     var rows = [];
-    if (data.nama)        rows.push({lbl:'Nama Lengkap',         val:'<b>'+_esc(data.nama)+'</b>'});
-    if (data.asal)        rows.push({lbl:'Asal',                 val:_esc(data.asal==='INSTANSI'?'Instansi / Unit Kerja':'Masyarakat')});
+    if (data.nama)         rows.push({lbl:'Nama Lengkap',         val:'<b>'+_esc(data.nama)+'</b>'});
+    if (data.asal)         rows.push({lbl:'Asal',                 val:_esc(data.asal==='INSTANSI'?'Instansi / Unit Kerja':'Masyarakat')});
     if (data.asal==='INSTANSI'&&data.instansi)
-                          rows.push({lbl:'Instansi / Unit Kerja',val:_esc(data.instansi)});
+                           rows.push({lbl:'Instansi / Unit Kerja',val:_esc(data.instansi)});
     if (data.asal==='MASYARAKAT'&&data.kecamatan)
-                          rows.push({lbl:'Kecamatan',            val:_esc(data.kecamatan)});
+                           rows.push({lbl:'Kecamatan',            val:_esc(data.kecamatan)});
     if (data.asal==='MASYARAKAT'&&data.desa)
-                          rows.push({lbl:'Desa / Kelurahan',     val:_esc(data.desa)});
-    if (data.pihakDitemui)rows.push({lbl:'Pihak yang Ditemui',  val:_esc(data.pihakDitemui)});
-    if (data.jenisLayanan)rows.push({lbl:'Jenis Layanan',        val:_esc(data.jenisLayanan)});
-    if (data.uraian)      rows.push({lbl:'Uraian Keperluan',     val:_esc(data.uraian)});
-    if (data.nomorHp)     rows.push({lbl:'Nomor WhatsApp',       val:'<a href="https://wa.me/'+noWa+'" style="color:#075e54;font-weight:700;text-decoration:none;">'+_esc(data.nomorHp)+'</a>'});
-    if (tsRaw)            rows.push({lbl:'Waktu Kunjungan',      val:_esc(_fmtTs(tsRaw))});
+                           rows.push({lbl:'Desa / Kelurahan',     val:_esc(data.desa)});
+    if (data.pihakDitemui) rows.push({lbl:'Pihak yang Ditemui',  val:_esc(data.pihakDitemui)});
+    if (data.jenisLayanan) rows.push({lbl:'Jenis Layanan',        val:_esc(data.jenisLayanan)});
+    if (data.uraian)       rows.push({lbl:'Uraian Keperluan',     val:_esc(data.uraian)});
+    if (data.nomorHp)      rows.push({lbl:'Nomor WhatsApp',       val:'<a href="https://wa.me/'+noWa+'" style="color:#075e54;font-weight:700;text-decoration:none;">'+_esc(data.nomorHp)+'</a>'});
+    if (tsRaw)             rows.push({lbl:'Waktu Kunjungan',      val:_esc(_fmtTs(tsRaw))});
 
     var rowsHtml = rows.map(function(r){
-        return '<div class="op-row">'+
-               '<div class="op-rlbl">'+r.lbl+'</div>'+
-               '<div class="op-rsep">:</div>'+
-               '<div class="op-rval">'+r.val+'</div>'+
+        return '<div class="_to-row">'+
+               '<div class="_to-lbl">'+r.lbl+'</div>'+
+               '<div class="_to-sep">:</div>'+
+               '<div class="_to-val">'+r.val+'</div>'+
                '</div>';
     }).join('');
 
-    // ── HTML foto & TTD ──
-    var fotoHtml =
-        '<div class="op-foto-grid">'+
-          '<div class="op-foto-box">'+
-            '<div class="op-foto-label">Foto Depan</div>'+
-            (data.fotoFront
-              ? '<img class="op-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" loading="lazy" style="display:block;">'
-              : '<div class="op-foto-empty">Belum ada foto</div>')+
-          '</div>'+
-          '<div class="op-foto-box">'+
-            '<div class="op-foto-label">Foto Belakang</div>'+
-            (data.fotoBack
-              ? '<img class="op-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" loading="lazy" style="display:block;">'
-              : '<div class="op-foto-empty">Belum ada foto</div>')+
-          '</div>'+
-        '</div>';
-
-    var ttdHtml = '';
-    if (data.tandaTangan) {
-        ttdHtml =
-            '<div class="op-ttd-wrap">'+
-              '<div class="op-foto-label">Tanda Tangan</div>'+
-              '<div class="op-ttd-box">'+
-                '<img class="op-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan" style="display:block;">'+
-              '</div>'+
-              '<div class="op-nama-ttd">'+_esc(data.nama||'')+'</div>'+
+    // ── Foto & TTD HTML ──
+    var adaFotoDok = !!(data.fotoFront||data.fotoBack||data.tandaTangan);
+    var fotoDokHtml = '';
+    if (adaFotoDok) {
+        fotoDokHtml =
+            '<div class="_to-card">'+
+                '<div class="_to-card-title">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
+                '<div class="_to-foto-grid">'+
+                    '<div class="_to-foto-box">'+
+                        '<div class="_to-foto-lbl">FOTO DEPAN</div>'+
+                        (data.fotoFront
+                            ? '<img class="_to-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" loading="lazy">'
+                            : '<div class="_to-foto-empty">Belum ada foto</div>')+
+                    '</div>'+
+                    '<div class="_to-foto-box">'+
+                        '<div class="_to-foto-lbl">FOTO BELAKANG</div>'+
+                        (data.fotoBack
+                            ? '<img class="_to-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" loading="lazy">'
+                            : '<div class="_to-foto-empty">Belum ada foto</div>')+
+                    '</div>'+
+                '</div>'+
+                (data.tandaTangan ?
+                    '<div class="_to-ttd-wrap">'+
+                        '<div class="_to-foto-lbl">TANDA TANGAN</div>'+
+                        '<div class="_to-ttd-box">'+
+                            '<img class="_to-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan">'+
+                        '</div>'+
+                        '<div class="_to-nama-ttd">'+_esc(data.nama||'')+'</div>'+
+                    '</div>'
+                : '')+
             '</div>';
     }
 
-    var adaFotoDok = !!(data.fotoFront || data.fotoBack || data.tandaTangan);
+    // ── Inject CSS ──
+    if (!document.getElementById('_toStyle')) {
+        var st = document.createElement('style');
+        st.id = '_toStyle';
+        st.textContent = [
+            /* Reset & wrapper utama */
+            '#_tamuOverlay{',
+            '  position:fixed;top:0;left:0;right:0;bottom:0;',
+            '  z-index:999999;',
+            '  background:#f0f4f8;',
+            '  overflow-y:auto;',
+            '  -webkit-overflow-scrolling:touch;',
+            '  overscroll-behavior:contain;',
+            '  font-family:Arial,sans-serif;',
+            '  box-sizing:border-box;',
+            /* Padding atas = safe-area-inset-top untuk notch/status bar */
+            '  padding-top:env(safe-area-inset-top,0px);',
+            '  padding-bottom:env(safe-area-inset-bottom,0px);',
+            '}',
+            /* Header sticky */
+            '._to-header{',
+            '  position:sticky;top:0;z-index:10;',
+            '  background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%);',
+            '  padding:14px 16px 12px;',
+            '  border-bottom:2.5px solid #d4a820;',
+            '  display:flex;align-items:center;justify-content:center;gap:10px;',
+            '  box-shadow:0 4px 16px rgba(13,31,69,0.40);',
+            '}',
+            '._to-logo{width:36px;height:36px;object-fit:contain;flex-shrink:0;}',
+            '._to-htext{text-align:center;flex:1;min-width:0;}',
+            '._to-htitle{font-size:0.80em;font-weight:800;color:#f5e07a;letter-spacing:0.08em;white-space:nowrap;}',
+            '._to-hsub{font-size:0.63em;color:rgba(245,224,122,0.72);letter-spacing:0.04em;margin-top:2px;}',
+            '._to-hts{font-size:0.61em;color:rgba(245,224,122,0.52);margin-top:3px;}',
+            /* Konten dalam */
+            '._to-body{max-width:680px;width:100%;margin:0 auto;padding:14px 12px 24px;box-sizing:border-box;}',
+            /* Kartu */
+            '._to-card{background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,31,69,0.08);}',
+            '._to-card-title{background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;}',
+            /* Baris tabel */
+            '._to-row{display:grid;grid-template-columns:130px 12px 1fr;border-bottom:1px solid rgba(212,168,32,0.14);min-height:38px;}',
+            '._to-row:last-child{border-bottom:none;}',
+            '._to-row:nth-child(odd){background:#fffef8;}',
+            '._to-row:nth-child(even){background:#fff;}',
+            '._to-lbl{padding:9px 8px 9px 14px;font-size:0.78em;font-weight:700;color:#0d1f45;border-right:2px solid rgba(212,168,32,0.28);background:rgba(253,242,220,0.50);display:flex;align-items:center;line-height:1.3;}',
+            '._to-sep{display:flex;align-items:center;justify-content:center;font-weight:800;color:#b8860b;font-size:0.85em;}',
+            '._to-val{padding:9px 12px;font-size:0.84em;font-weight:600;color:#1a1a2e;display:flex;align-items:center;word-break:break-word;line-height:1.4;}',
+            /* Foto grid */
+            '._to-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 6px;}',
+            '._to-foto-box{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}',
+            '._to-foto-lbl{font-size:0.72em;font-weight:700;color:#0d1f45;letter-spacing:0.05em;text-transform:uppercase;}',
+            '._to-foto-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,168,32,0.35);box-shadow:0 2px 8px rgba(13,31,69,0.14);display:block;}',
+            '._to-foto-empty{width:100%;aspect-ratio:4/3;background:#f0ead8;border:1.5px dashed rgba(212,168,32,0.40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72em;color:#aaa;}',
+            /* TTD */
+            '._to-ttd-wrap{padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;}',
+            '._to-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
+            '._to-ttd-img{width:100%;max-height:120px;object-fit:contain;display:block;}',
+            '._to-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
+            /* Responsive kecil */
+            '@media(max-width:400px){',
+            '  ._to-row{grid-template-columns:105px 10px 1fr;}',
+            '  ._to-lbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
+            '  ._to-val{font-size:0.80em;padding:8px 8px;}',
+            '}',
+        ].join('\n');
+        document.head.appendChild(st);
+    }
 
-    // ── Buat elemen overlay baru langsung di body (BEBAS dari pageScroller) ──
+    // ── Buat / reset elemen overlay ──
     var existing = document.getElementById('_tamuOverlay');
     if (existing) existing.remove();
 
     var overlay = document.createElement('div');
     overlay.id = '_tamuOverlay';
-    overlay.style.cssText = [
-        'position:fixed',
-        'inset:0',
-        'z-index:999999',
-        'display:flex',
-        'align-items:flex-end',
-        'justify-content:center',
-        'background:rgba(5,8,30,0.92)',
-        'font-family:Arial,sans-serif'
-    ].join(';');
 
     overlay.innerHTML =
-        '<div style="'+[
-            'position:relative',
-            'width:100%',
-            'max-width:680px',
-            'height:100dvh',
-            'height:100vh',
-            'display:flex',
-            'flex-direction:column',
-            'background:#f7f3eb',
-            'overflow:hidden',
-            'box-shadow:0 -8px 40px rgba(13,31,69,0.45),0 0 0 1.5px rgba(212,168,32,0.45)'
-        ].join(';')+'">'+
-
-            // ── Header ──
-            '<div style="'+[
-                'flex-shrink:0',
-                'background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%)',
-                'padding-top:calc(14px + env(safe-area-inset-top, 0px))',
-                'padding-bottom:12px',
-                'padding-left:16px',
-                'padding-right:16px',
-                'border-bottom:2.5px solid #d4a820',
-                'display:flex',
-                'align-items:center',
-                'justify-content:center',
-                'gap:10px'
-            ].join(';')+'">'+
-                '<img src="logo-tubaba.png" alt="Logo" onerror="this.style.display=\'none\'" style="width:38px;height:38px;object-fit:contain;flex-shrink:0;">'+
-                '<div style="text-align:center;flex:1;min-width:0;">'+
-                    '<div style="font-size:0.80em;font-weight:800;color:#f5e07a;letter-spacing:0.08em;white-space:nowrap;">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
-                    '<div style="font-size:0.64em;color:rgba(245,224,122,0.70);letter-spacing:0.04em;margin-top:2px;">INSPEKTORAT DAERAH &middot; KAB. TULANG BAWANG BARAT</div>'+
-                    (hdr.tgl ? '<div style="font-size:0.62em;color:rgba(245,224,122,0.55);margin-top:3px;">'+_esc(hdr.tgl)+(hdr.jam?' &nbsp;|&nbsp; '+_esc(hdr.jam):'')+'</div>' : '')+
-                '</div>'+
+        // Header sticky
+        '<div class="_to-header">'+
+            '<img class="_to-logo" src="logo-tubaba.png" alt="Logo" onerror="this.style.display=\'none\'">'+
+            '<div class="_to-htext">'+
+                '<div class="_to-htitle">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
+                '<div class="_to-hsub">INSPEKTORAT DAERAH &middot; KAB. TULANG BAWANG BARAT</div>'+
+                (hdr.tgl ? '<div class="_to-hts">'+_esc(hdr.tgl)+(hdr.jam?' &nbsp;|&nbsp; '+_esc(hdr.jam):'')+'</div>' : '')+
             '</div>'+
-
-            // ── Body scrollable ──
-            '<div style="'+[
-                'flex:1',
-                'overflow-y:auto',
-                '-webkit-overflow-scrolling:touch',
-                'padding:14px 14px calc(18px + env(safe-area-inset-bottom, 0px)) 14px',
-                'box-sizing:border-box'
-            ].join(';')+'">'+
-
-                // Kartu Data Tamu
-                '<div style="background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 10px rgba(13,31,69,0.08);">'+
-                    '<div style="background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;">&#128203; DATA TAMU</div>'+
-                    '<div>'+rowsHtml+'</div>'+
-                '</div>'+
-
-                // Kartu Dokumentasi & TTD (hanya jika ada)
-                (adaFotoDok ?
-                '<div style="background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 10px rgba(13,31,69,0.08);">'+
-                    '<div style="background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
-                    fotoHtml+
-                    ttdHtml+
-                '</div>'
-                : '')+
-
+        '</div>'+
+        // Body konten
+        '<div class="_to-body">'+
+            '<div class="_to-card">'+
+                '<div class="_to-card-title">&#128203; DATA TAMU</div>'+
+                rowsHtml+
             '</div>'+
+            fotoDokHtml+
         '</div>';
 
-    // Inject style op-row ke head jika belum ada
-    if (!document.getElementById('_tamuOverlayStyle')) {
-        var st = document.createElement('style');
-        st.id = '_tamuOverlayStyle';
-        st.textContent = [
-            '#_tamuOverlay .op-row{display:grid;grid-template-columns:140px 12px 1fr;border-bottom:1px solid rgba(212,168,32,0.14);min-height:38px;}',
-            '#_tamuOverlay .op-row:last-child{border-bottom:none;}',
-            '#_tamuOverlay .op-row:nth-child(odd){background:#fffef8;}',
-            '#_tamuOverlay .op-row:nth-child(even){background:#fff;}',
-            '#_tamuOverlay .op-rlbl{padding:9px 8px 9px 14px;font-size:0.78em;font-weight:700;color:#0d1f45;border-right:2px solid rgba(212,168,32,0.28);background:rgba(253,242,220,0.50);display:flex;align-items:center;line-height:1.3;}',
-            '#_tamuOverlay .op-rsep{display:flex;align-items:center;justify-content:center;font-weight:800;color:#b8860b;font-size:0.85em;}',
-            '#_tamuOverlay .op-rval{padding:9px 12px;font-size:0.84em;font-weight:600;color:#1a1a2e;display:flex;align-items:center;word-break:break-word;line-height:1.4;}',
-            '#_tamuOverlay .op-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 6px;}',
-            '#_tamuOverlay .op-foto-box{display:flex;flex-direction:column;align-items:center;gap:6px;}',
-            '#_tamuOverlay .op-foto-label{font-size:0.72em;font-weight:700;color:#0d1f45;letter-spacing:0.05em;text-transform:uppercase;align-self:flex-start;}',
-            '#_tamuOverlay .op-foto-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,168,32,0.35);box-shadow:0 2px 8px rgba(13,31,69,0.14);}',
-            '#_tamuOverlay .op-foto-empty{width:100%;aspect-ratio:4/3;background:#f0ead8;border:1.5px dashed rgba(212,168,32,0.40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72em;color:#aaa;}',
-            '#_tamuOverlay .op-ttd-wrap{padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;}',
-            '#_tamuOverlay .op-ttd-box{width:100%;max-width:340px;min-height:80px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
-            '#_tamuOverlay .op-ttd-img{width:100%;max-height:110px;object-fit:contain;}',
-            '#_tamuOverlay .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:8px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:340px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            '@media(max-width:480px){#_tamuOverlay .op-row{grid-template-columns:110px 10px 1fr;}#_tamuOverlay .op-rlbl{font-size:0.74em;padding:8px 6px 8px 10px;}}'
-        ].join('\n');
-        document.head.appendChild(st);
-    }
-
     document.body.appendChild(overlay);
+    // Pastikan scroll mulai dari atas
+    overlay.scrollTop = 0;
 }
 
 // Helper escHtml jika belum ada di scope ini
