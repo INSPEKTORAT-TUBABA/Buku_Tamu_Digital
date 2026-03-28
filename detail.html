@@ -119,7 +119,7 @@
         /* Footer */
         .card-footer {
             background: #f0ead8; border: 1px solid rgba(212,168,32,.22); border-top: none;
-            padding: 11px 16px; text-align: center; font-size: .70em; color: #888;
+            padding: 11px 16px; text-align: center; font-size: .50em; color: #888;
             border-radius: 0 0 12px 12px;
             line-height: 1.7;
         }
@@ -271,10 +271,10 @@ function renderDetail(data) {
         + '</div>'
 
         /* FOOTER */
-        <meta property="og:type" content="website"/>
-    <meta property="og:title" content="Buku Tamu Digital - Inspektorat Daerah Tubaba"/>
-    <meta property="og:description" content="Sistem Buku Tamu Digital Inspektorat Daerah Kabupaten Tulang Bawang Barat"/>
-    <meta property="og:image" content="/icons/icon-512.png"/>
+        + '<div class="card-footer">'
+            + '<span class="footer-line1">Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital</span>'
+            + '<span class="footer-line2">— Inspektorat Daerah Kabupaten Tulang Bawang Barat</span>'
+        + '</div>';
 
     document.getElementById('loadingBox').style.display = 'none';
     var mc = document.getElementById('mainContent');
