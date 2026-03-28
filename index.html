@@ -1173,16 +1173,26 @@
         }
 
         /* ── Header ── */
+       .op-htitle {
+    font-size: 1.18em;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    margin: 0;
+    text-align: center;
+    flex: 1;
+}
         .op-header {
-            flex-shrink: 0;
-            background: linear-gradient(135deg, #0d1f45 0%, #1a3a6e 60%, #0d1f45 100%);
-            padding: 14px 16px 12px;
-            border-bottom: 2.5px solid transparent;
-            border-image: linear-gradient(90deg, transparent, #d4a820, #f5e07a, #d4a820, transparent) 1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #0d1f45 0%, #1a3a6e 60%, #0d1f45 100%);
+    padding: 16px 20px;
+    border-bottom: 2.5px solid transparent;
+    border-image: linear-gradient(90deg, transparent, #d4a820, #f5e07a, #d4a820, transparent) 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;     /* ← Baris ini yang membuat teks di tengah */
+    gap: 12px;
+    text-align: center;
+}
         .op-header-logo {
             display: flex;
             align-items: center;
