@@ -3042,7 +3042,10 @@ function _tampilHalamanTamu(data) {
             '<div style="'+[
                 'flex-shrink:0',
                 'background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%)',
-                'padding:14px 16px 12px',
+                'padding-top:calc(14px + env(safe-area-inset-top, 0px))',
+                'padding-bottom:12px',
+                'padding-left:16px',
+                'padding-right:16px',
                 'border-bottom:2.5px solid #d4a820',
                 'display:flex',
                 'align-items:center',
@@ -3062,7 +3065,7 @@ function _tampilHalamanTamu(data) {
                 'flex:1',
                 'overflow-y:auto',
                 '-webkit-overflow-scrolling:touch',
-                'padding:14px 14px 18px',
+                'padding:14px 14px calc(18px + env(safe-area-inset-bottom, 0px)) 14px',
                 'box-sizing:border-box'
             ].join(';')+'">'+
 
