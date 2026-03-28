@@ -147,9 +147,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            height: -webkit-fill-available;
+            height: 100%;
             background:
                 linear-gradient(170deg,
                     #071a3e 0%,
@@ -165,6 +163,17 @@
             padding: 26px;
             overflow: hidden;
             cursor: pointer;
+        }
+
+        /* Konten welcome (logo + teks) tidak ikut bergerak saat fullscreen/keyboard */
+        .welcome-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 8px 12px;
+            /* Paksa konten tetap di tengah terlepas dari perubahan tinggi viewport */
+            transform: none !important;
+            transition: none !important;
         }
 
         /* Partikel canvas (dipakai untuk motif dekoratif ringan) */
@@ -196,18 +205,6 @@
             background: linear-gradient(90deg, transparent, rgba(212,168,32,0.25), rgba(245,224,122,0.5), rgba(212,168,32,0.25), transparent);
             pointer-events: none;
             z-index: 1;
-        }
-
-        .welcome-content {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            padding: 8px 12px;
-            animation: contentRise 1.0s cubic-bezier(0.22,1,0.36,1) both;
-            width: 100%;
-            max-width: 100vw;
-            overflow: hidden;
-            box-sizing: border-box;
         }
 
         @keyframes contentRise {
@@ -2402,34 +2399,34 @@
                 </div>
 
                 <!-- JAM TUTUP — satu baris penuh -->
-               <!-- HEADER BARU - VERSI KIRIM KE PIHAK TUJUAN -->
-<div style="background: linear-gradient(135deg, #0d1f45 0%, #1a3560 100%); 
-            color: white; 
-            padding: 32px 20px 26px 20px; 
-            text-align: center; 
-            border-bottom: 5px solid #d4a820; 
-            margin-bottom: 15px;">
-
-    <!-- Teks BUKU TAMU DIGITAL di tengah dengan margin lebih longgar -->
-    <div style="font-size: 1.42em; 
-                font-weight: 900; 
-                letter-spacing: 0.12em; 
-                text-transform: uppercase; 
-                margin-bottom: 10px;
-                background: linear-gradient(90deg, #f5e07a, #ffffff, #f5e07a);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;">
-        BUKU TAMU DIGITAL
-    </div>
-    
-    <!-- Nama Instansi -->
-    <div style="font-size: 0.96em; 
-                font-weight: 600; 
-                letter-spacing: 0.05em; 
-                opacity: 0.92;">
-        INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT
-    </div>
-</div>
+                <div style="background:linear-gradient(135deg,#fff0f0,#fff5f5);border:2px solid #c0392b;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+                    <div style="font-size:0.78em;color:#c0392b;font-weight:800;letter-spacing:0.06em;margin-bottom:12px;text-align:center;">🔴 JAM TUTUP</div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                        <!-- jam -->
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+                            <button type="button" onclick="_ubahJam('tutup','jam',1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                            <div style="width:64px;height:52px;border:2px solid #c0392b;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                <span id="tutupJamDisp" style="font-size:1.9em;font-weight:900;color:#7b0000;font-family:monospace;">16</span>
+                            </div>
+                            <button type="button" onclick="_ubahJam('tutup','jam',-1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                            <input type="hidden" id="tutupJam" value="16" />
+                        </div>
+                        <span style="font-size:2.2em;font-weight:900;color:#7b0000;line-height:1;">:</span>
+                        <!-- menit -->
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+                            <button type="button" onclick="_ubahJam('tutup','menit',1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                            <div style="width:64px;height:52px;border:2px solid #c0392b;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                <span id="tutupMenitDisp" style="font-size:1.9em;font-weight:900;color:#7b0000;font-family:monospace;">00</span>
+                            </div>
+                            <button type="button" onclick="_ubahJam('tutup','menit',-1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                            <input type="hidden" id="tutupMenit" value="0" />
+                        </div>
+                        <div style="margin-left:10px;text-align:left;">
+                            <div style="font-size:0.75em;color:#666;margin-bottom:2px;">Jam</div>
+                            <div style="font-size:1em;font-weight:800;color:#c0392b;" id="tutupPreview">16:00</div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Info box -->
                 <div id="jamKerjaInfo" style="background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.88em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;"></div>
 
@@ -5574,6 +5571,11 @@ function editDariOverlay() {
                 document.getElementById('fieldInstansiLainnya').classList.add('hidden');
             }
 
+            // ── Sembunyikan SEMUA tombol Lanjut di mode edit ──
+            document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+                btn.style.display = 'none';
+            });
+
             // ── Resize canvas TTD ──
             resizeCanvas();
 
@@ -6138,24 +6140,30 @@ function kembaliKeFormIsian() {
     bersihJawab();
     hideAllFields();
 
-    // 3. Buka stepIsianModal ke field-nama
-    //    Paksa tutup dulu jika masih aktif, lalu buka ulang
+    // 3. Tutup paksa modal & backdrop step isian terlebih dahulu
     var modal = document.getElementById('stepIsianModal');
     var backdrop = document.getElementById('stepIsianBackdrop');
     var card = document.getElementById('siCard');
-    if (modal) modal.classList.remove('aktif');
+    if (modal) { modal.classList.remove('aktif'); modal.style.display = ''; }
     if (backdrop) backdrop.style.display = 'none';
-    if (card) { card.classList.remove('keluar'); }
+    if (card) card.classList.remove('keluar');
 
-    // Beri satu frame agar DOM update sebelum tampil
+    // 4. Kembalikan #stepInputArea ke posisi asli di dalam form jika sedang di modal
+    var area = document.getElementById('stepInputArea');
+    var formBody = document.getElementById('bukuTamuForm');
+    if (area && formBody && area.parentNode !== formBody) {
+        // Masukkan kembali ke form sebelum #field-nama
+        formBody.insertBefore(area, formBody.firstChild);
+    }
+
+    // 5. Buka stepIsianModal ke field-nama setelah DOM update
     setTimeout(function() {
         _tampilStepIsian('field-nama');
-        // Fokus ke input nama
         setTimeout(function() {
             var inputNama = document.getElementById('nama');
             if (inputNama) inputNama.focus();
         }, 120);
-    }, 60);
+    }, 80);
 }
 
 function showData() {
@@ -6364,6 +6372,11 @@ function editData(index) {
         editingSementara = false;
         _toggleTombolFoto();
 
+        // Sembunyikan semua tombol Lanjut
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
+
         forceShowEditFields();
         // Tampilkan field-aksi agar tombol foto & TTD terlihat
         document.getElementById('field-aksi').classList.remove('hidden');
@@ -6497,6 +6510,10 @@ function editSementara(sIndex) {
 
         _editBebasMode = true;
         _toggleTombolFoto();
+        // Sembunyikan semua tombol Lanjut
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
         forceShowEditFields();
         document.getElementById('field-aksi').classList.remove('hidden');
 
