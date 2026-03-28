@@ -145,16 +145,11 @@
         /* ══ WELCOME PAGE — BIRU DONGKER FORMAL PEMERINTAHAN ══ */
         #welcomePage {
             position: fixed;
-            top: 0; left: 0;
+            inset: 0;                    /* lebih stabil daripada top:0; left:0; width:100%; height:100% */
             width: 100%;
             height: 100%;
-            background:
-                linear-gradient(170deg,
-                    #071a3e 0%,
-                    #0d2a5e 30%,
-                    #0f3270 55%,
-                    #0a2050 80%,
-                    #050f28 100%);
+            height: 100dvh;              /* dynamic viewport height - sangat penting di HP modern */
+            background: linear-gradient(170deg, #071a3e 0%, #0d2a5e 30%, #0f3270 55%, #0a2050 80%, #050f28 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -163,6 +158,8 @@
             padding: 26px;
             overflow: hidden;
             cursor: pointer;
+            /* Penting: cegah pergeseran saat viewport berubah */
+            box-sizing: border-box;
         }
 
         /* Konten welcome (logo + teks) tidak ikut bergerak saat fullscreen/keyboard */
@@ -171,16 +168,27 @@
             z-index: 2;
             text-align: center;
             padding: 8px 12px;
-            /* Paksa konten tetap di tengah terlepas dari perubahan tinggi viewport */
-            transform: none !important;
+            max-width: 100%;
+            margin: 0 auto;
+            /* Agar tidak terpotong di layar kecil */
+
+            /* Fix utama: gunakan transform + will-change agar stabil */
+            transform: translateZ(0);
+            will-change: transform;
+
+            /* Hindari animasi/transform lain yang konflik saat resize */
             transition: none !important;
+            animation: none !important;   /* matikan sementara jika ada animasi rise */
         }
 
-        /* Partikel canvas (dipakai untuk motif dekoratif ringan) */
+        /* Pastikan canvas partikel juga tidak menyebabkan reflow besar */
         #particleCanvas {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -8739,6 +8747,60 @@ function _mapCariLokasi() {
     } else {
         pasangGestureAdmin();
     }
+})();
+</script>
+<script>
+// FIX GUNCANG WELCOME PAGE SAAT FULLSCREEN / ADDRESS BAR COLLAPSE
+(function() {
+    const welcomePage = document.getElementById('welcomePage');
+    const welcomeContent = document.querySelector('.welcome-content');
+
+    if (!welcomePage) return;
+
+    function adjustWelcomeLayout() {
+        if (!welcomePage || !welcomeContent) return;
+
+        // Gunakan visualViewport jika tersedia (paling akurat di Chrome Android)
+        if (window.visualViewport) {
+            const vv = window.visualViewport;
+            
+            // Set height secara eksplisit menggunakan visual viewport
+            welcomePage.style.height = vv.height + 'px';
+            
+            // Pusatkan konten dengan offset jika perlu
+            const offset = (vv.offsetTop || 0);
+            welcomeContent.style.transform = `translateY(${offset}px)`;
+        } 
+        else {
+            // Fallback untuk browser yang tidak support visualViewport
+            welcomePage.style.height = '100dvh';
+            welcomeContent.style.transform = 'none';
+        }
+    }
+
+    // Jalankan saat pertama kali
+    window.addEventListener('load', () => {
+        setTimeout(adjustWelcomeLayout, 100);
+        setTimeout(adjustWelcomeLayout, 600); // ekstra safety
+    });
+
+    // Pantau perubahan viewport (saat fullscreen, address bar hilang/muncul, rotate, dll)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', adjustWelcomeLayout);
+        window.visualViewport.addEventListener('scroll', adjustWelcomeLayout);
+    }
+
+    // Juga pantau resize biasa (untuk safety)
+    window.addEventListener('resize', () => {
+        setTimeout(adjustWelcomeLayout, 50);
+    });
+
+    // Reset transform saat welcome page disembunyikan
+    const originalHideWelcome = window.sembunyikanWelcomePage || function(){};
+    window.sembunyikanWelcomePage = function() {
+        if (welcomeContent) welcomeContent.style.transform = 'none';
+        if (typeof originalHideWelcome === 'function') originalHideWelcome();
+    };
 })();
 </script>
 </div><!-- /pageScroller -->
