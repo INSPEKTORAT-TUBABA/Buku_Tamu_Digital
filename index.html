@@ -7342,6 +7342,16 @@ async function fbMuatKonfigurasi() {
         if (cfg.geo_lon    !== undefined) { GEO_CONFIG.LON    = parseFloat(cfg.geo_lon)    || GEO_CONFIG.LON;    localStorage.setItem('geoLon',    cfg.geo_lon); }
         if (cfg.geo_radius !== undefined) { GEO_CONFIG.RADIUS = parseInt(cfg.geo_radius)   || GEO_CONFIG.RADIUS; localStorage.setItem('geoRadius', cfg.geo_radius); }
         if (cfg.geo_aktif  !== undefined) { GEO_CONFIG.AKTIF  = cfg.geo_aktif === true || cfg.geo_aktif === 'true' || cfg.geo_aktif === 1; localStorage.setItem('geoAktif', GEO_CONFIG.AKTIF ? '1' : '0'); }
+        // Muat titik lokasi multi-titik (format baru geo_titik) dari Firebase
+        if (cfg.geo_titik) {
+            try {
+                var _pt = typeof cfg.geo_titik === 'string' ? JSON.parse(cfg.geo_titik) : cfg.geo_titik;
+                if (Array.isArray(_pt) && _pt.length > 0) {
+                    GEO_CONFIG.TITIK = _pt;
+                    localStorage.setItem('geoTitik', JSON.stringify(_pt));
+                }
+            } catch(e) { console.warn('[FB-Config] geo_titik parse error:', e); }
+        }
         if (typeof _tampilStatusWA === 'function') _tampilStatusWA();
         console.log('[FB-Config] Konfigurasi dimuat dari Firebase ✓',
             'token:', CONFIG_FONNTE_TOKEN ? 'ada' : 'kosong',
@@ -7362,6 +7372,7 @@ async function _sinkronLokalKeFirebase() {
         const localGeoLon    = localStorage.getItem('geoLon')    || '';
         const localGeoRadius = localStorage.getItem('geoRadius') || '';
         const localGeoAktif  = localStorage.getItem('geoAktif');
+        const localGeoTitik  = localStorage.getItem('geoTitik');
         const updates = {};
         if (localToken)  updates['fonnte_token'] = localToken;
         if (localWorker) updates['worker_url']   = localWorker;
@@ -7374,6 +7385,7 @@ async function _sinkronLokalKeFirebase() {
         if (localGeoLon)    updates['geo_lon']    = parseFloat(localGeoLon);
         if (localGeoRadius) updates['geo_radius'] = parseInt(localGeoRadius);
         if (localGeoAktif !== null) updates['geo_aktif'] = localGeoAktif === '1';
+        if (localGeoTitik) { try { updates['geo_titik'] = localGeoTitik; } catch(e) {} }
         if (Object.keys(updates).length > 0) {
             await fbDb.ref('bukuTamu/konfigurasi').update(updates);
             console.log('[FB-Config] Konfigurasi lokal disinkronkan ke Firebase ✓');
