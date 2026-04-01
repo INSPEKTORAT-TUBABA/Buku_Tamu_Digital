@@ -34,15 +34,13 @@
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
-        html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #071a3e; }
         body {
             font-family: 'Arial', sans-serif;
             margin: 0; padding: 0;
             width: 100%; height: 100%;
-            /* Sedikit lebih tinggi dari layar agar address bar bisa di-scroll hilang */
-            min-height: calc(100vh + 1px);
-            min-height: calc(100dvh + 1px);
-            overflow-x: hidden;
+            min-height: 100dvh;
+            overflow: hidden;
             background: #e8f4fd;
         }
 
@@ -145,18 +143,11 @@
         /* ══ WELCOME PAGE — BIRU DONGKER FORMAL PEMERINTAHAN ══ */
         #welcomePage {
             position: fixed;
-            top: 0; left: 0;
+            inset: 0;                    /* lebih stabil daripada top:0; left:0; width:100%; height:100% */
             width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            height: -webkit-fill-available;
-            background:
-                linear-gradient(170deg,
-                    #071a3e 0%,
-                    #0d2a5e 30%,
-                    #0f3270 55%,
-                    #0a2050 80%,
-                    #050f28 100%);
+            height: 100%;
+            height: 100dvh;              /* dynamic viewport height - sangat penting di HP modern */
+            background: linear-gradient(170deg, #071a3e 0%, #0d2a5e 30%, #0f3270 55%, #0a2050 80%, #050f28 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -165,13 +156,37 @@
             padding: 26px;
             overflow: hidden;
             cursor: pointer;
+            /* Penting: cegah pergeseran saat viewport berubah */
+            box-sizing: border-box;
         }
 
-        /* Partikel canvas (dipakai untuk motif dekoratif ringan) */
+        /* Konten welcome (logo + teks) tidak ikut bergerak saat fullscreen/keyboard */
+        .welcome-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 8px 12px;
+            max-width: 100%;
+            margin: 0 auto;
+            /* Agar tidak terpotong di layar kecil */
+
+            /* Fix utama: gunakan transform + will-change agar stabil */
+            transform: translateZ(0);
+            will-change: transform;
+
+            /* Hindari animasi/transform lain yang konflik saat resize */
+            transition: none !important;
+            animation: none !important;
+        }
+
+        /* Pastikan canvas partikel juga tidak menyebabkan reflow besar */
         #particleCanvas {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -196,18 +211,6 @@
             background: linear-gradient(90deg, transparent, rgba(212,168,32,0.25), rgba(245,224,122,0.5), rgba(212,168,32,0.25), transparent);
             pointer-events: none;
             z-index: 1;
-        }
-
-        .welcome-content {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            padding: 8px 12px;
-            animation: contentRise 1.0s cubic-bezier(0.22,1,0.36,1) both;
-            width: 100%;
-            max-width: 100vw;
-            overflow: hidden;
-            box-sizing: border-box;
         }
 
         @keyframes contentRise {
@@ -557,6 +560,83 @@
         select, input, textarea { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
         .hidden { display: none !important; }
         #welcomePage.tersembunyi { display: none !important; visibility: hidden !important; pointer-events: none !important; z-index: -1 !important; }
+
+        /* ══════════════════════════════════════════
+           TRANSISI FULLSCREEN — BINTANG MELUNCUR & BERPUTAR
+           ══════════════════════════════════════════ */
+
+        /* Canvas overlay untuk efek partikel */
+        #fsParticleCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 99995;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Animasi keluar welcome page */
+        #welcomePage.fs-keluar {
+            animation: welcomeZoomOut 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+        }
+        @keyframes welcomeZoomOut {
+            0%   { transform: scale(1);    opacity: 1; filter: brightness(1); }
+            60%  { transform: scale(1.06); opacity: 0.5; filter: brightness(1.8); }
+            100% { transform: scale(1.18); opacity: 0; filter: brightness(3); }
+        }
+
+        /* Animasi masuk welcome page — diperlambat agar lebih elegan */
+        #welcomePage.fs-masuk {
+            animation: welcomeZoomIn 1.6s cubic-bezier(0.25, 0.86, 0.55, 1.0) forwards !important;
+        }
+        @keyframes welcomeZoomIn {
+            0%   { transform: scale(0.80); opacity: 0; filter: brightness(0.2); }
+            40%  { transform: scale(0.96); opacity: 0.6; filter: brightness(0.8); }
+            75%  { transform: scale(1.02); opacity: 0.95; filter: brightness(1.05); }
+            100% { transform: scale(1);    opacity: 1; filter: brightness(1); }
+        }
+
+        /* Re-play animasi konten — ditangani via JavaScript (lihat _replayWelcomeContent) */
+
+        /* Animasi masuk halaman app */
+        #mainApp.fs-app-masuk {
+            animation: appFadeIn 0.65s ease-out forwards !important;
+        }
+        @keyframes appFadeIn {
+            0%   { opacity: 0; transform: scale(0.96); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Animasi keluar halaman app */
+        #mainApp.fs-app-keluar {
+            animation: appFadeOut 0.4s ease-in forwards !important;
+        }
+        @keyframes appFadeOut {
+            0%   { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.04); }
+        }
+
+        /* Glow border flash saat transisi */
+        #fsBorderFlash {
+            position: fixed;
+            inset: 0;
+            z-index: 99988;
+            pointer-events: none;
+            border: 4px solid transparent;
+            border-image: linear-gradient(135deg, #f5e07a, #d4a820, #f5e07a) 1;
+            box-shadow:
+                inset 0 0 60px 10px rgba(212,168,32,0),
+                0 0 60px 10px rgba(212,168,32,0);
+            transition: box-shadow 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+        }
+        #fsBorderFlash.nyala {
+            opacity: 1;
+            box-shadow:
+                inset 0 0 80px 16px rgba(212,168,32,0.6),
+                0 0 100px 30px rgba(212,168,32,0.5);
+        }
         .required { color: red; }
         .error { border: 2px solid red !important; }
         .success { border: 2px solid #28a745 !important; }
@@ -1218,6 +1298,9 @@
             margin-top: 2px;
             text-align: center;
         }
+        .op-hsubtitle span {
+            display: block;
+        }
         .op-timestamp {
             display: none;
         }
@@ -1510,11 +1593,15 @@
             overflow: visible;
             border: none;
             box-shadow: none;
-            animation: siCardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
+            /* Tidak ada animasi default — hanya aktif via class .masuk/.keluar */
+            will-change: transform, opacity;
         }
         @keyframes siCardIn {
             from { opacity: 0; transform: translateY(40px); }
             to   { opacity: 1; transform: translateY(0); }
+        }
+        .si-card.masuk {
+            animation: siCardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
         }
         .si-card.keluar {
             animation: siCardOut 0.22s cubic-bezier(0.55,0,1,0.45) both;
@@ -1683,7 +1770,11 @@
 <div class="corner-ornament bl" aria-hidden="true"><div class="gem"></div></div>
 <div class="corner-ornament br" aria-hidden="true"><div class="gem"></div></div>
 <!-- Welcome Page -->
-<div id="welcomePage" onclick="mintaFullscreen()">
+<!-- Elemen Transisi Fullscreen -->
+<canvas id="fsParticleCanvas"></canvas>
+<div id="fsBorderFlash"></div>
+
+<div id="welcomePage" onclick="mintaFullscreen(event)">
     <canvas id="particleCanvas"></canvas>
     <div class="welcome-content">
         <canvas id="logoCanvas3D"></canvas>
@@ -1692,7 +1783,7 @@
         <h1 class="welcome-title">Inspektorat Daerah</h1>
         <p class="welcome-subtitle">Kabupaten Tulang Bawang Barat</p>
         <div class="welcome-divider"></div>
-        <button class="btn-start" onclick="event.stopPropagation(); mintaFullscreen(); startApp()">📝 ISI BUKU TAMU</button>
+        <button class="btn-start" onclick="event.stopPropagation(); mintaFullscreen(event); startApp()">📝 ISI BUKU TAMU</button>
     </div>
 </div>
 
@@ -2399,35 +2490,38 @@
                 </div>
 
                 <!-- JAM TUTUP — satu baris penuh -->
-               <!-- HEADER BARU - VERSI KIRIM KE PIHAK TUJUAN -->
-<div style="background: linear-gradient(135deg, #0d1f45 0%, #1a3560 100%); 
-            color: white; 
-            padding: 32px 20px 26px 20px; 
-            text-align: center; 
-            border-bottom: 5px solid #d4a820; 
-            margin-bottom: 15px;">
+                <div style="background:linear-gradient(135deg,#fff0f0,#fff5f5);border:2px solid #c0392b;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+                    <div style="font-size:0.78em;color:#c0392b;font-weight:800;letter-spacing:0.06em;margin-bottom:12px;text-align:center;">🔴 JAM TUTUP</div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                        <!-- jam -->
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+                            <button type="button" onclick="_ubahJam('tutup','jam',1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                            <div style="width:64px;height:52px;border:2px solid #c0392b;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                <span id="tutupJamDisp" style="font-size:1.9em;font-weight:900;color:#7b0000;font-family:monospace;">16</span>
+                            </div>
+                            <button type="button" onclick="_ubahJam('tutup','jam',-1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                            <input type="hidden" id="tutupJam" value="16" />
+                        </div>
+                        <span style="font-size:2.2em;font-weight:900;color:#7b0000;line-height:1;">:</span>
+                        <!-- menit -->
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+                            <button type="button" onclick="_ubahJam('tutup','menit',1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▲</button>
+                            <div style="width:64px;height:52px;border:2px solid #c0392b;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;">
+                                <span id="tutupMenitDisp" style="font-size:1.9em;font-weight:900;color:#7b0000;font-family:monospace;">00</span>
+                            </div>
+                            <button type="button" onclick="_ubahJam('tutup','menit',-1)" style="width:52px;height:38px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:1.1em;font-weight:900;cursor:pointer;touch-action:manipulation;">▼</button>
+                            <input type="hidden" id="tutupMenit" value="0" />
+                        </div>
+                        <div style="margin-left:10px;text-align:left;">
+                            <div style="font-size:0.75em;color:#666;margin-bottom:2px;">Jam</div>
+                            <div style="font-size:1em;font-weight:800;color:#c0392b;" id="tutupPreview">16:00</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Info box -->
+                <div id="jamKerjaInfo" style="background:#eaf4ff;border:1.5px solid #1a6fd4;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.88em;color:#0d1f45;text-align:center;font-weight:700;line-height:1.6;"></div>
 
-    <!-- Teks BUKU TAMU DIGITAL di tengah dengan margin lebih longgar -->
-    <div style="font-size: 2.42em; 
-                font-weight: 900; 
-                letter-spacing: 0.12em; 
-                text-transform: uppercase; 
-                margin-bottom: 10px;
-                background: linear-gradient(90deg, #f5e07a, #ffffff, #f5e07a);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;">
-        BUKU TAMU DIGITAL
-    </div>
-    
-    <!-- Nama Instansi -->
-    <div style="font-size: 1.5em; 
-                font-weight: 600; 
-                letter-spacing: 0.05em; 
-                opacity: 0.92;">
-        INSPEKTORAT DAERAH KABUPATEN TULANG BAWANG BARAT
-    </div>
-</div>
-                                <!-- Tombol simpan -->
+                <!-- Tombol simpan -->
                 <button onclick="simpanPengaturanJam()" type="button"
                     style="width:100%;padding:14px;background:linear-gradient(135deg,#0a2a6e,#1a6fd4);color:#f5e07a;border:none;border-radius:12px;font-size:0.95em;font-weight:800;cursor:pointer;letter-spacing:0.04em;touch-action:manipulation;box-shadow:0 4px 14px rgba(26,111,212,0.4);">
                     💾 Simpan Pengaturan Jam
@@ -2464,7 +2558,10 @@
                     <img src="logo-tubaba.png" alt="Logo" class="op-logo-img" onerror="this.style.display='none'">
                     <div class="op-header-text">
                         <div class="op-htitle">✦ BUKU TAMU DIGITAL ✦</div>
-                        <div class="op-hsubtitle">INSPEKTORAT DAERAH · KAB. TULANG BAWANG BARAT</div>
+                        <div class="op-hsubtitle">
+                            <span>INSPEKTORAT DAERAH</span>
+                            <span>KABUPATEN TULANG BAWANG BARAT</span>
+                        </div>
                     </div>
                 </div>
 
@@ -2722,22 +2819,71 @@ drawSpace();
 
 function sembunyikanWelcome() {
     var wp = document.getElementById('welcomePage');
-    wp.classList.add('tersembunyi');
-    wp.style.display = 'none';
-    wp.style.visibility = 'hidden';
-    wp.style.zIndex = '-1';
-    wp.style.pointerEvents = 'none';
-    if (window._stopLogoAnim) window._stopLogoAnim();
-    _stopSpaceAnim();
+    // Tunggu animasi keluar selesai sebelum benar-benar sembunyikan
+    var delay = wp && wp.classList.contains('fs-keluar') ? 580 : 0;
+    setTimeout(function() {
+        wp = document.getElementById('welcomePage');
+        if (!wp) return;
+        wp.classList.remove('fs-keluar', 'fs-masuk');
+        wp.classList.add('tersembunyi');
+        wp.style.display = 'none';
+        wp.style.visibility = 'hidden';
+        wp.style.zIndex = '-1';
+        wp.style.pointerEvents = 'none';
+        if (window._stopLogoAnim) window._stopLogoAnim();
+        _stopSpaceAnim();
+        // Animasikan masuknya app
+        var app = document.getElementById('mainApp');
+        if (app && app.style.display !== 'none') {
+            app.classList.remove('fs-app-keluar');
+            app.classList.add('fs-app-masuk');
+            setTimeout(function() { app.classList.remove('fs-app-masuk'); }, 600);
+        }
+    }, delay);
+}
+
+function _replayWelcomeContent() {
+    // Daftar elemen + delay kemunculan (ms) — tampil bertahap, tidak serentak
+    var items = [
+        { sel: '#logoCanvas3D',       delay: 100,  dur: 1000 },
+        { sel: '.welcome-divider',    delay: 200,  dur: 900  },
+        { sel: '.welcome-label',      delay: 350,  dur: 1000 },
+        { sel: '.welcome-title',      delay: 250,  dur: 900  },
+        { sel: '.welcome-subtitle',   delay: 500,  dur: 1000 },
+        { sel: '.btn-start',          delay: 680,  dur: 1100 }
+    ];
+    items.forEach(function(item) {
+        var el = document.querySelector(item.sel);
+        if (!el) return;
+        // Simpan opacity & transform asli, sembunyikan dulu tanpa merusak layout
+        el.style.opacity    = '0';
+        el.style.transform  = 'translateY(18px)';
+        el.style.transition = 'none';
+        setTimeout(function() {
+            el.style.transition = 'opacity ' + (item.dur/1000).toFixed(1) + 's ease, transform ' + (item.dur/1000).toFixed(1) + 's ease';
+            el.style.opacity   = '1';
+            el.style.transform = 'translateY(0)';
+        }, item.delay);
+        // Bersihkan inline style setelah transisi selesai
+        setTimeout(function() {
+            el.style.transition = '';
+            el.style.transform  = '';
+        }, item.delay + item.dur + 100);
+    });
 }
 
 function tampilkanWelcome() {
     var wp = document.getElementById('welcomePage');
-    wp.classList.remove('tersembunyi');
+    wp.classList.remove('tersembunyi', 'fs-keluar');
     wp.style.display = 'flex';
     wp.style.visibility = '';
     wp.style.zIndex = '';
     wp.style.pointerEvents = '';
+    // Animasi masuk welcome — beri waktu lebih panjang agar logo & teks sempat tampil
+    wp.classList.add('fs-masuk');
+    setTimeout(function() { wp.classList.remove('fs-masuk'); }, 1800);
+    // Tampilkan ulang logo & teks secara bertahap
+    _replayWelcomeContent();
     if (window._startLogoAnim) window._startLogoAnim();
     drawSpace();
 }
@@ -2931,25 +3077,10 @@ function _tampilHalamanTamu(data) {
         } catch(e){ return String(ts); }
     }
 
-    function _fmtHdr(ts) {
-        if (!ts) return {tgl:'',jam:''};
-        try {
-            var d = new Date(ts);
-            if (isNaN(d)) return {tgl:String(ts),jam:''};
-            var H=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-            var B=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
-            return {
-                tgl: H[d.getDay()]+', '+d.getDate()+' '+B[d.getMonth()]+' '+d.getFullYear(),
-                jam: String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')
-            };
-        } catch(e){ return {tgl:String(ts),jam:''}; }
-    }
-
     var noWa  = (data.nomorHp||'').replace(/^0/,'62').replace(/[^0-9]/g,'');
-    var hdr   = _fmtHdr(data.timestamp||data.waktu||'');
     var tsRaw = data.timestamp||data.waktu||'';
 
-    // ── Baris tabel ──
+    // ── Baris tabel (tanpa Waktu Kunjungan) ──
     var rows = [];
     if (data.nama)         rows.push({lbl:'Nama Lengkap',         val:'<b>'+_esc(data.nama)+'</b>'});
     if (data.asal)         rows.push({lbl:'Asal',                 val:_esc(data.asal==='INSTANSI'?'Instansi / Unit Kerja':'Masyarakat')});
@@ -2963,13 +3094,12 @@ function _tampilHalamanTamu(data) {
     if (data.jenisLayanan) rows.push({lbl:'Jenis Layanan',        val:_esc(data.jenisLayanan)});
     if (data.uraian)       rows.push({lbl:'Uraian Keperluan',     val:_esc(data.uraian)});
     if (data.nomorHp)      rows.push({lbl:'Nomor WhatsApp',       val:'<a href="https://wa.me/'+noWa+'" style="color:#075e54;font-weight:700;text-decoration:none;">'+_esc(data.nomorHp)+'</a>'});
-    if (tsRaw)             rows.push({lbl:'Waktu Kunjungan',      val:_esc(_fmtTs(tsRaw))});
 
     var rowsHtml = rows.map(function(r){
-        return '<div class="_to-row">'+
-               '<div class="_to-lbl">'+r.lbl+'</div>'+
-               '<div class="_to-sep">:</div>'+
-               '<div class="_to-val">'+r.val+'</div>'+
+        return '<div class="op-row">'+
+               '<div class="op-rlbl">'+r.lbl+'</div>'+
+               '<div class="op-rsep">:</div>'+
+               '<div class="op-rval">'+r.val+'</div>'+
                '</div>';
     }).join('');
 
@@ -2978,40 +3108,39 @@ function _tampilHalamanTamu(data) {
     var fotoDokHtml = '';
     if (adaFotoDok) {
         fotoDokHtml =
-            '<div class="_to-card">'+
-                '<div class="_to-card-title">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
-                '<div class="_to-foto-grid">'+
-                    '<div class="_to-foto-box">'+
-                        '<div class="_to-foto-lbl">FOTO DEPAN</div>'+
+            '<div class="op-card" style="margin-bottom:14px;">'+
+                '<div class="op-card-title">&#128247; DOKUMENTASI &amp; TANDA TANGAN</div>'+
+                '<div class="op-foto-grid">'+
+                    '<div class="op-foto-box">'+
+                        '<div class="op-foto-label">Foto Depan</div>'+
                         (data.fotoFront
-                            ? '<img class="_to-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" loading="lazy">'
-                            : '<div class="_to-foto-empty">Belum ada foto</div>')+
+                            ? '<img class="op-foto-img" src="'+data.fotoFront+'" alt="Foto Depan" loading="lazy" style="display:block;">'
+                            : '<div class="op-foto-empty">Belum ada foto</div>')+
                     '</div>'+
-                    '<div class="_to-foto-box">'+
-                        '<div class="_to-foto-lbl">FOTO BELAKANG</div>'+
+                    '<div class="op-foto-box">'+
+                        '<div class="op-foto-label">Foto Belakang</div>'+
                         (data.fotoBack
-                            ? '<img class="_to-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" loading="lazy">'
-                            : '<div class="_to-foto-empty">Belum ada foto</div>')+
+                            ? '<img class="op-foto-img" src="'+data.fotoBack+'" alt="Foto Belakang" loading="lazy" style="display:block;">'
+                            : '<div class="op-foto-empty">Belum ada foto</div>')+
                     '</div>'+
                 '</div>'+
                 (data.tandaTangan ?
-                    '<div class="_to-ttd-wrap">'+
-                        '<div class="_to-foto-lbl">TANDA TANGAN</div>'+
-                        '<div class="_to-ttd-box">'+
-                            '<img class="_to-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan">'+
+                    '<div class="op-ttd-wrap">'+
+                        '<div class="op-foto-label">Tanda Tangan</div>'+
+                        '<div class="op-ttd-box">'+
+                            '<img class="op-ttd-img" src="'+data.tandaTangan+'" alt="Tanda Tangan" style="display:block;">'+
                         '</div>'+
-                        '<div class="_to-nama-ttd">'+_esc(data.nama||'')+'</div>'+
+                        '<div class="op-nama-ttd">'+_esc(data.nama||'')+'</div>'+
                     '</div>'
                 : '')+
             '</div>';
     }
 
-    // ── Inject CSS ──
-    if (!document.getElementById('_toStyle')) {
+    // ── Inject CSS khusus wrapper tamu (pakai class op-* yang sudah ada) ──
+    if (!document.getElementById('_tamuWrapStyle')) {
         var st = document.createElement('style');
-        st.id = '_toStyle';
+        st.id = '_tamuWrapStyle';
         st.textContent = [
-            /* Reset & wrapper utama */
             '#_tamuOverlay{',
             '  position:fixed;top:0;left:0;right:0;bottom:0;',
             '  z-index:999999;',
@@ -3021,53 +3150,47 @@ function _tampilHalamanTamu(data) {
             '  overscroll-behavior:contain;',
             '  font-family:Arial,sans-serif;',
             '  box-sizing:border-box;',
-            /* Padding atas = safe-area-inset-top untuk notch/status bar */
             '  padding-top:env(safe-area-inset-top,0px);',
             '  padding-bottom:env(safe-area-inset-bottom,0px);',
             '}',
-            /* Header sticky */
-            '._to-header{',
+            '#_tamuHeader{',
             '  position:sticky;top:0;z-index:10;',
             '  background:linear-gradient(135deg,#0d1f45 0%,#1a3a6e 60%,#0d1f45 100%);',
             '  padding:14px 16px 12px;',
-            '  border-bottom:2.5px solid #d4a820;',
+            '  border-bottom:2.5px solid transparent;',
+            '  border-image:linear-gradient(90deg,transparent,#d4a820,#f5e07a,#d4a820,transparent) 1;',
             '  display:flex;align-items:center;justify-content:center;gap:10px;',
             '  box-shadow:0 4px 16px rgba(13,31,69,0.40);',
             '}',
-            '._to-logo{width:36px;height:36px;object-fit:contain;flex-shrink:0;}',
-            '._to-htext{text-align:center;flex:1;min-width:0;}',
-            '._to-htitle{font-size:0.80em;font-weight:800;color:#f5e07a;letter-spacing:0.08em;white-space:nowrap;}',
-            '._to-hsub{font-size:0.63em;color:rgba(245,224,122,0.72);letter-spacing:0.04em;margin-top:2px;}',
-            '._to-hts{font-size:0.61em;color:rgba(245,224,122,0.52);margin-top:3px;}',
-            /* Konten dalam */
-            '._to-body{max-width:680px;width:100%;margin:0 auto;padding:14px 12px 24px;box-sizing:border-box;}',
-            /* Kartu */
-            '._to-card{background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,31,69,0.08);}',
-            '._to-card-title{background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;}',
-            /* Baris tabel */
-            '._to-row{display:grid;grid-template-columns:130px 12px 1fr;border-bottom:1px solid rgba(212,168,32,0.14);min-height:38px;}',
-            '._to-row:last-child{border-bottom:none;}',
-            '._to-row:nth-child(odd){background:#fffef8;}',
-            '._to-row:nth-child(even){background:#fff;}',
-            '._to-lbl{padding:9px 8px 9px 14px;font-size:0.78em;font-weight:700;color:#0d1f45;border-right:2px solid rgba(212,168,32,0.28);background:rgba(253,242,220,0.50);display:flex;align-items:center;line-height:1.3;}',
-            '._to-sep{display:flex;align-items:center;justify-content:center;font-weight:800;color:#b8860b;font-size:0.85em;}',
-            '._to-val{padding:9px 12px;font-size:0.84em;font-weight:600;color:#1a1a2e;display:flex;align-items:center;word-break:break-word;line-height:1.4;}',
-            /* Foto grid */
-            '._to-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 6px;}',
-            '._to-foto-box{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}',
-            '._to-foto-lbl{font-size:0.72em;font-weight:700;color:#0d1f45;letter-spacing:0.05em;text-transform:uppercase;}',
-            '._to-foto-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,168,32,0.35);box-shadow:0 2px 8px rgba(13,31,69,0.14);display:block;}',
-            '._to-foto-empty{width:100%;aspect-ratio:4/3;background:#f0ead8;border:1.5px dashed rgba(212,168,32,0.40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72em;color:#aaa;}',
-            /* TTD */
-            '._to-ttd-wrap{padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;}',
-            '._to-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
-            '._to-ttd-img{width:100%;max-height:120px;object-fit:contain;display:block;}',
-            '._to-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            /* Responsive kecil */
+            '#_tamuHeader img{width:38px;height:38px;object-fit:contain;flex-shrink:0;}',
+            '#_tamuHeader .op-header-text{text-align:center;flex:1;min-width:0;}',
+            '#_tamuHeader .op-htitle{font-size:0.80em;font-weight:800;color:#f5e07a;letter-spacing:0.08em;white-space:nowrap;}',
+            '#_tamuHeader .op-hsubtitle{font-size:0.64em;color:rgba(245,224,122,0.70);letter-spacing:0.04em;margin-top:2px;}',
+            '#_tamuHeader .op-hsubtitle span{display:block;}',
+            '#_tamuBody{max-width:680px;width:100%;margin:0 auto;padding:14px 12px 24px;box-sizing:border-box;}',
+            '#_tamuBody .op-card{background:#fff;border:1.5px solid rgba(212,168,32,0.30);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,31,69,0.08);}',
+            '#_tamuBody .op-card-title{background:linear-gradient(90deg,#0d1f45,#1a3a6e);color:#f5e07a;font-size:0.76em;font-weight:800;letter-spacing:0.09em;padding:8px 14px;text-transform:uppercase;}',
+            '#_tamuBody .op-row{display:grid;grid-template-columns:140px 12px 1fr;border-bottom:1px solid rgba(212,168,32,0.14);min-height:38px;}',
+            '#_tamuBody .op-row:last-child{border-bottom:none;}',
+            '#_tamuBody .op-row:nth-child(odd){background:#fffef8;}',
+            '#_tamuBody .op-row:nth-child(even){background:#fff;}',
+            '#_tamuBody .op-rlbl{padding:9px 8px 9px 14px;font-size:0.78em;font-weight:700;color:#0d1f45;border-right:2px solid rgba(212,168,32,0.28);background:rgba(253,242,220,0.50);display:flex;align-items:center;line-height:1.3;}',
+            '#_tamuBody .op-rsep{display:flex;align-items:center;justify-content:center;font-weight:800;color:#b8860b;font-size:0.85em;}',
+            '#_tamuBody .op-rval{padding:9px 12px;font-size:0.84em;font-weight:600;color:#1a1a2e;display:flex;align-items:center;word-break:break-word;line-height:1.4;}',
+            '#_tamuBody .op-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 6px;}',
+            '#_tamuBody .op-foto-box{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}',
+            '#_tamuBody .op-foto-label{font-size:0.72em;font-weight:700;color:#0d1f45;letter-spacing:0.05em;text-transform:uppercase;}',
+            '#_tamuBody .op-foto-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,168,32,0.35);box-shadow:0 2px 8px rgba(13,31,69,0.14);}',
+            '#_tamuBody .op-foto-empty{width:100%;aspect-ratio:4/3;background:#f0ead8;border:1.5px dashed rgba(212,168,32,0.40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72em;color:#aaa;}',
+            '#_tamuBody .op-ttd-wrap{padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;}',
+            '#_tamuBody .op-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
+            '#_tamuBody .op-ttd-img{width:100%;max-height:120px;object-fit:contain;}',
+            '#_tamuBody .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:4px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
+            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.74em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
             '@media(max-width:400px){',
-            '  ._to-row{grid-template-columns:105px 10px 1fr;}',
-            '  ._to-lbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
-            '  ._to-val{font-size:0.80em;padding:8px 8px;}',
+            '  #_tamuBody .op-row{grid-template-columns:105px 10px 1fr;}',
+            '  #_tamuBody .op-rlbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
+            '  #_tamuBody .op-rval{font-size:0.80em;padding:8px 8px;}',
             '}',
         ].join('\n');
         document.head.appendChild(st);
@@ -3081,26 +3204,31 @@ function _tampilHalamanTamu(data) {
     overlay.id = '_tamuOverlay';
 
     overlay.innerHTML =
-        // Header sticky
-        '<div class="_to-header">'+
-            '<img class="_to-logo" src="logo-tubaba.png" alt="Logo" onerror="this.style.display=\'none\'">'+
-            '<div class="_to-htext">'+
-                '<div class="_to-htitle">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
-                '<div class="_to-hsub">INSPEKTORAT DAERAH &middot; KAB. TULANG BAWANG BARAT</div>'+
-                (hdr.tgl ? '<div class="_to-hts">'+_esc(hdr.tgl)+(hdr.jam?' &nbsp;|&nbsp; '+_esc(hdr.jam):'')+'</div>' : '')+
+        // ── Header sticky — identik dengan op-header ──
+        '<div id="_tamuHeader">'+
+            '<img src="logo-tubaba.png" alt="Logo" onerror="this.style.display=\'none\'">'+
+            '<div class="op-header-text">'+
+                '<div class="op-htitle">&#10022; BUKU TAMU DIGITAL &#10022;</div>'+
+                '<div class="op-hsubtitle">'+
+                    '<span>INSPEKTORAT DAERAH</span>'+
+                    '<span>KABUPATEN TULANG BAWANG BARAT</span>'+
+                '</div>'+
             '</div>'+
         '</div>'+
-        // Body konten
-        '<div class="_to-body">'+
-            '<div class="_to-card">'+
-                '<div class="_to-card-title">&#128203; DATA TAMU</div>'+
+        // ── Body konten ──
+        '<div id="_tamuBody">'+
+            '<div class="op-card">'+
+                '<div class="op-card-title">&#128203; DATA TAMU</div>'+
                 rowsHtml+
             '</div>'+
             fotoDokHtml+
+            '<div id="_tamuFooterNote">'+
+                '&#128274; Dokumen ini dibuat otomatis oleh Sistem Buku Tamu Digital<br>'+
+                'Inspektorat Kab. Tulang Bawang Barat'+
+            '</div>'+
         '</div>';
 
     document.body.appendChild(overlay);
-    // Pastikan scroll mulai dari atas
     overlay.scrollTop = 0;
 }
 
@@ -3609,6 +3737,14 @@ function tandaiDeviceSudahIsi() {
 
 /** Tampilkan modal blokir */
 function tampilModalBlokir(judul, pesan, ikonEmoji) {
+    // FIX: reset welcome page jika terkena animasi fs-keluar tapi startApp gagal
+    const _wpBlokir = document.getElementById('welcomePage');
+    if (_wpBlokir && !_wpBlokir.classList.contains('tersembunyi') && _wpBlokir.classList.contains('fs-keluar')) {
+        _wpBlokir.classList.remove('fs-keluar');
+        void _wpBlokir.offsetHeight;
+        _wpBlokir.classList.add('fs-masuk');
+        setTimeout(() => _wpBlokir.classList.remove('fs-masuk'), 1800);
+    }
     const ada = document.getElementById('_blokirModal');
     if (ada) ada.remove();
     const modal = document.createElement('div');
@@ -4076,33 +4212,440 @@ const PIXELS_PER_CM = 37.7952755906;
 const MIN_STROKE_LENGTH_CM = 2;
 
 // ================================================================
-//  FULLSCREEN — Sembunyikan address bar browser di HP
+//  FULLSCREEN + TRANSISI INDAH
 // ================================================================
 // ================================================================
-//  FULLSCREEN — Sembunyikan address bar sepenuhnya di HP
+//  SISTEM TRANSISI FULLSCREEN — BINTANG MELUNCUR & BERPUTAR MENJADI SATU
 // ================================================================
-function mintaFullscreen() {
-    // Harus dipanggil langsung dari handler user gesture (sync)
+
+/* ── Helper: gambar bentuk bintang ── */
+function _drawStarShape(ctx, x, y, r, points, rotation) {
+    const step = Math.PI / points;
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+        const angle = i * step + (rotation || 0);
+        const radius = (i % 2 === 0) ? r : r * 0.4;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+}
+
+/* ── Transisi MASUK fullscreen: bintang meluncur → spiral → menyatu ── */
+function _fsTransisiMasuk(clickX, clickY) {
+    const canvas = document.getElementById('fsParticleCanvas');
+    if (!canvas) return;
+    canvas.style.display = 'block';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+
+    const STAR_COUNT = 72;
+    const FPS_TARGET = 60;
+    const TOTAL_MS   = 1800;
+    let startTime    = null;
+
+    // Warna bintang: emas & putih & biru terang
+    const COLORS = ['#f5e07a', '#ffffff', '#ffe566', '#c8f0ff', '#ffd700', '#aaddff'];
+
+    // Buat partikel
+    const particles = Array.from({ length: STAR_COUNT }, (_, i) => {
+        // Posisi awal: tersebar di seluruh layar
+        const side = Math.floor(Math.random() * 4);
+        let sx, sy;
+        switch(side) {
+            case 0: sx = Math.random() * W; sy = -20; break;           // atas
+            case 1: sx = W + 20;            sy = Math.random() * H; break; // kanan
+            case 2: sx = Math.random() * W; sy = H + 20; break;        // bawah
+            default:sx = -20;               sy = Math.random() * H; break; // kiri
+        }
+        // Tambah beberapa dari dalam layar
+        if (i < 20) {
+            sx = Math.random() * W;
+            sy = Math.random() * H;
+        }
+
+        const angle  = Math.atan2(cy - sy, cx - sx);
+        const color  = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const size   = 3 + Math.random() * 5;
+        const points = Math.random() > 0.5 ? 4 : 5;
+        const delay  = Math.random() * 0.35; // 0–0.35 detik
+
+        // Orbit awal: sudut relatif terhadap pusat
+        const orbitAngle  = Math.atan2(sy - cy, sx - cx);
+        const orbitRadius = Math.sqrt((sx-cx)**2 + (sy-cy)**2);
+
+        return {
+            sx, sy,
+            x: sx, y: sy,
+            color, size, points, delay,
+            angle, orbitAngle, orbitRadius,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.3,
+            trail: [],
+            trailLen: 6 + Math.floor(Math.random() * 8),
+            opacity: 0,
+        };
+    });
+
+    function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+    function easeIn(t) { return t * t * t; }
+
+    function frame(ts) {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+        const rawT    = Math.min(elapsed / TOTAL_MS, 1);
+
+        ctx.clearRect(0, 0, W, H);
+
+        // ── Background overlay gelap saat akhir (momen menyatu) ──
+        if (rawT > 0.75) {
+            const fadeT = (rawT - 0.75) / 0.25;
+            ctx.fillStyle = `rgba(7,26,62,${fadeT * 0.5})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        particles.forEach(p => {
+            const localT = Math.max(0, (rawT - p.delay) / (1 - p.delay));
+            if (localT <= 0) return;
+
+            const t = Math.min(localT, 1);
+
+            // ── FASE 1 (0 → 0.50): MELUNCUR ke arah pusat dengan ekor ──
+            // ── FASE 2 (0.50 → 0.82): BERPUTAR spiral makin cepat mendekat ──
+            // ── FASE 3 (0.82 → 1.0): MENYATU di tengah ──
+
+            let px, py, alpha;
+
+            if (t < 0.50) {
+                const f = easeIn(t / 0.50);
+                px = p.sx + (cx - p.sx) * f;
+                py = p.sy + (cy - p.sy) * f;
+                alpha = Math.min(t / 0.15, 1);
+            } else if (t < 0.82) {
+                const f = (t - 0.50) / 0.32;
+                // Orbit: sudut bertambah cepat, radius mengecil
+                const spinAngle  = p.orbitAngle + f * Math.PI * 3.5 * (p.orbitAngle > 0 ? 1 : -1);
+                const spinRadius = p.orbitRadius * (1 - f) * 0.5 + p.orbitRadius * 0.5 * (1 - easeInOut(f));
+                px = cx + Math.cos(spinAngle) * spinRadius * (1 - easeInOut(f));
+                py = cy + Math.sin(spinAngle) * spinRadius * (1 - easeInOut(f));
+                alpha = 1;
+            } else {
+                const f = (t - 0.82) / 0.18;
+                // Menyatu: semua ke titik tengah, mengecil & memudar
+                const pullX = cx + (px || cx) - cx;
+                const pullY = cy + (py || cy) - cy;
+                px = cx + (pullX - cx) * (1 - easeInOut(f));
+                py = cy + (pullY - cy) * (1 - easeInOut(f));
+                px = cx + (px - cx) * (1 - f);
+                py = cy + (py - cy) * (1 - f);
+                alpha = 1 - easeInOut(f);
+            }
+
+            // Update trail
+            p.trail.push({ x: px, y: py });
+            if (p.trail.length > p.trailLen) p.trail.shift();
+
+            // Gambar trail (ekor cahaya)
+            if (p.trail.length > 1) {
+                for (let j = 1; j < p.trail.length; j++) {
+                    const trailAlpha = (j / p.trail.length) * alpha * 0.55;
+                    const trailW     = p.size * (j / p.trail.length) * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(p.trail[j-1].x, p.trail[j-1].y);
+                    ctx.lineTo(p.trail[j].x,   p.trail[j].y);
+                    ctx.strokeStyle = p.color.replace('#', '#') + Math.round(trailAlpha * 255).toString(16).padStart(2, '0');
+                    // Gunakan rgba
+                    const rgb = _hexToRgb(p.color);
+                    ctx.strokeStyle = `rgba(${rgb},${trailAlpha})`;
+                    ctx.lineWidth   = Math.max(0.5, trailW);
+                    ctx.lineCap     = 'round';
+                    ctx.stroke();
+                }
+            }
+
+            // Gambar bintang
+            const starSize = p.size * (t < 0.82 ? (1 + Math.sin(t * Math.PI * 4) * 0.15) : (1 - (t - 0.82)/0.18 * 0.8));
+            p.rotation += p.rotSpeed * (1 + t * 3);
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, alpha);
+            ctx.translate(px, py);
+            ctx.rotate(p.rotation);
+
+            // Glow
+            const rgb = _hexToRgb(p.color);
+            const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, starSize * 2.5);
+            grd.addColorStop(0,   `rgba(${rgb},${alpha})`);
+            grd.addColorStop(0.4, `rgba(${rgb},${alpha * 0.6})`);
+            grd.addColorStop(1,   `rgba(${rgb},0)`);
+            ctx.beginPath();
+            ctx.arc(0, 0, starSize * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = grd;
+            ctx.fill();
+
+            // Inti bintang
+            _drawStarShape(ctx, 0, 0, starSize, p.points, 0);
+            ctx.fillStyle = `rgba(${rgb},${alpha})`;
+            ctx.fill();
+            ctx.restore();
+        });
+
+        // ── Ledakan cahaya saat semua menyatu (t > 0.82) ──
+        if (rawT > 0.80) {
+            const burstT = Math.min((rawT - 0.80) / 0.20, 1);
+            const burstR = burstT * Math.max(W, H) * 0.8;
+            const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, burstR);
+            const peakAlpha = Math.sin(burstT * Math.PI) * 0.95;
+            grd.addColorStop(0,    `rgba(255,247,180,${peakAlpha})`);
+            grd.addColorStop(0.18, `rgba(212,168,32,${peakAlpha * 0.85})`);
+            grd.addColorStop(0.45, `rgba(7,26,62,${peakAlpha * 0.5})`);
+            grd.addColorStop(1,    'rgba(7,26,62,0)');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        if (rawT < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            canvas.style.display = 'none';
+            ctx.clearRect(0, 0, W, H);
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+/* ── Transisi KELUAR fullscreen: ledakan dari pusat → bintang berterbangan ── */
+function _fsTransisiKeluar() {
+    const canvas = document.getElementById('fsParticleCanvas');
+    if (!canvas) return;
+    canvas.style.display = 'block';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx     = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+
+    const STAR_COUNT = 60;
+    const TOTAL_MS   = 2200;
+    let startTime    = null;
+
+    const COLORS = ['#f5e07a', '#ffffff', '#ffd700', '#c8f0ff', '#ffe566', '#aaddff'];
+
+    const particles = Array.from({ length: STAR_COUNT }, (_, i) => {
+        const angle      = (i / STAR_COUNT) * Math.PI * 2 + Math.random() * 0.2;
+        const speed      = 0.3 + Math.random() * 0.7;
+        const targetDist = (Math.min(W, H) * 0.5 + Math.random() * Math.min(W, H) * 0.4) * speed;
+        const color      = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const size       = 3 + Math.random() * 5;
+        const points     = Math.random() > 0.5 ? 4 : 5;
+        const delay      = Math.random() * 0.2;
+        return {
+            x: cx, y: cy,
+            angle, targetDist,
+            color, size, points, delay,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.5,
+            trail: [],
+            trailLen: 5 + Math.floor(Math.random() * 6),
+        };
+    });
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function frame(ts) {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+        const rawT    = Math.min(elapsed / TOTAL_MS, 1);
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Ledakan awal dari pusat
+        if (rawT < 0.35) {
+            const burstT = rawT / 0.35;
+            const burstR = burstT * Math.max(W, H) * 0.6;
+            const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, burstR);
+            const peakAlpha = (1 - burstT) * 0.9;
+            grd.addColorStop(0,    `rgba(255,247,180,${peakAlpha})`);
+            grd.addColorStop(0.25, `rgba(212,168,32,${peakAlpha * 0.8})`);
+            grd.addColorStop(0.6,  `rgba(7,26,62,${peakAlpha * 0.4})`);
+            grd.addColorStop(1,    'rgba(7,26,62,0)');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        particles.forEach(p => {
+            const localT = Math.max(0, (rawT - p.delay) / (1 - p.delay));
+            if (localT <= 0) return;
+            const t = Math.min(localT, 1);
+
+            // Fase spiral keluar: berputar saat terbang
+            const spiralAngle = p.angle + t * Math.PI * 2.5 * (p.angle > Math.PI ? 1 : -1);
+            const dist  = easeOut(t) * p.targetDist;
+            const px    = cx + Math.cos(spiralAngle) * dist;
+            const py    = cy + Math.sin(spiralAngle) * dist;
+
+            p.trail.push({ x: px, y: py });
+            if (p.trail.length > p.trailLen) p.trail.shift();
+
+            const alpha = t < 0.15 ? t / 0.15 : (t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1);
+
+            // Trail
+            if (p.trail.length > 1) {
+                for (let j = 1; j < p.trail.length; j++) {
+                    const trailAlpha = (j / p.trail.length) * alpha * 0.5;
+                    const rgb = _hexToRgb(p.color);
+                    ctx.beginPath();
+                    ctx.moveTo(p.trail[j-1].x, p.trail[j-1].y);
+                    ctx.lineTo(p.trail[j].x,   p.trail[j].y);
+                    ctx.strokeStyle = `rgba(${rgb},${trailAlpha})`;
+                    ctx.lineWidth   = Math.max(0.5, p.size * 0.7 * (j / p.trail.length));
+                    ctx.lineCap     = 'round';
+                    ctx.stroke();
+                }
+            }
+
+            // Bintang
+            p.rotation += p.rotSpeed * (1 + (1 - t) * 3);
+            const rgb = _hexToRgb(p.color);
+            const starSize = p.size * (1 + (1-t) * 0.3);
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, alpha);
+            ctx.translate(px, py);
+            ctx.rotate(p.rotation);
+
+            // Glow
+            const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, starSize * 2.5);
+            grd.addColorStop(0,   `rgba(${rgb},${alpha})`);
+            grd.addColorStop(0.5, `rgba(${rgb},${alpha * 0.5})`);
+            grd.addColorStop(1,   `rgba(${rgb},0)`);
+            ctx.beginPath();
+            ctx.arc(0, 0, starSize * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = grd;
+            ctx.fill();
+
+            _drawStarShape(ctx, 0, 0, starSize, p.points, 0);
+            ctx.fillStyle = `rgba(${rgb},${alpha})`;
+            ctx.fill();
+            ctx.restore();
+        });
+
+        if (rawT < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            canvas.style.display = 'none';
+            ctx.clearRect(0, 0, W, H);
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+/* ── Helper: konversi hex ke "r,g,b" ── */
+function _hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r},${g},${b}`;
+}
+
+/* ── Flash border emas ── */
+function _fsBorderFlash() {
+    const el = document.getElementById('fsBorderFlash');
+    if (!el) return;
+    el.classList.add('nyala');
+    setTimeout(() => el.classList.remove('nyala'), 600);
+}
+
+/* ── Transisi MASUK fullscreen ── */
+function mintaFullscreen(evt) {
+    const cx = (evt && evt.clientX) ? evt.clientX : window.innerWidth / 2;
+    const cy = (evt && evt.clientY) ? evt.clientY : window.innerHeight / 2;
+
+    // 1. Mulai animasi partikel bintang
+    _fsTransisiMasuk(cx, cy);
+    _fsBorderFlash();
+
+    // 2. Animasi welcome page keluar (sedikit delay agar partikel terlihat dulu)
+    const wp = document.getElementById('welcomePage');
+    if (wp && !wp.classList.contains('tersembunyi')) {
+        setTimeout(() => wp.classList.add('fs-keluar'), 200);
+    }
+
+    // 3. Request fullscreen API (harus sync dari gesture)
     const el = document.documentElement;
     const req = el.requestFullscreen
              || el.webkitRequestFullscreen
              || el.mozRequestFullScreen
              || el.msRequestFullscreen;
     if (req) {
-        req.call(el).catch(() => {
-            // Fallback jika API fullscreen tidak diizinkan: scroll address bar hilang
-            window.scrollTo(0, 1);
-        });
+        req.call(el).catch(() => { window.scrollTo(0, 1); });
     } else {
         window.scrollTo(0, 1);
     }
 }
 
+/* ── Transisi KELUAR fullscreen ── */
+function _transisiKeluar() {
+    const mainApp = document.getElementById('mainApp');
+
+    // Animasi keluar app
+    if (mainApp && mainApp.style.display !== 'none') {
+        mainApp.classList.add('fs-app-keluar');
+    }
+
+    // Mulai efek ledakan bintang berterbangan — delay lebih panjang agar transisi terasa
+    setTimeout(() => {
+        _fsTransisiKeluar();
+        _fsBorderFlash();
+
+        if (mainApp) mainApp.classList.remove('fs-app-keluar');
+
+        // Welcome page muncul kembali dengan animasi lebih lambat
+        const wp = document.getElementById('welcomePage');
+        if (wp) {
+            wp.classList.remove('fs-keluar');
+            wp.classList.add('fs-masuk');
+            setTimeout(() => wp.classList.remove('fs-masuk'), 1800);
+            // Tampilkan ulang logo & teks secara bertahap
+            if (typeof _replayWelcomeContent === 'function') _replayWelcomeContent();
+        }
+    }, 400);
+}
+
+// Helper: reset welcome page jika terjebak di opacity 0 karena fs-keluar
+function _resetWelcomeJikaPerlu() {
+    setTimeout(() => {
+        const wp = document.getElementById('welcomePage');
+        if (wp && !wp.classList.contains('tersembunyi') && wp.classList.contains('fs-keluar')) {
+            wp.classList.remove('fs-keluar');
+            void wp.offsetHeight; // force reflow agar animasi baru mulai bersih
+            wp.classList.add('fs-masuk');
+            setTimeout(() => wp.classList.remove('fs-masuk'), 1800);
+        }
+    }, 1500); // tunggu setelah animasi keluar (1.4s) selesai
+}
+
 // Jaga fullscreen tetap aktif jika keluar (mis. notifikasi)
 document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) {
-        // Keluar dari fullscreen karena interupsi — scroll fallback
+    if (document.fullscreenElement) {
+        // Masuk fullscreen — jika welcome page terkena animasi keluar tapi belum disembunyikan, reset
+        _resetWelcomeJikaPerlu();
+    } else {
+        _transisiKeluar();
+        // Scroll fallback
         setTimeout(() => window.scrollTo(0, 1), 200);
+    }
+});
+document.addEventListener('webkitfullscreenchange', () => {
+    if (document.webkitFullscreenElement) {
+        _resetWelcomeJikaPerlu();
+    } else {
+        _transisiKeluar();
     }
 });
 
@@ -4546,12 +5089,14 @@ function _tampilStepIsian(fieldId) {
     backdrop.style.display = 'block';
     modal.classList.add('aktif');
 
-    // Reset animasi kartu
+    // Reset animasi kartu — tanpa void offsetWidth agar tidak picu reflow seluruh halaman
     if (card) {
         card.classList.remove('keluar');
-        card.style.animation = 'none';
-        void card.offsetWidth;
-        card.style.animation = '';
+        card.classList.remove('masuk');
+        // Gunakan requestAnimationFrame agar animasi masuk tidak memicu layout shift
+        requestAnimationFrame(function() {
+            card.classList.add('masuk');
+        });
     }
 
     // Bottom sheet: tidak perlu scroll
@@ -4584,7 +5129,7 @@ function _tutupStepIsian(callback) {
         }
         modal.classList.remove('aktif');
         backdrop.style.display = 'none';
-        if (card) card.classList.remove('keluar');
+        if (card) { card.classList.remove('keluar'); card.classList.remove('masuk'); }
         if (callback) callback();
     }, 230);
 }
@@ -5583,6 +6128,11 @@ function editDariOverlay() {
                 document.getElementById('fieldInstansiLainnya').classList.add('hidden');
             }
 
+            // ── Sembunyikan SEMUA tombol Lanjut di mode edit ──
+            document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+                btn.style.display = 'none';
+            });
+
             // ── Resize canvas TTD ──
             resizeCanvas();
 
@@ -6128,6 +6678,10 @@ function btnFormHeaderKlik() { kembaliKeFormIsian(); }
 
 // ── Kembali ke form isian dari area admin ──
 function kembaliKeFormIsian() {
+    // 0. Reset posisi scroll agar tidak terjadi lompatan visual
+    var scroller = document.getElementById('pageScroller');
+    if (scroller) scroller.scrollTop = 0;
+
     // 1. Pastikan formSection tampil & dataSection sembunyi
     var formSec = document.getElementById('formSection');
     var dataSec = document.getElementById('dataSection');
@@ -6147,24 +6701,27 @@ function kembaliKeFormIsian() {
     bersihJawab();
     hideAllFields();
 
-    // 3. Buka stepIsianModal ke field-nama
-    //    Paksa tutup dulu jika masih aktif, lalu buka ulang
+    // 3. Tutup paksa modal & backdrop step isian terlebih dahulu
     var modal = document.getElementById('stepIsianModal');
     var backdrop = document.getElementById('stepIsianBackdrop');
     var card = document.getElementById('siCard');
-    if (modal) modal.classList.remove('aktif');
+    if (modal) { modal.classList.remove('aktif'); modal.style.display = ''; }
     if (backdrop) backdrop.style.display = 'none';
-    if (card) { card.classList.remove('keluar'); }
+    if (card) { card.classList.remove('keluar'); card.classList.remove('masuk'); }
 
-    // Beri satu frame agar DOM update sebelum tampil
+    // 4. Kembalikan #stepInputArea ke posisi asli di dalam form jika sedang di modal
+    var area = document.getElementById('stepInputArea');
+    var formBody = document.getElementById('bukuTamuForm');
+    if (area && formBody && area.parentNode !== formBody) {
+        // Masukkan kembali ke form sebelum #field-nama
+        formBody.insertBefore(area, formBody.firstChild);
+    }
+
+    // 5. Buka stepIsianModal ke field-nama setelah DOM update
+    //    Tidak auto-focus agar keyboard virtual tidak memicu guncangan layout
     setTimeout(function() {
         _tampilStepIsian('field-nama');
-        // Fokus ke input nama
-        setTimeout(function() {
-            var inputNama = document.getElementById('nama');
-            if (inputNama) inputNama.focus();
-        }, 120);
-    }, 60);
+    }, 80);
 }
 
 function showData() {
@@ -6373,6 +6930,11 @@ function editData(index) {
         editingSementara = false;
         _toggleTombolFoto();
 
+        // Sembunyikan semua tombol Lanjut
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
+
         forceShowEditFields();
         // Tampilkan field-aksi agar tombol foto & TTD terlihat
         document.getElementById('field-aksi').classList.remove('hidden');
@@ -6506,6 +7068,10 @@ function editSementara(sIndex) {
 
         _editBebasMode = true;
         _toggleTombolFoto();
+        // Sembunyikan semua tombol Lanjut
+        document.querySelectorAll('.btn-lanjut').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
         forceShowEditFields();
         document.getElementById('field-aksi').classList.remove('hidden');
 
@@ -8731,6 +9297,60 @@ function _mapCariLokasi() {
     } else {
         pasangGestureAdmin();
     }
+})();
+</script>
+<script>
+// FIX GUNCANG WELCOME PAGE SAAT FULLSCREEN / ADDRESS BAR COLLAPSE
+(function() {
+    const welcomePage = document.getElementById('welcomePage');
+    const welcomeContent = document.querySelector('.welcome-content');
+
+    if (!welcomePage) return;
+
+    function adjustWelcomeLayout() {
+        if (!welcomePage || !welcomeContent) return;
+
+        // Gunakan visualViewport jika tersedia (paling akurat di Chrome Android)
+        if (window.visualViewport) {
+            const vv = window.visualViewport;
+            
+            // Set height secara eksplisit menggunakan visual viewport
+            welcomePage.style.height = vv.height + 'px';
+            
+            // Pusatkan konten dengan offset jika perlu
+            const offset = (vv.offsetTop || 0);
+            welcomeContent.style.transform = `translateY(${offset}px)`;
+        } 
+        else {
+            // Fallback untuk browser yang tidak support visualViewport
+            welcomePage.style.height = '100dvh';
+            welcomeContent.style.transform = 'none';
+        }
+    }
+
+    // Jalankan saat pertama kali
+    window.addEventListener('load', () => {
+        setTimeout(adjustWelcomeLayout, 100);
+        setTimeout(adjustWelcomeLayout, 600); // ekstra safety
+    });
+
+    // Pantau perubahan viewport (saat fullscreen, address bar hilang/muncul, rotate, dll)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', adjustWelcomeLayout);
+        window.visualViewport.addEventListener('scroll', adjustWelcomeLayout);
+    }
+
+    // Juga pantau resize biasa (untuk safety)
+    window.addEventListener('resize', () => {
+        setTimeout(adjustWelcomeLayout, 50);
+    });
+
+    // Reset transform saat welcome page disembunyikan
+    const originalHideWelcome = window.sembunyikanWelcomePage || function(){};
+    window.sembunyikanWelcomePage = function() {
+        if (welcomeContent) welcomeContent.style.transform = 'none';
+        if (typeof originalHideWelcome === 'function') originalHideWelcome();
+    };
 })();
 </script>
 </div><!-- /pageScroller -->
