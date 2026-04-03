@@ -352,7 +352,20 @@
                 0 8px 24px rgba(13,31,69,0.14),
                 0 20px 60px rgba(13,31,69,0.12),
                 0 0 0 1px rgba(212,168,32,0.35);
-            overflow: hidden;
+            /* overflow:clip = visual clipping (border-radius tetap) TANPA membuat
+               scroll container baru, sehingga position:sticky tetap bekerja */
+            overflow: clip;
+            /* Setinggi viewport agar sticky-bottom aktif sejak pertama load */
+            min-height: calc(100dvh - 64px);
+        }
+        /* Saat JS menampilkan mainApp, gunakan flex agar formSection bisa tumbuh */
+        #mainApp[style*="display: block"],
+        #mainApp[style*="display:block"],
+        #mainApp[style*="display: flex"],
+        #mainApp[style*="display:flex"] {
+            display: flex !important;
+            flex-direction: column;
+            min-height: calc(100dvh - 64px);
         }
 
         #mainApp::before {
@@ -373,8 +386,13 @@
 
         #mainApp > * { position: relative; z-index: 1; }
 
-        .header-gambar {
+                .header-gambar {
             padding: 24px 20px 0 20px !important;
+        }
+        /* Jika header-gambar disembunyikan (semua foto gagal), hapus margin-bottom juga */
+        .header-gambar[style*="display: none"] {
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         #mainApp label {
@@ -427,6 +445,31 @@
         #dataSection {
             padding: 16px 20px 28px 20px;
         }
+        /* Diperlukan agar sticky bottom pada #stepInputArea bekerja */
+        #formSection {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            /* Tumbuh mengisi sisa tinggi #mainApp (min-height dikontrol oleh mainApp) */
+            flex: 1 1 auto;
+            min-height: 0;
+            position: relative;
+        }
+        /* paperScroll tumbuh ke atas, stepInputArea tetap di bawah */
+        #formSection > #paperScroll {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        #formSection > #stepHeader {
+            padding: 4px 20px 6px;
+            flex-shrink: 0;
+        }
+        #formSection > form {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
 
         #mainNavigation {
             margin: 0 !important;
@@ -470,8 +513,8 @@
                 #a8e6ff 100%
             );
             text-align: center;
-            padding: 22px 16px 20px 16px;
-            border-bottom: 1.5px solid rgba(255,255,255,0.30);
+            padding: 22px 16px 14px 16px;
+            border-bottom: none;
             position: sticky;
             top: 0;
             z-index: 200;
@@ -604,8 +647,8 @@
             animation: appFadeIn 0.65s ease-out forwards !important;
         }
         @keyframes appFadeIn {
-            0%   { opacity: 0; transform: scale(0.96); }
-            100% { opacity: 1; transform: scale(1); }
+            0%   { opacity: 0; }
+            100% { opacity: 1; }
         }
 
         /* Animasi keluar halaman app */
@@ -613,8 +656,8 @@
             animation: appFadeOut 0.4s ease-in forwards !important;
         }
         @keyframes appFadeOut {
-            0%   { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(1.04); }
+            0%   { opacity: 1; }
+            100% { opacity: 0; }
         }
 
         /* Glow border flash saat transisi */
@@ -741,7 +784,7 @@
         /* ── Header label ringkas (tetap di atas) ── */
         #stepHeader {
             background: transparent;
-            padding: 4px 20px 6px;
+            padding: 2px 20px 2px;
             color: #d4a820;
         }
         #stepHeader .sh-title {
@@ -770,17 +813,39 @@
             transition: width 0.55s ease;
         }
 
+
+        /* ── Logo Watermark di area putih ── */
+        #logoWatermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px;
+            height: 260px;
+            object-fit: contain;
+            opacity: 0.055;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
         /* ── Area input aktif (satu field per waktu) ── */
         #stepInputArea {
             background: linear-gradient(180deg,
-                rgba(220, 238, 255, 0.92) 0%,
-                rgba(200, 228, 252, 0.88) 100%
+                rgba(168, 220, 255, 0.60) 0%,
+                rgba(220, 238, 255, 0.97) 20%,
+                rgba(200, 228, 252, 0.95) 100%
             );
-            padding: 22px 18px 20px;
+            padding: 18px 18px 20px;
             border-bottom: 1px solid rgba(100,180,255,0.25);
-            min-height: 140px;
-            position: relative;
+            min-height: 120px;
+            /* Didorong ke bawah flex container sejak pertama kali halaman dibuka */
+            margin-top: auto;
+            /* Sticky: field tetap terlihat saat paperScroll mulai terisi & di-scroll */
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
             box-shadow:
+                0 -4px 18px rgba(100,170,240,0.18),
                 inset 0 2px 18px rgba(130,200,255,0.22),
                 inset 0 -1px 8px rgba(100,170,240,0.12);
         }
@@ -795,11 +860,9 @@
             text-transform: uppercase;
             text-shadow: 0 1px 3px rgba(100,180,255,0.25);
         }
-        .sf-enter {
-            animation: sfSlideIn 0.38s cubic-bezier(0.22,1,0.36,1);
-        }
+        .sf-enter { /* no animation - instant */ }
         @keyframes sfSlideIn {
-            from { opacity:0; transform: translateY(10px); }
+            from { opacity:1; transform: translateY(0); }
             to   { opacity:1; transform: translateY(0); }
         }
 
@@ -999,6 +1062,19 @@
             overflow: hidden;
         }
         #paperScroll:empty { display: none; }
+
+        /* ── Satukan header dengan area input saat paperScroll kosong ── */
+        #paperScroll:not(:has(.ps-row)) {
+            display: none !important;
+        }
+        #stepHeader:has(+ form #stepInputArea > div:first-child:not(.hidden)) {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+        }
+        /* Fallback: sembunyikan paperScroll dengan class helper dari JS */
+        #paperScroll.ps-kosong {
+            display: none !important;
+        }
 
         /* Header tabel ringkasan */
         #psTableHead {
@@ -1575,7 +1651,6 @@
             justify-content: center;
             padding: 0 12px 12px;
             pointer-events: none;
-            transition: bottom 0.18s ease, transform 0.18s ease;
         }
         #stepIsianModal.aktif {
             display: flex;
@@ -1593,23 +1668,10 @@
             overflow: visible;
             border: none;
             box-shadow: none;
-            /* Tidak ada animasi default — hanya aktif via class .masuk/.keluar */
-            will-change: transform, opacity;
+            /* Statis — tidak ada animasi */
         }
-        @keyframes siCardIn {
-            from { opacity: 0; transform: translateY(40px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .si-card.masuk {
-            animation: siCardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
-        }
-        .si-card.keluar {
-            animation: siCardOut 0.22s cubic-bezier(0.55,0,1,0.45) both;
-        }
-        @keyframes siCardOut {
-            from { opacity: 1; transform: translateY(0); }
-            to   { opacity: 0; transform: translateY(30px); }
-        }
+        .si-card.masuk { /* no animation - instant */ }
+        .si-card.keluar { opacity: 0; }
 
         .si-header { display: none; }
         .si-header-icon { display: none; }
@@ -1656,7 +1718,8 @@
         .si-body > #stepInputArea {
             padding: 16px 16px 14px !important;
             border-bottom: none !important;
-            min-height: unset !important;
+            min-height: unset;
+            margin-top: 0 !important !important;
             background: linear-gradient(180deg,
                 rgba(218,240,255,0.88) 0%,
                 rgba(200,230,252,0.84) 100%
@@ -1950,11 +2013,31 @@
 <div id="pageScroller">
 <!-- Main Application -->
 <div id="mainApp">
-    <div class="header-gambar">
-        <img src="bupati.png" alt="Wakil Bupati" class="foto-kepala" onerror="this.style.display='none'">
-        <img src="logo-tubaba.png" alt="Logo Tubaba" class="logo" onerror="this.style.display='none'">
-        <img src="wakil-bupati.png" alt="Bupati" class="foto-kepala" onerror="this.style.display='none'">
+    <div class="header-gambar" id="headerGambar">
+        <img src="bupati.png" alt="Wakil Bupati" class="foto-kepala" onerror="_hdrImgGagal(this)">
+        <img src="logo-tubaba.png" alt="Logo Tubaba" class="logo" onerror="_hdrImgGagal(this)">
+        <img src="wakil-bupati.png" alt="Bupati" class="foto-kepala" onerror="_hdrImgGagal(this)">
     </div>
+    <script>
+    (function(){
+        var _gagal = 0;
+        var _total = 3;
+        window._hdrImgGagal = function(el) {
+            el.style.display = 'none';
+            _gagal++;
+            if (_gagal >= _total) {
+                // Semua gambar gagal — sembunyikan seluruh header agar tidak ada ruang kosong
+                var hdr = document.getElementById('headerGambar');
+                if (hdr) {
+                    hdr.style.display = 'none';
+                    hdr.style.margin  = '0';
+                    hdr.style.padding = '0';
+                    hdr.style.height  = '0';
+                }
+            }
+        };
+    })();
+    </script>
 
     <div class="app-judul-utama">
         <div class="judul-teks">✦ BUKU TAMU DIGITAL ✦</div>
@@ -1963,8 +2046,11 @@
 
     <div id="formSection">
 
+        <!-- Watermark Logo Kabupaten -->
+        <img id="logoWatermark" src="data:image/png;base64,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" alt="" aria-hidden="true">
+
         <!-- ══ KERTAS TERURAI: jawaban bergulir animatif ══ -->
-        <div id="paperScroll">
+        <div id="paperScroll" class="ps-kosong">
             <div id="psTableHead" style="display:none;">📋 RINGKASAN ISIAN</div>
             <div id="ps-section-dok" class="ps-section-sep" style="display:none;">📷 Dokumentasi Foto &amp; Tanda Tangan</div>
         </div>
@@ -2228,31 +2314,6 @@
 
     </div>
 
-    <!-- ══ OVERLAY STEP ISIAN DATA — backdrop ══ -->
-    <div id="stepIsianBackdrop"></div>
-
-    <!-- ══ OVERLAY STEP ISIAN DATA — modal ══ -->
-    <div id="stepIsianModal">
-        <div class="si-card" id="siCard">
-            <!-- Header -->
-            <div class="si-header">
-                <div class="si-header-icon" id="siIcon">📝</div>
-                <div class="si-header-text">
-                    <div class="si-header-title" id="siTitle">Isian Data</div>
-                    <div class="si-progress-wrap">
-                        <div class="si-progress-bar" id="siBar" style="width:12%"></div>
-                    </div>
-                </div>
-                <div class="si-counter" id="siCounter">1 / 9</div>
-            </div>
-            <!-- Body: #stepInputArea akan dipindahkan ke sini oleh JS -->
-            <div class="si-body" id="siBody"></div>
-            <!-- Footer hint -->
-            <div class="si-footer">
-                <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
-            </div>
-        </div>
-    </div>
 
     <div id="editModeButtons" style="display:none;"><!-- placeholder lama, tidak dipakai --></div>
 
@@ -2310,7 +2371,7 @@
     </div>
 
     <div id="mainNavigation">
-        <button onclick="kembaliKeFormIsian()" id="btnKembaliForm" style="display:none; background:linear-gradient(135deg,#1a6e2a,#27ae60) !important; color:#fff !important; border:1px solid rgba(100,220,100,0.5) !important;">📝 Form Input</button>
+        <button onclick="btnFormHeaderKlik()" id="btnKembaliForm" style="display:none; background:linear-gradient(135deg,#1a6e2a,#27ae60) !important; color:#fff !important; border:1px solid rgba(100,220,100,0.5) !important;">📝 Form Input</button>
         <button onclick="showData()" id="btnData" style="display:none;">📊 Lihat Data (<span id="dataCount">0</span>)</button>
         <button onclick="exportData()" id="btnExport" style="display:none;">📑 Export Tabel Ringkasan</button>
         <button onclick="toggleWaSettings()" id="btnWaSettings" style="display:none; background:linear-gradient(135deg,#075e54,#128c7e) !important; color:#fff !important;">💬 Pengaturan WA</button>
@@ -4082,8 +4143,12 @@ async function startApp() {
         fbMuatSemua().then(() => updateDataCounter());
         fbPasangListener();
     }
-    // Tampilkan overlay isian untuk field nama pertama kali
-    setTimeout(() => _tampilStepIsian('field-nama'), 350);
+    // Tampilkan field nama otomatis langsung saat mainApp muncul
+    _tampilStepIsian._sudahPertama = false; // reset state animasi
+    // Delay kecil agar DOM & flex layout sudah terhitung sebelum modal tampil
+    setTimeout(function() {
+        _tampilStepIsian('field-nama');
+    }, 80);
 }
 
 function goToWelcome() {
@@ -4563,6 +4628,14 @@ function _fsBorderFlash() {
 
 /* ── Transisi MASUK fullscreen ── */
 function mintaFullscreen(evt) {
+    // Guard: jangan jalankan jika welcome page sudah tersembunyi (app sudah aktif)
+    const wp = document.getElementById('welcomePage');
+    if (!wp || wp.classList.contains('tersembunyi')) return;
+
+    // Guard: jangan jalankan jika sudah fullscreen
+    const sudahFS = document.fullscreenElement || document.webkitFullscreenElement;
+    if (sudahFS) return;
+
     const cx = (evt && evt.clientX) ? evt.clientX : window.innerWidth / 2;
     const cy = (evt && evt.clientY) ? evt.clientY : window.innerHeight / 2;
 
@@ -4571,8 +4644,7 @@ function mintaFullscreen(evt) {
     _fsBorderFlash();
 
     // 2. Animasi welcome page keluar (sedikit delay agar partikel terlihat dulu)
-    const wp = document.getElementById('welcomePage');
-    if (wp && !wp.classList.contains('tersembunyi')) {
+    if (!wp.classList.contains('tersembunyi')) {
         setTimeout(() => wp.classList.add('fs-keluar'), 200);
     }
 
@@ -4592,8 +4664,20 @@ function mintaFullscreen(evt) {
 /* ── Transisi KELUAR fullscreen ── */
 function _transisiKeluar() {
     const mainApp = document.getElementById('mainApp');
+    const wp = document.getElementById('welcomePage');
 
-    // Animasi keluar app
+    // Guard: jika app sudah aktif (welcome tersembunyi), JANGAN animasikan keluar.
+    // Ini mencegah layar putih saat fullscreen keluar karena notifikasi/ESC saat app berjalan.
+    const appAktif = wp && wp.classList.contains('tersembunyi');
+    if (appAktif) {
+        if (mainApp) {
+            mainApp.classList.remove('fs-app-keluar');
+            mainApp.classList.remove('fs-app-masuk');
+        }
+        return;
+    }
+
+    // Animasi keluar app (hanya jika welcome page masih tampil / sedang transisi)
     if (mainApp && mainApp.style.display !== 'none') {
         mainApp.classList.add('fs-app-keluar');
     }
@@ -4606,7 +4690,6 @@ function _transisiKeluar() {
         if (mainApp) mainApp.classList.remove('fs-app-keluar');
 
         // Welcome page muncul kembali dengan animasi lebih lambat
-        const wp = document.getElementById('welcomePage');
         if (wp) {
             wp.classList.remove('fs-keluar');
             wp.classList.add('fs-masuk');
@@ -4650,14 +4733,250 @@ document.addEventListener('webkitfullscreenchange', () => {
 });
 
 (function _fullscreenOtomatis() {
+    // Jika sudah PWA standalone, tidak perlu fullscreen lagi
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
 
-    // Saat load: scroll address bar agar tersembunyi (metode paling kompatibel)
+    // ── Tambahkan hint "Tap untuk Layar Penuh" di welcome page ──
+    function tambahHintFullscreen() {
+        const wp = document.getElementById('welcomePage');
+        if (!wp || document.getElementById('_fsHint')) return;
+
+        const hint = document.createElement('div');
+        hint.id = '_fsHint';
+        hint.style.cssText = [
+            'position:absolute',
+            'bottom:32px',
+            'left:50%',
+            'transform:translateX(-50%)',
+            'z-index:10',
+            'display:flex',
+            'flex-direction:column',
+            'align-items:center',
+            'gap:6px',
+            'pointer-events:none',
+            'animation:_fsHintPulse 2s ease-in-out infinite',
+        ].join(';');
+
+        hint.innerHTML = `
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"
+                 style="opacity:0.75">
+                <path d="M4 4h6M4 4v6M24 4h-6M24 4v6M4 24h6M4 24v-6M24 24h-6M24 24v-6"
+                      stroke="#f5e07a" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span style="
+                font-size:0.68em;
+                color:rgba(245,224,122,0.70);
+                letter-spacing:0.12em;
+                text-transform:uppercase;
+                white-space:nowrap;
+                font-family:Arial,sans-serif;
+            ">Tap untuk layar penuh</span>`;
+
+        // Inject keyframe jika belum ada
+        if (!document.getElementById('_fsHintStyle')) {
+            const st = document.createElement('style');
+            st.id = '_fsHintStyle';
+            st.textContent = `
+                @keyframes _fsHintPulse {
+                    0%,100% { opacity:0.55; transform:translateX(-50%) translateY(0); }
+                    50%      { opacity:1;    transform:translateX(-50%) translateY(-5px); }
+                }`;
+            document.head.appendChild(st);
+        }
+
+        wp.appendChild(hint);
+    }
+
+    // ── Sembunyikan hint begitu fullscreen aktif ──
+    function sembunyikanHint() {
+        const h = document.getElementById('_fsHint');
+        if (h) h.remove();
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) sembunyikanHint();
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+        if (document.webkitFullscreenElement) sembunyikanHint();
+    });
+
+    // ── Pasang hint setelah DOM siap ──
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tambahHintFullscreen);
+    } else {
+        tambahHintFullscreen();
+    }
+
+    // ── Fallback scroll untuk browser yang tidak support Fullscreen API ──
     window.addEventListener('load', () => {
         document.body.style.minHeight = (window.screen.height + 1) + 'px';
         setTimeout(() => { window.scrollTo(0, 1); }, 300);
     });
+})();
+
+// ══════════════════════════════════════════════════════════════
+// PENJAGA FULLSCREEN — pastikan app selalu fullscreen selama digunakan
+// ══════════════════════════════════════════════════════════════
+(function _penjagaFullscreen() {
+    'use strict';
+
+    // Jangan pasang jika PWA standalone (sudah fullscreen by nature)
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
+    if (window.navigator.standalone === true) return;
+
+    const COOLDOWN_MS  = 2000;  // jeda minimum antar re-request
+    const BANNER_MS    = 4000;  // durasi banner tampil
+    let   _lastRequest = 0;
+    let   _bannerTimer = null;
+
+    // ── Cek apakah Fullscreen API tersedia ──
+    function _fsApiAda() {
+        const el = document.documentElement;
+        return !!(el.requestFullscreen || el.webkitRequestFullscreen ||
+                  el.mozRequestFullScreen || el.msRequestFullscreen);
+    }
+
+    // ── Apakah saat ini fullscreen? ──
+    function _sedangFS() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+                  document.mozFullScreenElement || document.msFullscreenElement);
+    }
+
+    // ── Apakah app sedang aktif (bukan di welcome page)? ──
+    function _appAktif() {
+        const wp = document.getElementById('welcomePage');
+        return wp && wp.classList.contains('tersembunyi');
+    }
+
+    // ── Minta fullscreen ulang ──
+    function _minta() {
+        if (_sedangFS()) return;
+        const now = Date.now();
+        if (now - _lastRequest < COOLDOWN_MS) return;
+        _lastRequest = now;
+
+        const el  = document.documentElement;
+        const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+                    el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (req) req.call(el).catch(() => {});
+    }
+
+    // ── Buat banner pengingat ──
+    function _tampilBanner() {
+        if (document.getElementById('_fsBanner')) return;
+
+        const banner = document.createElement('div');
+        banner.id = '_fsBanner';
+        banner.style.cssText = [
+            'position:fixed',
+            'bottom:24px',
+            'left:50%',
+            'transform:translateX(-50%) translateY(80px)',
+            'z-index:2147483647',
+            'background:linear-gradient(135deg,rgba(7,26,62,0.97),rgba(13,42,94,0.97))',
+            'border:1.5px solid rgba(212,168,32,0.6)',
+            'border-radius:50px',
+            'padding:10px 20px 10px 14px',
+            'display:flex',
+            'align-items:center',
+            'gap:10px',
+            'box-shadow:0 4px 24px rgba(0,0,0,0.45),0 0 0 1px rgba(212,168,32,0.15)',
+            'cursor:pointer',
+            'user-select:none',
+            '-webkit-user-select:none',
+            'transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1),opacity 0.35s ease',
+            'opacity:0',
+            'will-change:transform,opacity',
+        ].join(';');
+
+        banner.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3h5M3 3v5M19 3h-5M19 3v5M3 19h5M3 19v-5M19 19h-5M19 19v-5"
+                      stroke="#f5e07a" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span style="
+                font-family:Arial,sans-serif;
+                font-size:0.80em;
+                font-weight:700;
+                color:#f5e07a;
+                letter-spacing:0.06em;
+                white-space:nowrap;
+            ">Tap untuk kembali layar penuh</span>`;
+
+        document.body.appendChild(banner);
+
+        // Animasi masuk
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                banner.style.transform = 'translateX(-50%) translateY(0)';
+                banner.style.opacity   = '1';
+            });
+        });
+
+        // Tap banner → minta fullscreen
+        banner.addEventListener('click', () => {
+            _minta();
+            _sembunyikanBanner();
+        });
+
+        // Auto-hide setelah BANNER_MS
+        clearTimeout(_bannerTimer);
+        _bannerTimer = setTimeout(_sembunyikanBanner, BANNER_MS);
+    }
+
+    function _sembunyikanBanner() {
+        const b = document.getElementById('_fsBanner');
+        if (!b) return;
+        b.style.transform = 'translateX(-50%) translateY(80px)';
+        b.style.opacity   = '0';
+        setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 400);
+    }
+
+    // ── Handler saat fullscreen keluar ──
+    function _onFullscreenChange() {
+        if (_sedangFS()) return;   // masuk fullscreen, tidak perlu apa-apa
+        if (!_fsApiAda()) return;  // browser tidak support
+
+        // Tentukan apakah kita perlu re-fullscreen
+        // Selalu coba re-fullscreen jika app aktif atau welcome page masih tampil
+        // (pada welcome page: butuh interaksi user, jadi tampilkan banner saja)
+        if (_appAktif()) {
+            // App sedang berjalan — coba otomatis re-fullscreen tanpa interaksi
+            // (biasanya gagal karena perlu gesture, jadi tampilkan banner sebagai fallback)
+            _minta();
+            // Tampilkan banner sebagai fallback jika re-request gagal
+            setTimeout(() => {
+                if (!_sedangFS()) _tampilBanner();
+            }, 600);
+        } else {
+            // Masih di welcome page — hint sudah ada, tidak perlu banner tambahan
+        }
+    }
+
+    // ── Handler saat tab kembali fokus (dari notifikasi / alt-tab) ──
+    function _onVisibilityChange() {
+        if (document.hidden) return;
+        // Delay sedikit agar browser selesai proses visibilitas
+        setTimeout(() => {
+            if (!_sedangFS()) _onFullscreenChange();
+        }, 500);
+    }
+
+    // ── Pasang semua listener ──
+    document.addEventListener('fullscreenchange',       _onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', _onFullscreenChange);
+    document.addEventListener('mozfullscreenchange',    _onFullscreenChange);
+    document.addEventListener('MSFullscreenChange',     _onFullscreenChange);
+    document.addEventListener('visibilitychange',       _onVisibilityChange);
+
+    // Re-cek saat window kembali fokus (desktop)
+    window.addEventListener('focus', () => {
+        setTimeout(() => {
+            if (!_sedangFS()) _onFullscreenChange();
+        }, 400);
+    });
+
 })();
 
 // ===== INITIALIZATION =====
@@ -4666,7 +4985,22 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx2 = signatureCanvas.getContext('2d');
     attachSignatureEvents();
     window.addEventListener('resize', resizeCanvas);
+
+    // Inisialisasi: tandai paperScroll sebagai kosong saat pertama kali
+    _updatePaperScrollKosong();
 });
+
+// ── Helper: update class ps-kosong pada paperScroll ──
+function _updatePaperScrollKosong() {
+    const box = document.getElementById('paperScroll');
+    if (!box) return;
+    const adaRow = box.querySelector('.ps-row');
+    if (adaRow) {
+        box.classList.remove('ps-kosong');
+    } else {
+        box.classList.add('ps-kosong');
+    }
+}
 
 function attachSignatureEvents() {
     signatureCanvas.addEventListener('mousedown', startDrawing);
@@ -4915,6 +5249,7 @@ function tampilJawab(fieldKey, labelTeks, valueTeks) {
         }
     }
     _updateProgress(num);
+    _updatePaperScrollKosong();
 
     // Scroll halus ke baris baru setelah animasi mulai
     setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
@@ -5093,10 +5428,7 @@ function _tampilStepIsian(fieldId) {
     if (card) {
         card.classList.remove('keluar');
         card.classList.remove('masuk');
-        // Gunakan requestAnimationFrame agar animasi masuk tidak memicu layout shift
-        requestAnimationFrame(function() {
-            card.classList.add('masuk');
-        });
+        // Selalu tampil statis — tanpa animasi agar tidak goyang
     }
 
     // Bottom sheet: tidak perlu scroll
@@ -5115,9 +5447,7 @@ function _tutupStepIsian(callback) {
         return;
     }
 
-    // Animasi keluar kartu
-    if (card) card.classList.add('keluar');
-
+    // Langsung tutup tanpa animasi
     setTimeout(() => {
         // Kembalikan #stepInputArea ke posisi aslinya di form
         if (area && _siAreaParent && area.parentNode !== _siAreaParent) {
@@ -5131,7 +5461,7 @@ function _tutupStepIsian(callback) {
         backdrop.style.display = 'none';
         if (card) { card.classList.remove('keluar'); card.classList.remove('masuk'); }
         if (callback) callback();
-    }, 230);
+    }, 0);
 }
 
 function bersihJawab() {
@@ -5139,6 +5469,7 @@ function bersihJawab() {
     if (box) {
         // Hapus semua baris isian (simpan elemen statis)
         box.querySelectorAll('.ps-row').forEach(r => r.remove());
+        box.classList.add('ps-kosong');
     }
     const thead = document.getElementById('psTableHead');
     if (thead) thead.style.display = 'none';
@@ -6674,7 +7005,51 @@ function showForm() {
 }
 
 // ── Tombol Form Input di header (lama) — tetap kompatibel
-function btnFormHeaderKlik() { kembaliKeFormIsian(); }
+function btnFormHeaderKlik() {
+    const modal = document.getElementById('stepIsianModal');
+    const dataSec = document.getElementById('dataSection');
+    const isDataVisible = dataSec && dataSec.style.display !== 'none';
+    const isAdmin = !!document.getElementById('btnKembaliForm') &&
+                    document.getElementById('btnKembaliForm').style.display !== 'none';
+
+    // Jika sedang di halaman data → selalu pindah ke form
+    if (isDataVisible) { kembaliKeFormIsian(); return; }
+
+    // Toggle: jika modal field sudah tampil → tutup; jika belum → buka
+    if (modal && modal.classList.contains('aktif')) {
+        _tutupStepIsian(function() {
+            // Di mode admin: sembunyikan stepInputArea setelah dikembalikan ke form
+            if (isAdmin) {
+                var area = document.getElementById('stepInputArea');
+                if (area) area.style.display = 'none';
+            }
+        });
+    } else {
+        if (isAdmin) {
+            // Di halaman admin: hanya tampilkan field NAMA LENGKAP tanpa reset tombol admin
+            var stepModal = document.getElementById('stepIsianModal');
+            var stepBackdrop = document.getElementById('stepIsianBackdrop');
+            var area = document.getElementById('stepInputArea');
+            var siBody = document.getElementById('siBody');
+            // Pastikan area terlihat
+            if (area) area.style.display = '';
+            // Pindahkan stepInputArea ke modal
+            if (area && siBody && area.parentNode !== siBody) siBody.appendChild(area);
+            if (stepBackdrop) stepBackdrop.style.display = 'block';
+            if (stepModal) stepModal.classList.add('aktif');
+            // Reset field nama saja
+            var namaInput = document.getElementById('nama');
+            if (namaInput) { namaInput.value = ''; namaInput.classList.remove('error'); }
+            // Aktifkan field-nama
+            var allFields = document.querySelectorAll('#stepInputArea > div');
+            allFields.forEach(function(f) { f.classList.add('hidden'); });
+            var fieldNama = document.getElementById('field-nama');
+            if (fieldNama) fieldNama.classList.remove('hidden');
+        } else {
+            kembaliKeFormIsian();
+        }
+    }
+}
 
 // ── Kembali ke form isian dari area admin ──
 function kembaliKeFormIsian() {
@@ -6725,7 +7100,13 @@ function kembaliKeFormIsian() {
 }
 
 function showData() {
-    // Tutup overlay step isian & kembalikan area ke form sebelum sembunyikan formSection
+    const dataSec = document.getElementById('dataSection');
+    const isDataVisible = dataSec && dataSec.style.display !== 'none';
+
+    // Toggle: jika data sudah tampil → sembunyikan & kembali ke form
+    if (isDataVisible) { kembaliKeFormIsian(); return; }
+
+    // Tampilkan data
     _tutupStepIsian(() => {
         const formSec = document.getElementById('formSection');
         if (formSec) { formSec.style.visibility = ''; formSec.style.display = 'none'; }
@@ -9354,5 +9735,124 @@ function _mapCariLokasi() {
 })();
 </script>
 </div><!-- /pageScroller -->
+
+<!-- ════ TOMBOL FULLSCREEN PERMANEN ════ -->
+<button id="_btnFS" title="Layar Penuh" aria-label="Toggle Fullscreen"
+    onclick="(function(){
+        var el = document.documentElement;
+        var sedangFS = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!sedangFS) {
+            var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (req) req.call(el).catch(function(){});
+        } else {
+            var ex = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+            if (ex) ex.call(document);
+        }
+    })()"
+    style="
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 2147483646;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 2px solid rgba(212,168,32,0.7);
+        background: linear-gradient(135deg, rgba(7,26,62,0.92), rgba(13,42,94,0.92));
+        box-shadow: 0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,168,32,0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+        opacity: 0.75;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    "
+    onmouseenter="this.style.opacity='1';this.style.transform='scale(1.12)'"
+    onmouseleave="this.style.opacity='0.75';this.style.transform='scale(1)'"
+    ontouchstart="this.style.opacity='1'" ontouchend="this.style.opacity='0.75'">
+    <svg id="_btnFSIcon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 2h5M2 2v5M18 2h-5M18 2v5M2 18h5M2 18v-5M18 18h-5M18 18v-5"
+              stroke="#f5e07a" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+</button>
+
+<script>
+// Sinkronisasi ikon tombol dengan state fullscreen
+(function() {
+    var btn = document.getElementById('_btnFS');
+    var iconExpand = '<path d="M2 2h5M2 2v5M18 2h-5M18 2v5M2 18h5M2 18v-5M18 18h-5M18 18v-5" stroke="#f5e07a" stroke-width="2" stroke-linecap="round"/>';
+    var iconCompress = '<path d="M7 2v5H2M18 7h-5V2M2 13h5v5M13 18v-5h5" stroke="#f5e07a" stroke-width="2" stroke-linecap="round"/>';
+
+    function updateIcon() {
+        var icon = document.getElementById('_btnFSIcon');
+        if (!icon) return;
+        var fs = document.fullscreenElement || document.webkitFullscreenElement;
+        icon.innerHTML = fs ? iconCompress : iconExpand;
+        // Sembunyikan tombol saat fullscreen aktif agar tidak mengganggu
+        if (btn) btn.style.opacity = fs ? '0' : '0.75';
+        if (btn) btn.style.pointerEvents = fs ? 'none' : 'auto';
+    }
+
+    document.addEventListener('fullscreenchange',       updateIcon);
+    document.addEventListener('webkitfullscreenchange', updateIcon);
+    document.addEventListener('mozfullscreenchange',    updateIcon);
+
+    // Tampilkan kembali saat fullscreen keluar
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (btn) {
+                btn.style.opacity = '0.75';
+                btn.style.pointerEvents = 'auto';
+                // Animasi "perhatian" agar user sadar
+                btn.style.transform = 'scale(1.3)';
+                btn.style.boxShadow = '0 0 0 6px rgba(212,168,32,0.35), 0 2px 16px rgba(0,0,0,0.4)';
+                setTimeout(function() {
+                    btn.style.transform = 'scale(1)';
+                    btn.style.boxShadow = '0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,168,32,0.2)';
+                }, 400);
+            }
+        }
+    });
+    document.addEventListener('webkitfullscreenchange', function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (btn) {
+                btn.style.opacity = '0.75';
+                btn.style.pointerEvents = 'auto';
+                btn.style.transform = 'scale(1.3)';
+                setTimeout(function() { btn.style.transform = 'scale(1)'; }, 400);
+            }
+        }
+    });
+})();
+</script>
+
+    <!-- ══ OVERLAY STEP ISIAN DATA — backdrop ══ -->
+    <div id="stepIsianBackdrop"></div>
+
+    <!-- ══ OVERLAY STEP ISIAN DATA — modal ══ -->
+    <div id="stepIsianModal">
+        <div class="si-card" id="siCard">
+            <!-- Header -->
+            <div class="si-header">
+                <div class="si-header-icon" id="siIcon">📝</div>
+                <div class="si-header-text">
+                    <div class="si-header-title" id="siTitle">Isian Data</div>
+                    <div class="si-progress-wrap">
+                        <div class="si-progress-bar" id="siBar" style="width:12%"></div>
+                    </div>
+                </div>
+                <div class="si-counter" id="siCounter">1 / 9</div>
+            </div>
+            <!-- Body: #stepInputArea akan dipindahkan ke sini oleh JS -->
+            <div class="si-body" id="siBody"></div>
+            <!-- Footer hint -->
+            <div class="si-footer">
+                <div class="si-hint" id="siHint">Isi data lalu lanjut otomatis</div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
