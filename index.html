@@ -2003,6 +2003,16 @@
         }
 
         /* Footer hint — transparan total */
+        .si-body .btn-lanjut,
+        .si-body .input-btn-group .btn-lanjut {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            width: 100%;
+            justify-content: center;
+            border-radius: 0 0 14px 14px !important;
+        }
+
         .si-footer {
             display: none;
         }
@@ -7877,14 +7887,6 @@ function editData(index) {
         });
 
         forceShowEditFields();
-        // ── Tampilkan SEMUA field dulu (hapus hidden dari semua anak stepInputArea) ──
-        const _areaEdit = document.getElementById('stepInputArea');
-        if (_areaEdit) {
-            Array.from(_areaEdit.children).forEach(function(c) {
-                c.classList.remove('hidden');
-                c.classList.remove('sf-enter');
-            });
-        }
         // Tampilkan field-aksi agar tombol foto & TTD terlihat
         document.getElementById('field-aksi').classList.remove('hidden');
 
@@ -8037,14 +8039,6 @@ function editSementara(sIndex) {
             btn.style.display = 'none';
         });
         forceShowEditFields();
-        // ── Tampilkan SEMUA field dulu (hapus hidden dari semua anak stepInputArea) ──
-        const _areaEditS = document.getElementById('stepInputArea');
-        if (_areaEditS) {
-            Array.from(_areaEditS.children).forEach(function(c) {
-                c.classList.remove('hidden');
-                c.classList.remove('sf-enter');
-            });
-        }
         document.getElementById('field-aksi').classList.remove('hidden');
 
         document.getElementById('formSection').style.display = 'block';
@@ -10408,6 +10402,45 @@ function _mapCariLokasi() {
 
     <!-- ══ OVERLAY STEP ISIAN DATA — modal ══ -->
     <div id="stepIsianModal">
+
+<script>
+// ── Sync #stepIsianModal ke atas keyboard via visualViewport ──
+(function _syncModalKeKeyboard() {
+    var modal = document.getElementById('stepIsianModal');
+    if (!modal) return;
+
+    function _update() {
+        if (!modal.classList.contains('aktif')) {
+            modal.style.bottom = '';
+            return;
+        }
+        if (window.visualViewport) {
+            var vv  = window.visualViewport;
+            // Tinggi keyboard = selisih innerHeight dan visual viewport (+ scroll offset)
+            var kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+            modal.style.bottom = kbH + 'px';
+        }
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', _update);
+        window.visualViewport.addEventListener('scroll', _update);
+    }
+
+    // Reset bottom saat modal ditutup
+    var _origTutup = window._tutupStepIsianOrig;
+    var _observer  = new MutationObserver(function(muts) {
+        muts.forEach(function(m) {
+            if (m.attributeName === 'class') {
+                if (!modal.classList.contains('aktif')) {
+                    modal.style.bottom = '';
+                }
+            }
+        });
+    });
+    _observer.observe(modal, { attributes: true });
+})();
+</script>
         <div class="si-card" id="siCard">
             <!-- Header -->
             <div class="si-header">
