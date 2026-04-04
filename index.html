@@ -5037,6 +5037,9 @@ document.addEventListener('webkitfullscreenchange', () => {
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return;
 
+    // Skip jika dibuka via link tamu (?key=) — langsung tampilkan detail tamu
+    if (new URLSearchParams(window.location.search).has('key')) return;
+
     // Cek apakah Fullscreen API tersedia
     var el = document.documentElement;
     var req = el.requestFullscreen || el.webkitRequestFullscreen ||
