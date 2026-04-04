@@ -3239,6 +3239,64 @@ const urlParams = new URLSearchParams(window.location.search);
     }
 })();
 
+// ══════════════════════════════════════════════════════════════
+// PRELOAD BACKGROUND — jalankan sinkron waktu & jam kerja
+// segera setelah halaman dimuat agar tombol ISI BUKU TAMU
+// tidak ada jeda saat diklik.
+// ══════════════════════════════════════════════════════════════
+var _preloadSelesai = false;
+var _preloadJamKerjaSelesai = false;
+
+(function _preloadBackground() {
+    function _jalankan() {
+        // 1) Sinkron waktu internet di background (tanpa await, non-blocking)
+        if (typeof sinkronWaktuInternet === 'function') {
+            sinkronWaktuInternet().then(function() {
+                _preloadSelesai = true;
+            }).catch(function() {
+                _preloadSelesai = true;
+            });
+        } else {
+            // Fungsi belum siap, coba lagi sebentar
+            setTimeout(_jalankan, 200);
+            return;
+        }
+
+        // 2) Init Firebase & muat jam kerja di background
+        function _muatJamKerjaBackground() {
+            if (typeof inisialisasiFirebase === 'function') {
+                // Jika Firebase belum diinit, init dulu (ringan — hanya jika belum ada)
+                var initPromise = fbDb
+                    ? Promise.resolve()
+                    : inisialisasiFirebase().catch(function(){});
+                initPromise.then(function() {
+                    if (!fbDb) { _preloadJamKerjaSelesai = true; return; }
+                    return fbDb.ref('bukuTamu/konfigurasi').get().then(function(snap) {
+                        if (snap && snap.exists()) {
+                            var cfg = snap.val();
+                            if (cfg.jam_buka)  localStorage.setItem('jamKerjaBuka',  cfg.jam_buka);
+                            if (cfg.jam_tutup) localStorage.setItem('jamKerjaTutup', cfg.jam_tutup);
+                        }
+                        _preloadJamKerjaSelesai = true;
+                    });
+                }).catch(function() {
+                    _preloadJamKerjaSelesai = true;
+                });
+            } else {
+                setTimeout(_muatJamKerjaBackground, 200);
+            }
+        }
+        _muatJamKerjaBackground();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _jalankan);
+    } else {
+        // Tunda sedikit agar script utama selesai dulu
+        setTimeout(_jalankan, 300);
+    }
+})();
+
 (function _cekLinkTamu() {
     const params = new URLSearchParams(window.location.search);
 
@@ -3489,7 +3547,7 @@ function _tampilHalamanTamu(data) {
             '#_tamuBody .op-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
             '#_tamuBody .op-ttd-img{width:100%;max-height:120px;object-fit:contain;}',
             '#_tamuBody .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:4px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.68em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
+            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.74em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
             '@media(max-width:400px){',
             '  #_tamuBody .op-row{grid-template-columns:105px 10px 1fr;}',
             '  #_tamuBody .op-rlbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
@@ -4280,11 +4338,13 @@ function _cekLoginAdmin() {
 
 async function startApp() {
     // ── Inisialisasi Firebase DULU agar fbDb siap sebelum cek jam ──
+    // (Biasanya sudah dilakukan preload background, jadi ini instant)
     if (!fbDb) {
         try { await inisialisasiFirebase(); } catch(e) {}
     }
     // ── Muat jam kerja terbaru dari Firebase ──
-    if (fbDb) {
+    // (Lewati jika preload background sudah selesai mengambilnya)
+    if (fbDb && !_preloadJamKerjaSelesai) {
         try {
             const _snapJam = await fbDb.ref('bukuTamu/konfigurasi').get();
             if (_snapJam.exists()) {
@@ -4294,8 +4354,11 @@ async function startApp() {
             }
         } catch(e) { /* pakai localStorage */ }
     }
-    // ── Sinkron waktu internet dulu (non-blocking, max 5 detik) ──
-    await sinkronWaktuInternet();
+    // ── Sinkron waktu internet ──
+    // (Lewati jika preload background sudah selesai; langsung pakai cache offset)
+    if (!_preloadSelesai) {
+        await sinkronWaktuInternet();
+    }
     // ── Cek jam kerja & device — lewati jika admin ──
     if (!cekAdminAktif()) {
         if (!cekJamKerja()) {
