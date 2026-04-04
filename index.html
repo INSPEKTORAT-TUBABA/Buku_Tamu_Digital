@@ -4422,27 +4422,15 @@ function _cekLoginAdmin() {
 }
 
 async function startApp() {
-    // ── Inisialisasi Firebase — biasanya sudah siap oleh preload background ──
-    if (!fbDb) {
-        try { await inisialisasiFirebase(); } catch(e) {}
-    }
-    // ── Muat jam kerja — lewati jika preload sudah selesai ──
-    if (fbDb && !_preloadJamKerjaSelesai) {
-        try {
-            const _snapJam = await fbDb.ref('bukuTamu/konfigurasi').get();
-            if (_snapJam.exists()) {
-                const _cfgJam = _snapJam.val();
-                if (_cfgJam.jam_buka)  localStorage.setItem('jamKerjaBuka',  _cfgJam.jam_buka);
-                if (_cfgJam.jam_tutup) localStorage.setItem('jamKerjaTutup', _cfgJam.jam_tutup);
-            }
-        } catch(e) { /* pakai localStorage */ }
-    }
-    // ── Sinkron waktu — lewati jika preload sudah selesai ──
-    if (!_preloadSelesai) {
-        await sinkronWaktuInternet();
-    }
-    // ── Cek jam kerja & device — lewati jika admin ──
+    // ══════════════════════════════════════════════════════════════════
+    // OPTIMASI KECEPATAN: Tampilkan UI form DULU (instan, tanpa await),
+    // lalu lakukan semua network request (Firebase, waktu, GPS) di background.
+    // Ini menghilangkan jeda 3-10 detik yang terasa di HP.
+    // ══════════════════════════════════════════════════════════════════
+
+    // ── LANGKAH 1 (SINKRON, INSTAN): Cek lokal dulu — tidak butuh network ──
     if (!cekAdminAktif()) {
+        // Cek jam kerja pakai waktu perangkat (sudah ada offset dari sessionStorage)
         if (!cekJamKerja()) {
             const _jBuka  = localStorage.getItem('jamKerjaBuka')  || '07:30';
             const _jTutup = localStorage.getItem('jamKerjaTutup') || '16:00';
@@ -4468,45 +4456,8 @@ async function startApp() {
         }
     }
 
-    // ── Cek lokasi GPS (hanya untuk non-admin) ──
-    if (!cekAdminAktif() && GEO_CONFIG.AKTIF) {
-        // Tampilkan loading sementara GPS diproses
-        var _geoLoadEl = document.createElement('div');
-        _geoLoadEl.id = '_geoLoading';
-        _geoLoadEl.style.cssText = 'position:fixed;inset:0;z-index:9999998;background:rgba(7,26,62,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
-        _geoLoadEl.innerHTML = '<div style="font-size:2.6rem;">📡</div>' +
-            '<div style="color:#f5e07a;font-weight:800;font-size:1.05em;letter-spacing:.05em;">MEMERIKSA LOKASI</div>' +
-            '<div style="color:rgba(200,220,255,.75);font-size:.85em;text-align:center;max-width:260px;line-height:1.6;">Harap izinkan akses lokasi GPS pada perangkat Anda…</div>' +
-            '<div style="width:40px;height:40px;border:3px solid rgba(212,168,32,.3);border-top:3px solid #d4a820;border-radius:50%;animation:_geoSpin .8s linear infinite;"></div>' +
-            '<style>@keyframes _geoSpin{to{transform:rotate(360deg)}}</style>';
-        document.body.appendChild(_geoLoadEl);
-
-        var _geoHasil = await cekLokasiGPS();
-        var _geoEl2 = document.getElementById('_geoLoading');
-        if (_geoEl2) _geoEl2.remove();
-
-        if (_geoHasil.error) {
-            tampilModalBlokir(
-                'Akses Lokasi Diperlukan',
-                _geoHasil.error + '<br><br>' +
-                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Buku tamu hanya dapat diisi dari lokasi Inspektorat Daerah Tubaba.</span>',
-                '📍'
-            );
-            return;
-        }
-        if (!_geoHasil.boleh) {
-            tampilModalBlokir(
-                'Di Luar Area Kantor',
-                'Anda berada <strong style="color:#f5e07a;">' + _geoHasil.jarak + ' meter</strong> dari titik lokasi terdekat.<br><br>' +
-                'Buku tamu hanya dapat diisi dari dalam salah satu <strong style="color:#f5e07a;">area kantor</strong> yang terdaftar (' + (GEO_CONFIG.TITIK||[]).length + ' titik).<br><br>' +
-                '<span style="font-size:.82em;color:rgba(200,220,255,.7);">Pastikan Anda berada di area kantor dan GPS aktif.</span>',
-                '🗺️'
-            );
-            return;
-        }
-    }
-
-    // ── PINDAHKAN #stepInputArea ke modal SEBELUM mainApp ditampilkan ──
+    // ── LANGKAH 2 (SINKRON, INSTAN): Tampilkan form SEKARANG — sebelum await apapun ──
+    // PINDAHKAN #stepInputArea ke modal SEBELUM mainApp ditampilkan
     // Ini menghilangkan "lompatan" field nama: area tidak pernah terlihat
     // di posisi form (margin-top:auto), langsung muncul di modal bawah.
     (function _preInitModal() {
@@ -4545,6 +4496,7 @@ async function startApp() {
         if (barEl)     barEl.style.width     = '11%';
     })();
 
+    // ── Tampilkan welcome fade-out + mainApp SEKARANG (tidak menunggu network) ──
     sembunyikanWelcome();
     document.getElementById('mainApp').style.display = 'block';
     document.body.classList.add('app-aktif');
@@ -4565,11 +4517,87 @@ async function startApp() {
     if (imgFront2) { imgFront2.src = ''; imgFront2.style.display = 'none'; }
     if (imgBack2)  { imgBack2.src  = ''; imgBack2.style.display  = 'none'; }
     bersihJawab();
-    // Firebase sudah diinisialisasi di awal startApp — muat ulang data tamu
-    if (fbDb) {
-        fbMuatSemua().then(function() { updateDataCounter(); });
-        fbPasangListener();
-    }
+
+    // ── LANGKAH 3 (ASYNC, DI BACKGROUND): Firebase, waktu, GPS — UI sudah tampil ──
+    // Semua ini jalan di background tanpa memblokir tampilan form
+    (async function _backgroundChecks() {
+        // Init Firebase jika belum
+        if (!fbDb) {
+            try { await inisialisasiFirebase(); } catch(e) {}
+        }
+        // Sinkron waktu jika belum (pakai cache sessionStorage dulu)
+        if (!_preloadSelesai) {
+            sinkronWaktuInternet().catch(function(){});
+        }
+        // Muat jam kerja dari Firebase (background)
+        if (fbDb && !_preloadJamKerjaSelesai) {
+            try {
+                const _snapJam = await fbDb.ref('bukuTamu/konfigurasi').get();
+                if (_snapJam.exists()) {
+                    const _cfgJam = _snapJam.val();
+                    if (_cfgJam.jam_buka)  localStorage.setItem('jamKerjaBuka',  _cfgJam.jam_buka);
+                    if (_cfgJam.jam_tutup) localStorage.setItem('jamKerjaTutup', _cfgJam.jam_tutup);
+                }
+                _preloadJamKerjaSelesai = true;
+                // Setelah dapat data jam kerja terbaru, validasi ulang (tanpa menutup form jika sudah isi)
+                if (!cekAdminAktif() && !cekJamKerja()) {
+                    // Hanya blokir jika user belum mulai mengisi (field nama masih kosong)
+                    var namaEl = document.getElementById('nama');
+                    if (!namaEl || !namaEl.value.trim()) {
+                        const _jBuka  = localStorage.getItem('jamKerjaBuka')  || '07:30';
+                        const _jTutup = localStorage.getItem('jamKerjaTutup') || '16:00';
+                        // Tutup form dan tampilkan blokir
+                        var modal = document.getElementById('stepIsianModal');
+                        var backdrop = document.getElementById('stepIsianBackdrop');
+                        if (modal) modal.classList.remove('aktif');
+                        if (backdrop) backdrop.style.display = 'none';
+                        document.getElementById('mainApp').style.display = 'none';
+                        document.body.classList.remove('app-aktif');
+                        tampilkanWelcome();
+                        tampilModalBlokir(
+                            'Di Luar Jam Kerja',
+                            'Buku tamu hanya dapat diisi pada jam kerja:<br><br>' +
+                            '<strong style="font-size:1.2em;color:#d4a820;">' + _jBuka + ' – ' + _jTutup + ' WIB</strong><br><br>' +
+                            'Silakan kembali pada jam tersebut.' +
+                            '<span id="_adminTapArea1" onclick="_hitungTapAdmin(1)" style="display:inline-block;width:32px;height:32px;cursor:default;user-select:none;vertical-align:middle;"></span>',
+                            '🕐'
+                        );
+                        return;
+                    }
+                }
+            } catch(e) { /* pakai localStorage */ }
+        }
+        // Muat ulang data tamu dari Firebase
+        if (fbDb) {
+            fbMuatSemua().then(function() { updateDataCounter(); });
+            fbPasangListener();
+        }
+        // Cek GPS (hanya untuk non-admin, jalan di background setelah form tampil)
+        if (!cekAdminAktif() && GEO_CONFIG.AKTIF) {
+            var _geoHasil = await cekLokasiGPS();
+            if (_geoHasil.error || !_geoHasil.boleh) {
+                // Hanya blokir jika user belum mulai mengetik nama
+                var namaElGeo = document.getElementById('nama');
+                if (!namaElGeo || !namaElGeo.value.trim()) {
+                    var modalGeo = document.getElementById('stepIsianModal');
+                    var backdropGeo = document.getElementById('stepIsianBackdrop');
+                    if (modalGeo) modalGeo.classList.remove('aktif');
+                    if (backdropGeo) backdropGeo.style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'none';
+                    document.body.classList.remove('app-aktif');
+                    tampilkanWelcome();
+                    if (_geoHasil.error) {
+                        tampilModalBlokir('Akses Lokasi Diperlukan',
+                            _geoHasil.error + '<br><br><span style="font-size:.82em;color:rgba(200,220,255,.7);">Buku tamu hanya dapat diisi dari lokasi Inspektorat Daerah Tubaba.</span>', '📍');
+                    } else {
+                        tampilModalBlokir('Di Luar Area Kantor',
+                            'Anda berada <strong style="color:#f5e07a;">' + _geoHasil.jarak + ' meter</strong> dari titik lokasi terdekat.<br><br>' +
+                            'Buku tamu hanya dapat diisi dari dalam salah satu <strong style="color:#f5e07a;">area kantor</strong> yang terdaftar (' + (GEO_CONFIG.TITIK||[]).length + ' titik).', '🗺️');
+                    }
+                }
+            }
+        }
+    })();
 }
 
 function goToWelcome() {
