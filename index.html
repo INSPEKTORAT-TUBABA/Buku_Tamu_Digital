@@ -31,6 +31,12 @@
     <link rel="apple-touch-icon" sizes="512x512"      href="/icons/icon-512.png"/>
     <!-- Cegah zoom ganda saat tap (iOS) -->
     <meta name="format-detection" content="telephone=no"/>
+    <!-- Preconnect: resolusi DNS lebih awal agar download library lebih cepat -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin/>
+    <link rel="preconnect" href="https://firebaseio.com" crossorigin/>
+    <link rel="dns-prefetch" href="https://timeapi.io"/>
+    <link rel="dns-prefetch" href="https://worldtimeapi.org"/>
     <style>
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -446,6 +452,8 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
+            will-change: transform;
+            transform: translateZ(0);
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -2035,11 +2043,28 @@
             to   { opacity:1; transform: scale(1); }
         }
     </style>
-    <!-- Three.js untuk logo 3D berputar -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Firebase dimuat langsung agar siap sebelum kode app berjalan -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase: defer agar tidak blocking render awal -->
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Three.js: dimuat lazy hanya saat logo welcome page siap di-render -->
+    <script>
+    var _threeJsLoaded = false;
+    var _threeJsCallbacks = [];
+    function _muatThreeJs(cb) {
+        if (_threeJsLoaded) { if(cb) cb(); return; }
+        if (cb) _threeJsCallbacks.push(cb);
+        if (document.getElementById('_threeScript')) return;
+        var s = document.createElement('script');
+        s.id = '_threeScript';
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        s.onload = function() {
+            _threeJsLoaded = true;
+            _threeJsCallbacks.forEach(function(fn){ fn(); });
+            _threeJsCallbacks = [];
+        };
+        document.head.appendChild(s);
+    }
+    </script>
     <!-- jsPDF dimuat lazy saat pertama kali dibutuhkan -->
     <script>
     var _jsPDFLoaded = false;
@@ -2094,7 +2119,8 @@
 </div>
 
 <script>
-// ===== LOGO 3D (Three.js) — ukuran 200px =====
+// ===== LOGO 3D (Three.js) — dimuat lazy setelah Three.js siap =====
+_muatThreeJs(function() {
 (function() {
     const LOGO_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lambang_Kabupaten_Tulang_Bawang_Barat.png";
     const SIZE = 200;
@@ -2250,6 +2276,7 @@
         });
     }
 })();
+}); // end _muatThreeJs
 </script>
 
 <!-- Scroller di dalam bingkai emas -->
@@ -2966,7 +2993,7 @@ resizeSpaceCanvas();
 window.addEventListener('resize', resizeSpaceCanvas);
 
 // ── Partikel emas mengambang (dekoratif formal) ──
-const PARTICLE_COUNT = window.innerWidth < 600 ? 40 : 70;
+const PARTICLE_COUNT = window.innerWidth < 600 ? 20 : 55; // HP: lebih sedikit partikel
 const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
     x: Math.random(),
     y: Math.random(),
@@ -3014,7 +3041,17 @@ setTimeout(() => _spawnShootingStar(), 2200);
 
 let animTime = 0;
 
-function drawSpace() {
+// HP: nonaktifkan shadowBlur (sangat berat di GPU mobile)
+const _isMobileCanvas = window.innerWidth < 768;
+// HP: throttle ke 30fps (desktop tetap 60fps)
+let _lastSpaceFrame = 0;
+const _spaceFrameInterval = _isMobileCanvas ? 1000 / 30 : 0;
+
+function drawSpace(timestamp) {
+    if (_isMobileCanvas && timestamp) {
+        if (timestamp - _lastSpaceFrame < _spaceFrameInterval) return;
+        _lastSpaceFrame = timestamp;
+    }
     const W = canvas.width, H = canvas.height;
     animTime += 0.016;
     ctx.clearRect(0, 0, W, H);
@@ -3032,13 +3069,11 @@ function drawSpace() {
         const px = p.x * W, py = p.y * H;
 
         if (p.gold) {
-            ctx.shadowBlur  = p.r * 6;
-            ctx.shadowColor = `rgba(212,168,32,${alpha * 0.7})`;
-            ctx.fillStyle   = `rgba(245,220,100,${alpha})`;
+            if (!_isMobileCanvas) { ctx.shadowBlur = p.r * 6; ctx.shadowColor = `rgba(212,168,32,${alpha * 0.7})`; }
+            ctx.fillStyle = `rgba(245,220,100,${alpha})`;
         } else {
-            ctx.shadowBlur  = p.r * 3;
-            ctx.shadowColor = `rgba(200,220,255,${alpha * 0.5})`;
-            ctx.fillStyle   = `rgba(220,235,255,${alpha * 0.7})`;
+            if (!_isMobileCanvas) { ctx.shadowBlur = p.r * 3; ctx.shadowColor = `rgba(200,220,255,${alpha * 0.5})`; }
+            ctx.fillStyle = `rgba(220,235,255,${alpha * 0.7})`;
         }
         ctx.beginPath();
         ctx.arc(px, py, p.r, 0, Math.PI * 2);
@@ -3112,14 +3147,39 @@ function drawSpace() {
         ctx.restore();
     }
 
-    requestAnimationFrame(drawSpace);
+    // RAF dikontrol dari luar — jangan panggil sendiri
 }
 
+// Satu loop terpusat — bisa dihentikan sepenuhnya
 let _spaceRAF = null;
-function _startSpaceAnim() { if(!_spaceRAF) { _spaceRAF = requestAnimationFrame(function loop(){ drawSpace(); _spaceRAF = requestAnimationFrame(loop); }); } }
-function _stopSpaceAnim()  { if(_spaceRAF) { cancelAnimationFrame(_spaceRAF); _spaceRAF = null; } }
+let _spaceRunning = false;
+function _startSpaceAnim() {
+    if (_spaceRunning) return;
+    _spaceRunning = true;
+    function _loop(timestamp) {
+        if (!_spaceRunning) return;
+        drawSpace(timestamp);
+        _spaceRAF = requestAnimationFrame(_loop);
+    }
+    _spaceRAF = requestAnimationFrame(_loop);
+}
+function _stopSpaceAnim() {
+    _spaceRunning = false;
+    if (_spaceRAF) { cancelAnimationFrame(_spaceRAF); _spaceRAF = null; }
+}
 
-drawSpace();
+// Mulai animasi ruang angkasa
+_startSpaceAnim();
+
+// Pause otomatis saat tab tidak aktif (hemat baterai HP)
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        _stopSpaceAnim();
+    } else {
+        var wp = document.getElementById('welcomePage');
+        if (wp && !wp.classList.contains('tersembunyi')) _startSpaceAnim();
+    }
+});
 
 function sembunyikanWelcome() {
     var wp = document.getElementById('welcomePage');
@@ -3240,60 +3300,47 @@ const urlParams = new URLSearchParams(window.location.search);
 })();
 
 // ══════════════════════════════════════════════════════════════
-// PRELOAD BACKGROUND — jalankan sinkron waktu & jam kerja
-// segera setelah halaman dimuat agar tombol ISI BUKU TAMU
-// tidak ada jeda saat diklik.
+// PRELOAD BACKGROUND — sinkron waktu & jam kerja di background
+// agar popup blokir muncul instan saat tombol ISI BUKU TAMU diklik
+// (Firebase pakai defer, tunggu sampai siap dulu)
 // ══════════════════════════════════════════════════════════════
 var _preloadSelesai = false;
 var _preloadJamKerjaSelesai = false;
 
 (function _preloadBackground() {
-    function _jalankan() {
-        // 1) Sinkron waktu internet di background (tanpa await, non-blocking)
-        if (typeof sinkronWaktuInternet === 'function') {
-            sinkronWaktuInternet().then(function() {
-                _preloadSelesai = true;
-            }).catch(function() {
-                _preloadSelesai = true;
-            });
-        } else {
-            // Fungsi belum siap, coba lagi sebentar
-            setTimeout(_jalankan, 200);
+    function _tungguFirebaseLaluJalan() {
+        // Karena Firebase pakai defer, tunggu sampai firebase global tersedia
+        if (typeof firebase === 'undefined' || typeof inisialisasiFirebase !== 'function') {
+            setTimeout(_tungguFirebaseLaluJalan, 150);
             return;
         }
-
+        // 1) Sinkron waktu internet di background
+        sinkronWaktuInternet().then(function() {
+            _preloadSelesai = true;
+        }).catch(function() {
+            _preloadSelesai = true;
+        });
         // 2) Init Firebase & muat jam kerja di background
-        function _muatJamKerjaBackground() {
-            if (typeof inisialisasiFirebase === 'function') {
-                // Jika Firebase belum diinit, init dulu (ringan — hanya jika belum ada)
-                var initPromise = fbDb
-                    ? Promise.resolve()
-                    : inisialisasiFirebase().catch(function(){});
-                initPromise.then(function() {
-                    if (!fbDb) { _preloadJamKerjaSelesai = true; return; }
-                    return fbDb.ref('bukuTamu/konfigurasi').get().then(function(snap) {
-                        if (snap && snap.exists()) {
-                            var cfg = snap.val();
-                            if (cfg.jam_buka)  localStorage.setItem('jamKerjaBuka',  cfg.jam_buka);
-                            if (cfg.jam_tutup) localStorage.setItem('jamKerjaTutup', cfg.jam_tutup);
-                        }
-                        _preloadJamKerjaSelesai = true;
-                    });
-                }).catch(function() {
-                    _preloadJamKerjaSelesai = true;
-                });
-            } else {
-                setTimeout(_muatJamKerjaBackground, 200);
-            }
-        }
-        _muatJamKerjaBackground();
+        var initP = fbDb ? Promise.resolve() : inisialisasiFirebase().catch(function(){});
+        initP.then(function() {
+            if (!fbDb) { _preloadJamKerjaSelesai = true; return; }
+            return fbDb.ref('bukuTamu/konfigurasi').get().then(function(snap) {
+                if (snap && snap.exists()) {
+                    var cfg = snap.val();
+                    if (cfg.jam_buka)  localStorage.setItem('jamKerjaBuka',  cfg.jam_buka);
+                    if (cfg.jam_tutup) localStorage.setItem('jamKerjaTutup', cfg.jam_tutup);
+                }
+                _preloadJamKerjaSelesai = true;
+            });
+        }).catch(function() { _preloadJamKerjaSelesai = true; });
     }
-
+    // Mulai setelah DOMContentLoaded + sedikit jeda agar defer scripts selesai
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _jalankan);
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(_tungguFirebaseLaluJalan, 400);
+        });
     } else {
-        // Tunda sedikit agar script utama selesai dulu
-        setTimeout(_jalankan, 300);
+        setTimeout(_tungguFirebaseLaluJalan, 400);
     }
 })();
 
@@ -3547,7 +3594,7 @@ function _tampilHalamanTamu(data) {
             '#_tamuBody .op-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
             '#_tamuBody .op-ttd-img{width:100%;max-height:120px;object-fit:contain;}',
             '#_tamuBody .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:4px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.68em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
+            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.74em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
             '@media(max-width:400px){',
             '  #_tamuBody .op-row{grid-template-columns:105px 10px 1fr;}',
             '  #_tamuBody .op-rlbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
@@ -4337,13 +4384,11 @@ function _cekLoginAdmin() {
 }
 
 async function startApp() {
-    // ── Inisialisasi Firebase DULU agar fbDb siap sebelum cek jam ──
-    // (Biasanya sudah dilakukan preload background, jadi ini instant)
+    // ── Inisialisasi Firebase — biasanya sudah siap oleh preload background ──
     if (!fbDb) {
         try { await inisialisasiFirebase(); } catch(e) {}
     }
-    // ── Muat jam kerja terbaru dari Firebase ──
-    // (Lewati jika preload background sudah selesai mengambilnya)
+    // ── Muat jam kerja — lewati jika preload sudah selesai ──
     if (fbDb && !_preloadJamKerjaSelesai) {
         try {
             const _snapJam = await fbDb.ref('bukuTamu/konfigurasi').get();
@@ -4354,8 +4399,7 @@ async function startApp() {
             }
         } catch(e) { /* pakai localStorage */ }
     }
-    // ── Sinkron waktu internet ──
-    // (Lewati jika preload background sudah selesai; langsung pakai cache offset)
+    // ── Sinkron waktu — lewati jika preload sudah selesai ──
     if (!_preloadSelesai) {
         await sinkronWaktuInternet();
     }
