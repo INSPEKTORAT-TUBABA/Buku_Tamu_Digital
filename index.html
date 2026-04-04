@@ -1096,9 +1096,9 @@
             position: sticky;
             bottom: 0;
             z-index: 100;
-            /* Sembunyikan sejak awal — JS akan memindahkan ke modal sebelum ditampilkan
-               Ini mencegah layout shift / lompatan posisi di HP */
-            visibility: hidden;
+            /* display:none sejak awal — JS set display:block setelah pindah ke modal.
+               Ini mencegah layout shift (field terlihat di posisi tengah sebelum JS aktif) */
+            display: none;
             box-shadow:
                 0 -4px 18px rgba(100,170,240,0.18),
                 inset 0 2px 18px rgba(130,200,255,0.22),
@@ -2003,8 +2003,9 @@
         }
         .si-body::-webkit-scrollbar { display: none; }
 
-        /* stepInputArea di dalam modal */
+        /* stepInputArea di dalam modal — override display:none dari CSS awal */
         .si-body > #stepInputArea {
+            display: block !important;
             padding: 16px 16px 14px !important;
             border-bottom: none !important;
             min-height: unset;
@@ -4474,7 +4475,7 @@ async function startApp() {
         }
         // Pindahkan ke modal sekarang (sebelum mainApp.display = block)
         if (area.parentNode !== siBody) siBody.appendChild(area);
-        area.style.visibility = '';
+        area.style.display = 'block';
 
         // Sembunyikan semua child field kecuali field-nama
         Array.from(area.children).forEach(function(c) { c.classList.add('hidden'); });
@@ -5983,7 +5984,7 @@ function _tampilStepIsian(fieldId) {
     modal.classList.add('aktif');
 
     // Pulihkan visibility area (sempat disembunyikan saat mainApp pertama kali tampil)
-    area.style.visibility = '';
+    area.style.display = 'block';
 
     // Reset animasi kartu — tanpa void offsetWidth agar tidak picu reflow seluruh halaman
     if (card) {
@@ -6018,8 +6019,9 @@ function _tutupStepIsian(callback) {
                 _siAreaParent.appendChild(area);
             }
         }
-        // Pastikan visibility dipulihkan
-        if (area) area.style.visibility = '';
+        // Sembunyikan area hanya jika bukan sedang dalam edit mode
+        // (edit mode butuh display:block agar semua field terlihat)
+        if (area && !_editBebasMode) area.style.display = 'none';
         modal.classList.remove('aktif');
         backdrop.style.display = 'none';
         if (card) { card.classList.remove('keluar'); card.classList.remove('masuk'); }
@@ -7029,6 +7031,7 @@ function editDariOverlay() {
             // ── Tampilkan SEMUA field sekaligus ──
             const area = document.getElementById('stepInputArea');
             if (area) {
+                area.style.display = 'block'; // override display:none dari CSS/tutupStepIsian
                 Array.from(area.children).forEach(c => {
                     c.classList.remove('hidden');
                     c.classList.remove('sf-enter');
@@ -7265,7 +7268,7 @@ function batalEditBebas() {
 
 function forceShowEditFields() {
     const fieldsToShow = [
-        'field-asal', 'field-pihakDitemui', 'field-jenisLayanan',
+        'field-nama', 'field-asal', 'field-pihakDitemui', 'field-jenisLayanan',
         'field-uraian', 'field-nomorHp', 'field-tandaTangan', 'field-aksi'
     ];
     fieldsToShow.forEach(id => {
@@ -7566,7 +7569,7 @@ function showForm() {
             _siAreaNextSibling = area.nextSibling;
         }
         if (area.parentNode !== siBody) siBody.appendChild(area);
-        area.style.visibility = '';  // pulihkan visibility setelah dipindahkan ke modal
+        area.style.display = 'block';  // pulihkan visibility setelah dipindahkan ke modal
 
         // Sembunyikan semua child, tampilkan hanya field-nama
         Array.from(area.children).forEach(function(c) { c.classList.add('hidden'); });
@@ -7706,7 +7709,7 @@ function btnFormHeaderKlik() {
             var area = document.getElementById('stepInputArea');
             var siBody = document.getElementById('siBody');
             // Pastikan area terlihat
-            if (area) area.style.display = '';
+            if (area) area.style.display = 'block';
             // Pindahkan stepInputArea ke modal
             if (area && siBody && area.parentNode !== siBody) siBody.appendChild(area);
             if (stepBackdrop) stepBackdrop.style.display = 'block';
@@ -7769,7 +7772,7 @@ function kembaliKeFormIsian() {
             _siAreaNextSibling = area.nextSibling;
         }
         if (area.parentNode !== siBodyKF) siBodyKF.appendChild(area);
-        area.style.visibility = '';
+        area.style.display = 'block';
         // Sembunyikan semua field, tampilkan hanya nama
         Array.from(area.children).forEach(function(c) { c.classList.add('hidden'); });
         var fnKF = document.getElementById('field-nama');
@@ -8030,7 +8033,14 @@ function editData(index) {
             if (_area && _form && _area.parentNode !== _form) {
                 _form.appendChild(_area);
             }
-            if (_area) { _area.style.visibility = ''; _area.style.display = ''; }
+            if (_area) {
+                // Tampilkan #stepInputArea (override display:none dari CSS)
+                _area.style.display = 'block';
+                // Di mode edit, semua field harus tampil — hapus hidden dari semua child
+                Array.from(_area.children).forEach(function(c) {
+                    c.classList.remove('hidden');
+                });
+            }
         })();
 
         // Sembunyikan semua tombol Lanjut
@@ -8183,7 +8193,13 @@ function editSementara(sIndex) {
             if (_area && _form && _area.parentNode !== _form) {
                 _form.appendChild(_area);
             }
-            if (_area) { _area.style.visibility = ''; _area.style.display = ''; }
+            if (_area) {
+                _area.style.display = 'block';
+                // Di mode edit, semua field harus tampil — hapus hidden dari semua child
+                Array.from(_area.children).forEach(function(c) {
+                    c.classList.remove('hidden');
+                });
+            }
         })();
 
         // Sembunyikan semua tombol Lanjut
