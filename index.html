@@ -2003,16 +2003,6 @@
         }
 
         /* Footer hint — transparan total */
-        .si-body .btn-lanjut,
-        .si-body .input-btn-group .btn-lanjut {
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-            width: 100%;
-            justify-content: center;
-            border-radius: 0 0 14px 14px !important;
-        }
-
         .si-footer {
             display: none;
         }
@@ -6804,18 +6794,15 @@ function tutupOverlay() {
 }
 
 async function simpanDetailDariOverlay() {
-    // Tutup overlay dengan animasi
     tutupOverlay();
-    setTimeout(async () => {
-        // 1. Simpan ke data sementara
-        const ok = await simpanDataSementara();
-        if (!ok) return;
-        // 2. Ambil index terakhir di sementara
-        const sIndex = dataTamuSementara.length - 1;
-        if (sIndex < 0) return;
-        // 3. Pindah ke dataBukuTamu, unduh PDF, tampilkan tabel DATA BUKU TAMU
-        await konfirmasiDanSimpanPDF(sIndex);
-    }, 320);
+    // 1. Simpan ke data sementara
+    const ok = await simpanDataSementara();
+    if (!ok) return;
+    // 2. Ambil index terakhir di sementara
+    const sIndex = dataTamuSementara.length - 1;
+    if (sIndex < 0) return;
+    // 3. Pindah ke dataBukuTamu, tampilkan popup, Firebase+PDF di background
+    await konfirmasiDanSimpanPDF(sIndex);
 }
 
 function editDariOverlay() {
@@ -7252,28 +7239,28 @@ async function simpanData() {
         if (editingSementara) {
             let fbKey = dataTamuSementara[editingIndex]?._fbKey || null;
             formData._sementara = true;
-            if (fbKey) {
-                // Update entri yang sudah ada di Firebase
-                await fbUpdate(fbKey, formData, true);
-            } else if (fbDb) {
-                // Belum ada di Firebase — buat entri baru
-                const newKey = await fbSimpan(formData, true);
-                if (newKey) fbKey = newKey;
-            }
             formData._fbKey = fbKey;
             dataTamuSementara[editingIndex] = formData;
+            // Firebase background — tidak memblokir popup
+            if (fbKey) {
+                fbUpdate(fbKey, formData, true).catch(() => {});
+            } else if (fbDb) {
+                fbSimpan(formData, true).then(k => {
+                    if (k) { formData._fbKey = k; dataTamuSementara[editingIndex]._fbKey = k; }
+                }).catch(() => {});
+            }
         } else {
             let fbKey = dataBukuTamu[editingIndex]?._fbKey || null;
-            if (fbKey) {
-                // Update entri yang sudah ada di Firebase
-                await fbUpdate(fbKey, formData, false);
-            } else if (fbDb) {
-                // Belum ada di Firebase — buat entri baru agar link WA bisa pakai ?key=
-                const newKey = await fbSimpan(formData, false);
-                if (newKey) fbKey = newKey;
-            }
             formData._fbKey = fbKey;
             dataBukuTamu[editingIndex] = formData;
+            // Firebase background — tidak memblokir popup
+            if (fbKey) {
+                fbUpdate(fbKey, formData, false).catch(() => {});
+            } else if (fbDb) {
+                fbSimpan(formData, false).then(k => {
+                    if (k) { formData._fbKey = k; dataBukuTamu[editingIndex]._fbKey = k; }
+                }).catch(() => {});
+            }
         }
     } else {
         dataBukuTamu.push(formData);
@@ -7723,55 +7710,47 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     const fbKeySementara = data._fbKey || null;
     delete data._sementara;
 
-    // ── Langkah 1: Pindahkan ke dataFinal di Firebase ──
-    const newFbKey = await fbPindahKeFinal(fbKeySementara, data);
-    if (newFbKey) {
-        data._fbKey = newFbKey;        // sukses pindah ke dataFinal ✓
-    } else if (fbKeySementara) {
-        data._fbKey = fbKeySementara;  // pindah gagal, tapi key sementara masih ada
-    }
-    // Jika masih belum punya key, coba simpan langsung ke dataFinal
-    if (!data._fbKey && fbDb) {
-        const directKey = await fbSimpanKeDataFinal(data);
-        if (directKey) data._fbKey = directKey;
-    }
-
-    // ── Langkah 2: Jika MASIH belum ada key, tunggu & retry (maks 3x) ──
-    // Ini menangani kondisi: Firebase lambat, koneksi putus sebentar, dll.
-    for (let attempt = 1; attempt <= 3 && !data._fbKey; attempt++) {
-        tampilStatusSync('⏳ Mencoba simpan ke server... (' + attempt + '/3)', '#e67e22');
-        await new Promise(r => setTimeout(r, 1500 * attempt)); // tunggu 1.5s, 3s, 4.5s
-        if (!fbDb) {
-            // Coba inisialisasi ulang Firebase
-            try {
-                if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
-                fbDb = firebase.database();
-            } catch(e) { continue; }
-        }
-        const retryKey = await fbSimpanKeDataFinal(data);
-        if (retryKey) {
-            data._fbKey = retryKey;
-            break;
-        }
-    }
-
-    // ── Langkah 3: Simpan ke array lokal & localStorage ──
+    // ── Simpan ke array lokal & localStorage DULU (cepat, tanpa tunggu Firebase) ──
     dataBukuTamu.push(data);
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
 
-    // ── Jeda singkat agar Firebase selesai propagasi sebelum link WA dikirim ──
-    if (data._fbKey) await new Promise(r => setTimeout(r, 1000));
-
-    // ── Langkah 4: PDF & WA — data sudah punya _fbKey (atau tidak jika offline total) ──
-    const finalIndex = dataBukuTamu.length - 1;
-    exportDetailPerTamuPDF(finalIndex);
-
-    // Tampilkan popup berhasil, klik OK → kembali ke home
+    // ── Popup muncul SEGERA setelah data tersimpan lokal ──
     _showCustomAlert('✅ Data berhasil disimpan!').then(function() {
         goToWelcome();
     });
+
+    // ── Firebase + PDF jalan di background, tidak memblokir popup ──
+    const finalIndex = dataBukuTamu.length - 1;
+    (async () => {
+        // Coba pindah ke dataFinal
+        const newFbKey = await fbPindahKeFinal(fbKeySementara, data).catch(() => null);
+        if (newFbKey) {
+            data._fbKey = newFbKey;
+        } else if (fbKeySementara) {
+            data._fbKey = fbKeySementara;
+        }
+        // Jika masih belum punya key, simpan langsung
+        if (!data._fbKey && fbDb) {
+            const directKey = await fbSimpanKeDataFinal(data).catch(() => null);
+            if (directKey) data._fbKey = directKey;
+        }
+        // Retry jika masih gagal (maks 3x)
+        for (let attempt = 1; attempt <= 3 && !data._fbKey; attempt++) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            if (!fbDb) {
+                try {
+                    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+                    fbDb = firebase.database();
+                } catch(e) { continue; }
+            }
+            const retryKey = await fbSimpanKeDataFinal(data).catch(() => null);
+            if (retryKey) { data._fbKey = retryKey; break; }
+        }
+        // Kirim PDF & WA setelah Firebase selesai
+        exportDetailPerTamuPDF(finalIndex);
+    })();
 }
 
 // ── Helper: simpan langsung ke dataFinal, return key atau null ──
@@ -10402,45 +10381,6 @@ function _mapCariLokasi() {
 
     <!-- ══ OVERLAY STEP ISIAN DATA — modal ══ -->
     <div id="stepIsianModal">
-
-<script>
-// ── Sync #stepIsianModal ke atas keyboard via visualViewport ──
-(function _syncModalKeKeyboard() {
-    var modal = document.getElementById('stepIsianModal');
-    if (!modal) return;
-
-    function _update() {
-        if (!modal.classList.contains('aktif')) {
-            modal.style.bottom = '';
-            return;
-        }
-        if (window.visualViewport) {
-            var vv  = window.visualViewport;
-            // Tinggi keyboard = selisih innerHeight dan visual viewport (+ scroll offset)
-            var kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-            modal.style.bottom = kbH + 'px';
-        }
-    }
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', _update);
-        window.visualViewport.addEventListener('scroll', _update);
-    }
-
-    // Reset bottom saat modal ditutup
-    var _origTutup = window._tutupStepIsianOrig;
-    var _observer  = new MutationObserver(function(muts) {
-        muts.forEach(function(m) {
-            if (m.attributeName === 'class') {
-                if (!modal.classList.contains('aktif')) {
-                    modal.style.bottom = '';
-                }
-            }
-        });
-    });
-    _observer.observe(modal, { attributes: true });
-})();
-</script>
         <div class="si-card" id="siCard">
             <!-- Header -->
             <div class="si-header">
