@@ -119,12 +119,13 @@
         /* Footer */
         .card-footer {
             background: #f0ead8; border: 1px solid rgba(212,168,32,.22); border-top: none;
-            padding: 11px 16px; text-align: center; font-size: .72em; color: #888;
+            padding: 10px 12px; text-align: center; color: #888;
             border-radius: 0 0 12px 12px;
             line-height: 1.8;
+            font-size: clamp(0.52rem, 2.2vw, 0.70rem);
         }
-        .card-footer .footer-line1 { display: block; white-space: nowrap; }
-        .card-footer .footer-line2 { display: block; white-space: nowrap; }
+        .card-footer .footer-line1 { display: block; }
+        .card-footer .footer-line2 { display: block; }
 
         /* Loading & Error */
         #loadingBox, #errorBox { text-align: center; padding: 50px 20px; }
@@ -146,9 +147,7 @@
             .info-label { min-width: 110px; font-size: .82em; }
             .info-value { font-size: .84em; }
             .foto-item img { width: 130px; height: 130px; }
-            .card-footer { font-size: .62em; padding: 11px 10px; }
-            .card-footer .footer-line1,
-            .card-footer .footer-line2 { white-space: normal; }
+            .card-footer { padding: 10px 8px; }
         }
     </style>
 </head>
