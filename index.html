@@ -31,6 +31,7 @@
     <link rel="apple-touch-icon" sizes="512x512"      href="/icons/icon-512.png"/>
     <!-- Cegah zoom ganda saat tap (iOS) -->
     <meta name="format-detection" content="telephone=no"/>
+    <meta name="theme-color" content="#071a3e"/>
     <!-- Preconnect: resolusi DNS lebih awal agar download library lebih cepat -->
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin/>
@@ -309,7 +310,8 @@
             width: 100%; height: 100%;
             min-height: 100vh;   /* vh lebih stabil di HP (tidak reflow saat address bar) */
             overflow: hidden;
-            background: #e8f4fd;
+            /* Match welcome page background agar tidak ada flash saat transisi */
+            background: linear-gradient(170deg, #071a3e 0%, #0d2a5e 30%, #0f3270 55%, #0a2050 80%, #050f28 100%);
         }
 
         /* Wrapper scrollable di dalam bingkai emas */
@@ -420,14 +422,15 @@
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            padding: 26px;
-            overflow: hidden;
+            padding: 26px 26px max(26px, env(safe-area-inset-bottom));
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
             cursor: pointer;
             box-sizing: border-box;
             /* Stabil total — tidak bergerak saat address bar / fullscreen berubah */
-            contain: layout style paint;
             transform: translateZ(0);
-            backface-visibility: hidden;
+            -webkit-transform: translateZ(0);
         }
 
         /* Konten welcome — benar-benar statis, tidak boleh bergerak */
@@ -435,13 +438,16 @@
             position: relative;
             z-index: 2;
             text-align: center;
-            padding: 8px 12px;
+            padding: 8px 12px 24px;
             max-width: 100%;
-            margin: 0 auto;
+            width: 100%;
+            margin: auto;
             transform: none !important;
             transition: none !important;
             animation: none !important;
             will-change: auto;
+            /* Pastikan tombol selalu terlihat di HP kecil */
+            min-height: min-content;
         }
 
         /* Pastikan canvas partikel juga tidak menyebabkan reflow besar */
@@ -454,6 +460,8 @@
             pointer-events: none;
             will-change: transform;
             transform: translateZ(0);
+            /* Pastikan canvas tidak menampilkan latar hitam saat partikel belum dirender */
+            background: transparent;
         }
 
         /* Overlay cahaya emas dari bawah */
@@ -495,13 +503,12 @@
         }
 
         .welcome-label {
-             font-size: clamp(0.75rem, 3vw, 1.1em);
-            font-weight: 650;
-            color: rgba(190,215,255,0.80);
-            letter-spacing: clamp(0.06em, 0.8vw, 0.12em);
+            font-size: clamp(0.55rem, 2.2vw, 0.85em);
+            font-weight: 500;
+            color: rgba(200,220,255,0.65);
+            letter-spacing: clamp(0.12em, 1.5vw, 0.30em);
             text-transform: uppercase;
-            margin: 0;
-            line-height: 1.6;
+            margin-bottom: 2px;
             white-space: nowrap;
         }
 
@@ -530,8 +537,8 @@
         }
 
         .welcome-subtitle {
-            font-size: clamp(0.75rem, 3vw, 1.1em);
-            font-weight: 650;
+            font-size: clamp(0.60rem, 2.4vw, 0.90em);
+            font-weight: 400;
             color: rgba(190,215,255,0.80);
             letter-spacing: clamp(0.06em, 0.8vw, 0.12em);
             text-transform: uppercase;
@@ -547,7 +554,7 @@
         }
 
         .btn-start {
-            margin-top: 16px;
+            margin-top: clamp(10px, 3vw, 16px);
             padding: clamp(12px, 3vw, 16px) clamp(32px, 10vw, 64px);
             font-size: clamp(0.85em, 3.5vw, 1.05em);
             font-weight: 800;
@@ -876,16 +883,16 @@
             z-index: 99995;
             pointer-events: none;
             display: none;
+            background: transparent;
         }
 
         /* Animasi keluar welcome page */
         #welcomePage.fs-keluar {
-            animation: welcomeZoomOut 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+            animation: welcomeZoomOut 0.55s ease-out forwards !important;
         }
         @keyframes welcomeZoomOut {
-            0%   { transform: scale(1);    opacity: 1; filter: brightness(1); }
-            60%  { transform: scale(1.06); opacity: 0.5; filter: brightness(1.8); }
-            100% { transform: scale(1.18); opacity: 0; filter: brightness(3); }
+            0%   { opacity: 1; }
+            100% { opacity: 0; }
         }
 
         /* fs-masuk: tidak ada animasi zoom — welcome page langsung tampil */
@@ -1523,7 +1530,7 @@
             }
             /* Percepat transisi welcome → app */
             #welcomePage.fs-keluar {
-                animation-duration: 0.6s !important;
+                animation-duration: 0.55s !important;
             }
             #mainApp.fs-app-masuk {
                 animation-duration: 0.35s !important;
@@ -2125,9 +2132,9 @@
         #logoCanvas3D {
             position: relative;
             display: block;
-            width: clamp(90px, 22vw, 160px);
-            height: clamp(90px, 22vw, 160px);
-            margin: 0 auto 8px auto;
+            width: clamp(80px, 18vw, 140px);
+            height: clamp(80px, 18vw, 140px);
+            margin: 0 auto 6px auto;
             opacity: 0;
             border-radius: 8px;
         }
@@ -2189,14 +2196,47 @@ _muatThreeJs(function() {
         }
         launchLogo3D({ LP, RP });
     };
-    logoImgEl.onerror = function() { console.warn("Logo 3D: Gagal memuat gambar logo."); };
+    logoImgEl.onerror = function() {
+        console.warn("Logo 3D: Gagal memuat gambar logo.");
+        _tampilkanLogoFallback();
+    };
+
+    // Fallback: jika WebGL tidak didukung atau gagal, tampilkan gambar logo biasa
+    function _tampilkanLogoFallback() {
+        var c3 = document.getElementById('logoCanvas3D');
+        if (!c3) return;
+        var parent = c3.parentNode;
+        var img = document.createElement('img');
+        img.src = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lambang_Kabupaten_Tulang_Bawang_Barat.png";
+        img.alt = "Logo Kabupaten Tulang Bawang Barat";
+        img.style.cssText = 'width:clamp(90px,22vw,140px);height:clamp(90px,22vw,140px);object-fit:contain;display:block;margin:0 auto 8px;border-radius:8px;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 20px rgba(212,168,32,0.35));opacity:0;transition:opacity 0.6s ease;';
+        img.onload = function() { img.style.opacity = '1'; };
+        img.onerror = function() { img.style.display='none'; };
+        parent.insertBefore(img, c3);
+        c3.style.display = 'none';
+    }
+
+    // Timeout: jika setelah 4 detik logo canvas masih opacity 0, aktifkan fallback
+    setTimeout(function() {
+        var c3 = document.getElementById('logoCanvas3D');
+        if (c3 && (c3.style.opacity === '0' || !c3.style.opacity) && c3.style.display !== 'none') {
+            _tampilkanLogoFallback();
+        }
+    }, 4000);
 
     function launchLogo3D({ LP, RP }) {
         const c3 = document.getElementById("logoCanvas3D");
         if (!c3) return;
         const isMobile = window.innerWidth < 600;
 
-        const logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: true, alpha: true });
+        let logoR;
+        try {
+            logoR = new THREE.WebGLRenderer({ canvas: c3, antialias: true, alpha: true });
+        } catch(e) {
+            console.warn("WebGL tidak didukung di perangkat ini:", e.message);
+            if (typeof _tampilkanLogoFallback === 'function') _tampilkanLogoFallback();
+            return;
+        }
         logoR.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         logoR.setSize(SIZE, SIZE);
         logoR.setClearColor(0x000000, 0);
@@ -2979,7 +3019,7 @@ _muatThreeJs(function() {
             <!-- Footer tombol aksi -->
             <div class="op-footer">
                 <button class="op-btn op-btn-secondary" onclick="editDariOverlay()">✏️ Edit Data</button>
-                <button class="op-btn op-btn-primary" onclick="simpanDetailDariOverlay()">🖨️ Simpan Detail Lengkap (Per Tamu)</button>
+                <button class="op-btn op-btn-primary" onclick="simpanDetailDariOverlay()">💾 SIMPAN</button>
             </div>
         </div>
     </div>
@@ -3224,7 +3264,7 @@ document.addEventListener('visibilitychange', function() {
 function sembunyikanWelcome() {
     var wp = document.getElementById('welcomePage');
     // Tunggu animasi keluar selesai sebelum benar-benar sembunyikan
-    var delay = wp && wp.classList.contains('fs-keluar') ? 580 : 0;
+    var delay = wp && wp.classList.contains('fs-keluar') ? 560 : 0;
     setTimeout(function() {
         wp = document.getElementById('welcomePage');
         if (!wp) return;
@@ -3634,7 +3674,7 @@ function _tampilHalamanTamu(data) {
             '#_tamuBody .op-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
             '#_tamuBody .op-ttd-img{width:100%;max-height:120px;object-fit:contain;}',
             '#_tamuBody .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:4px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.68em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
+            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.74em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
             '@media(max-width:400px){',
             '  #_tamuBody .op-row{grid-template-columns:105px 10px 1fr;}',
             '  #_tamuBody .op-rlbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
@@ -4771,10 +4811,13 @@ function _drawStarShape(ctx, x, y, r, points, rotation) {
 function _fsTransisiMasuk(clickX, clickY) {
     const canvas = document.getElementById('fsParticleCanvas');
     if (!canvas) return;
-    canvas.style.display = 'block';
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
     const ctx = canvas.getContext('2d');
+    // Isi dengan background gelap dulu agar tidak ada flash hitam saat canvas pertama muncul
+    ctx.fillStyle = 'rgba(7,26,62,0)';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'block';
     const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
 
@@ -4957,10 +5000,11 @@ function _fsTransisiMasuk(clickX, clickY) {
 function _fsTransisiKeluar() {
     const canvas = document.getElementById('fsParticleCanvas');
     if (!canvas) return;
-    canvas.style.display = 'block';
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
     const ctx     = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'block';
     const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
 
@@ -5113,9 +5157,9 @@ function mintaFullscreen(evt) {
     _fsTransisiMasuk(cx, cy);
     _fsBorderFlash();
 
-    // 2. Animasi welcome page keluar (sedikit delay agar partikel terlihat dulu)
+    // 2. Animasi welcome page keluar — langsung tanpa delay
     if (!wp.classList.contains('tersembunyi')) {
-        setTimeout(() => wp.classList.add('fs-keluar'), 200);
+        wp.classList.add('fs-keluar');
     }
 
     // 3. Request fullscreen API (harus sync dari gesture)
@@ -7682,50 +7726,45 @@ function showForm() {
     _siAreaNextSibling = null;
 }
 
-// ── Tombol Form Input di header (lama) — tetap kompatibel
+// ── Tombol Form Input di header — 1x klik langsung buka/reset form
 function btnFormHeaderKlik() {
-    const modal = document.getElementById('stepIsianModal');
     const dataSec = document.getElementById('dataSection');
     const isDataVisible = dataSec && dataSec.style.display !== 'none';
     const isAdmin = !!document.getElementById('btnKembaliForm') &&
                     document.getElementById('btnKembaliForm').style.display !== 'none';
 
-    // Jika sedang di halaman data → selalu pindah ke form
+    // Jika sedang di halaman data → pindah ke form
     if (isDataVisible) { kembaliKeFormIsian(); return; }
 
-    // Toggle: jika modal field sudah tampil → tutup; jika belum → buka
-    if (modal && modal.classList.contains('aktif')) {
-        _tutupStepIsian(function() {
-            // Di mode admin: sembunyikan stepInputArea setelah dikembalikan ke form
-            if (isAdmin) {
-                var area = document.getElementById('stepInputArea');
-                if (area) area.style.display = 'none';
-            }
-        });
-    } else {
-        if (isAdmin) {
-            // Di halaman admin: hanya tampilkan field NAMA LENGKAP tanpa reset tombol admin
+    if (isAdmin) {
+        // Di mode admin: tutup dulu jika modal sudah aktif, lalu langsung buka lagi
+        const modal = document.getElementById('stepIsianModal');
+        const openAndReset = function() {
             var stepModal = document.getElementById('stepIsianModal');
             var stepBackdrop = document.getElementById('stepIsianBackdrop');
             var area = document.getElementById('stepInputArea');
             var siBody = document.getElementById('siBody');
-            // Pastikan area terlihat
             if (area) area.style.display = 'block';
-            // Pindahkan stepInputArea ke modal
             if (area && siBody && area.parentNode !== siBody) siBody.appendChild(area);
             if (stepBackdrop) stepBackdrop.style.display = 'block';
             if (stepModal) stepModal.classList.add('aktif');
-            // Reset field nama saja
+            // Reset field nama
             var namaInput = document.getElementById('nama');
             if (namaInput) { namaInput.value = ''; namaInput.classList.remove('error'); }
-            // Aktifkan field-nama
+            // Tampilkan hanya field nama
             var allFields = document.querySelectorAll('#stepInputArea > div');
             allFields.forEach(function(f) { f.classList.add('hidden'); });
             var fieldNama = document.getElementById('field-nama');
             if (fieldNama) fieldNama.classList.remove('hidden');
+        };
+        if (modal && modal.classList.contains('aktif')) {
+            // Sudah terbuka → tutup lalu langsung buka kembali (reset)
+            _tutupStepIsian(function() { openAndReset(); });
         } else {
-            kembaliKeFormIsian();
+            openAndReset();
         }
+    } else {
+        kembaliKeFormIsian();
     }
 }
 
@@ -8661,7 +8700,7 @@ async function exportDetailPerTamuPDF(index, kirimWA) {
         if (kirimWA) {
             const _nomorWaTujuan = CONFIG_WA_PENERIMA || localStorage.getItem('wa_penerima_admin') || '';
             if (_nomorWaTujuan && _nomorWaTujuan.length >= 10) {
-                setTimeout(function() { kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName); }, 600);
+                kirimPdfKeWA(pdfBlobWA, data, _nomorWaTujuan, pdfFileName);
             }
         }
     }
@@ -9395,13 +9434,48 @@ async function _fonntePost(endpoint, formData) {
     }
 }
 
-// Kirim notifikasi teks dulu, lalu PDF sebagai pesan terpisah
+// Kirim notifikasi teks + PDF sekaligus dalam SATU request (secepat WA antar pengguna)
 async function _kirimFonnteRutin(nomor, pesanDenganPdf, pesanTanpaPdf, pdfBlob, namaFile) {
     const token     = (CONFIG_FONNTE_TOKEN || localStorage.getItem('fonnte_token') || '').trim();
     const workerUrl = (CONFIG_WORKER_URL   || localStorage.getItem('cf_worker_url') || '').trim();
     if (!token) return false;
 
-    // LANGKAH 1: Kirim teks notifikasi
+    const adaPdf = !!(pdfBlob && pdfBlob.size > 0);
+
+    // Jika ada PDF dan Worker tersedia → kirim teks + file sekaligus dalam 1 request
+    if (adaPdf && workerUrl) {
+        try {
+            const safeName = (namaFile || 'Data_Tamu.pdf').replace(/[\s,:]/g,'_');
+            const fd = new FormData();
+            fd.append('target',    nomor);
+            fd.append('message',   pesanDenganPdf);
+            fd.append('file',      new File([pdfBlob], safeName, {type:'application/pdf'}));
+            fd.append('type_file', 'document');
+            const h = await _fonntePost('https://api.fonnte.com/send', fd);
+            console.log('[Fonnte teks+PDF]', h);
+            if (h.status===true || h.status==='true' || h.process) {
+                _tampilInfoWA('✅ Notifikasi + PDF terkirim ke ' + nomor + '!', '#27ae60', false);
+                return true;
+            }
+            // Jika gagal dengan PDF, fallback kirim teks saja
+            console.warn('[PDF fallback ke teks]', h.reason||h.message);
+            const fd2 = new FormData();
+            fd2.append('target',  nomor);
+            fd2.append('message', pesanTanpaPdf);
+            const h2 = await _fonntePost('https://api.fonnte.com/send', fd2);
+            if (h2.status===true || h2.status==='true' || h2.process) {
+                _tampilInfoWA('✅ Notifikasi terkirim — PDF gagal: ' + (h.reason||h.message||''), '#e67e22', false);
+                return true;
+            }
+            _tampilInfoWA('❌ Fonnte: ' + (h2.reason||h2.message||'cek token & device'), '#c0392b', false);
+            return false;
+        } catch(e) {
+            _tampilInfoWA('❌ Error: ' + e.message, '#c0392b', false);
+            return false;
+        }
+    }
+
+    // Tidak ada PDF atau Worker belum dikonfigurasi → kirim teks saja (1 request, langsung)
     try {
         const fd = new FormData();
         fd.append('target',  nomor);
@@ -9412,39 +9486,16 @@ async function _kirimFonnteRutin(nomor, pesanDenganPdf, pesanTanpaPdf, pdfBlob, 
             _tampilInfoWA('❌ Fonnte: ' + (h.reason||h.message||'cek token & device'), '#c0392b', false);
             return false;
         }
+        if (adaPdf && !workerUrl) {
+            _tampilInfoWA('✅ Notifikasi terkirim (PDF butuh Worker — belum dikonfigurasi)', '#e67e22', false);
+        } else {
+            _tampilInfoWA('✅ Notifikasi terkirim ke ' + nomor, '#27ae60', false);
+        }
+        return true;
     } catch(e) {
         _tampilInfoWA('❌ Error: ' + e.message, '#c0392b', false);
         return false;
     }
-
-    // LANGKAH 2: Kirim PDF via Worker (jika Worker sudah dikonfigurasi)
-    if (pdfBlob && pdfBlob.size > 0 && workerUrl) {
-        try {
-            const safeName = (namaFile || 'Data_Tamu.pdf').replace(/[\s,:]/g,'_');
-            const fd2 = new FormData();
-            fd2.append('target',    nomor);
-            fd2.append('message',   '📎 *PDF Data Tamu Lengkap*');
-            fd2.append('file',      new File([pdfBlob], safeName, {type:'application/pdf'}));
-            fd2.append('type_file', 'document');
-            const h2 = await _fonntePost('https://api.fonnte.com/send', fd2);
-            console.log('[Fonnte+PDF]', h2);
-            if (h2.status===true || h2.status==='true' || h2.process) {
-                _tampilInfoWA('✅ Notifikasi + PDF terkirim ke ' + nomor + '!', '#27ae60', false);
-                return true;
-            }
-            console.warn('[PDF gagal]', h2.reason||h2.message);
-            _tampilInfoWA('✅ Notifikasi terkirim — PDF gagal: ' + (h2.reason||h2.message||''), '#e67e22', false);
-        } catch(e) {
-            console.warn('[PDF error]', e.message);
-            _tampilInfoWA('✅ Notifikasi terkirim — PDF error: ' + e.message, '#e67e22', false);
-        }
-    } else if (pdfBlob && pdfBlob.size > 0 && !workerUrl) {
-        _tampilInfoWA('✅ Notifikasi terkirim (PDF butuh Worker — belum dikonfigurasi)', '#e67e22', false);
-    } else {
-        _tampilInfoWA('✅ Notifikasi terkirim ke ' + nomor, '#27ae60', false);
-    }
-
-    return true;
 }
 
 // ── Tes kirim WA dari panel admin ──
