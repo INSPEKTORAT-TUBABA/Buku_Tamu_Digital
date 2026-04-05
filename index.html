@@ -983,7 +983,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             width: 100% !important;
             max-width: 360px;
-            height: 25px !important;
+            height: 160px !important;
         }
         
         .detail-container {
@@ -7064,6 +7064,63 @@ function editDariOverlay() {
         clearTimeout(_timerNama);
         clearTimeout(_timerUraian);
         clearTimeout(_timerHp);
+
+        // ── Isi ulang semua field dari data yang sedang dilihat ──
+        const _idx  = editingIndex;
+        const _data = editingSementara
+            ? dataTamuSementara[_idx]
+            : dataBukuTamu[_idx];
+
+        if (_data && _idx >= 0) {
+            document.getElementById('nama').value         = _data.nama         || '';
+            document.getElementById('asal').value         = _data.asal         || '';
+            asalChanged();
+            if (_data.asal === 'INSTANSI') {
+                const instSel = document.getElementById('instansi');
+                const adaOpsi = Array.from(instSel.options).some(o => o.value === _data.instansi);
+                if (adaOpsi) {
+                    instSel.value = _data.instansi || '';
+                    document.getElementById('fieldInstansiLainnya').classList.add('hidden');
+                } else if (_data.instansi) {
+                    instSel.value = 'LAINNYA';
+                    document.getElementById('fieldInstansiLainnya').classList.remove('hidden');
+                    document.getElementById('instansiLainnya').value = _data.instansi;
+                }
+            } else if (_data.asal === 'MASYARAKAT') {
+                document.getElementById('kecamatan').value = _data.kecamatan || '';
+                updateDesaList();
+                setTimeout(() => { document.getElementById('desa').value = _data.desa || ''; }, 50);
+            }
+            document.getElementById('pihakDitemui').value  = _data.pihakDitemui  || '';
+            document.getElementById('jenisLayanan').value  = _data.jenisLayanan  || '';
+            document.getElementById('uraian').value        = _data.uraian        || '';
+            document.getElementById('nomorHp').value       = _data.nomorHp       || '';
+
+            // ── Muat ulang tanda tangan ke canvas ──
+            if (_data.tandaTangan) {
+                const _img = new Image();
+                _img.onload = function() {
+                    if (ctx2 && signatureCanvas) {
+                        ctx2.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                        ctx2.drawImage(_img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                    }
+                    hasSignature = true;
+                    totalStrokeLength = 100;
+                };
+                _img.src = _data.tandaTangan;
+            }
+
+            // ── Muat ulang foto ──
+            fotoDataURLFront = _data.fotoFront || null;
+            fotoDataURLBack  = _data.fotoBack  || null;
+            hasPhoto = !!(_data.fotoFront || _data.fotoBack);
+            const _imgFront = document.getElementById('imgFront');
+            const _imgBack  = document.getElementById('imgBack');
+            if (_data.fotoFront && _imgFront) { _imgFront.src = _data.fotoFront; _imgFront.style.display = 'block'; }
+            else if (_imgFront) _imgFront.style.display = 'none';
+            if (_data.fotoBack  && _imgBack)  { _imgBack.src  = _data.fotoBack;  _imgBack.style.display  = 'block'; }
+            else if (_imgBack)  _imgBack.style.display = 'none';
+        }
 
         // ── Aktifkan mode edit-bebas (bukan isEditMode agar simpan berjalan normal) ──
         _editBebasMode = true;
