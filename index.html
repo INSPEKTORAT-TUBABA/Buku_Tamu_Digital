@@ -3444,66 +3444,83 @@ var _preloadJamKerjaSelesai = false;
     }
 
     // ── Handler ?key= (ambil dari Firebase) ──
+    // Jika tidak ada ?key= di URL, ini adalah halaman admin — SKIP, jangan tampilkan error
     const fbKey = params.get('key');
-    if (fbKey) {
-        // Tampilkan loading sementara Firebase dimuat
-        _tampilLoadingTamu();
-        // Tunggu Firebase siap lalu ambil data
-        var _retry = 0;
-        function _ambilDariFirebase() {
-            if (typeof fbDb !== 'undefined' && fbDb) {
-                // Coba dataFinal dulu, jika tidak ada coba dataSementara
-                fbDb.ref('bukuTamu/dataFinal/' + fbKey).get().then(function(snap) {
-                    if (snap.exists()) {
-                        var el = document.getElementById('_loadingTamuEl');
-                        if (el) el.remove();
-                        _tampilHalamanTamu(snap.val());
-                    } else {
-                        return fbDb.ref('bukuTamu/dataSementara/' + fbKey).get().then(function(snap2) {
-                            var el = document.getElementById('_loadingTamuEl');
-                            if (el) el.remove();
-                            if (snap2.exists()) {
-                                _tampilHalamanTamu(snap2.val());
-                            } else {
-                                _tampilErrorTamu('Data tidak ditemukan di server. Link mungkin sudah tidak valid.' +
-                                    '<br><br><button onclick="window.location.reload()" ' +
-                                    'style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;' +
-                                    'border-radius:50px;padding:11px 0;font-size:0.92em;font-weight:800;cursor:pointer;width:100%;margin-top:4px;">' +
-                                    '🔄 Coba Lagi</button>');
-                            }
-                        });
-                    }
-                }).catch(function(err) {
+    if (!fbKey) return; // ← Admin mode: tidak perlu cek Firebase untuk tamu
+
+    // Tampilkan loading sementara Firebase dimuat
+    _tampilLoadingTamu();
+
+    // Tunggu Firebase siap lalu ambil data
+    // Timeout diperpanjang: 200 retry × 300ms = 60 detik (koneksi lambat)
+    var _retry = 0;
+    var _MAX_RETRY = 200;
+
+    function _ambilDariFirebase() {
+        // Cek apakah Firebase SDK sudah termuat dan fbDb sudah siap
+        if (typeof firebase !== 'undefined' && typeof fbDb !== 'undefined' && fbDb) {
+            // Firebase siap — ambil data tamu
+            fbDb.ref('bukuTamu/dataFinal/' + fbKey).get().then(function(snap) {
+                if (snap.exists()) {
                     var el = document.getElementById('_loadingTamuEl');
                     if (el) el.remove();
-                    var pesanErr = 'Gagal mengambil data: ' + err.message;
-                    if (err.message && (err.message.indexOf('permission') !== -1 || err.message.indexOf('PERMISSION_DENIED') !== -1)) {
-                        pesanErr = '⛔ Akses ditolak Firebase.<br><small>Pastikan Rules database diset: <b>.read: true</b></small>';
-                    }
-                    _tampilErrorTamu(pesanErr +
-                        '<br><br><button onclick="window.location.reload()" ' +
-                        'style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;' +
-                        'border-radius:50px;padding:11px 0;font-size:0.92em;font-weight:800;cursor:pointer;width:100%;margin-top:4px;">' +
-                        '🔄 Coba Lagi</button>');
-                });
-            } else if (_retry < 100) {
-                _retry++;
-                // Update teks loading agar tidak terlihat frozen
-                var msgEl = document.querySelector('#_loadingTamuEl div:nth-child(2)');
-                if (msgEl && _retry > 5) msgEl.textContent = 'Menghubungkan ke server... (' + _retry + ')';
-                setTimeout(_ambilDariFirebase, 300);
-            } else {
+                    _tampilHalamanTamu(snap.val());
+                } else {
+                    return fbDb.ref('bukuTamu/dataSementara/' + fbKey).get().then(function(snap2) {
+                        var el = document.getElementById('_loadingTamuEl');
+                        if (el) el.remove();
+                        if (snap2.exists()) {
+                            _tampilHalamanTamu(snap2.val());
+                        } else {
+                            _tampilErrorTamu('Data tidak ditemukan di server. Link mungkin sudah tidak valid.' +
+                                '<br><br><button onclick="window.location.reload()" ' +
+                                'style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;' +
+                                'border-radius:50px;padding:11px 0;font-size:0.92em;font-weight:800;cursor:pointer;width:100%;margin-top:4px;">' +
+                                '🔄 Coba Lagi</button>');
+                        }
+                    });
+                }
+            }).catch(function(err) {
                 var el = document.getElementById('_loadingTamuEl');
                 if (el) el.remove();
-                _tampilErrorTamu('Koneksi Firebase gagal. Pastikan internet aktif lalu coba lagi.' +
+                var pesanErr = 'Gagal mengambil data: ' + err.message;
+                if (err.message && (err.message.indexOf('permission') !== -1 || err.message.indexOf('PERMISSION_DENIED') !== -1)) {
+                    pesanErr = '⛔ Akses ditolak Firebase.<br><small>Pastikan Rules database diset: <b>.read: true</b></small>';
+                }
+                _tampilErrorTamu(pesanErr +
                     '<br><br><button onclick="window.location.reload()" ' +
                     'style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;' +
                     'border-radius:50px;padding:11px 0;font-size:0.92em;font-weight:800;cursor:pointer;width:100%;margin-top:4px;">' +
                     '🔄 Coba Lagi</button>');
+            });
+
+        } else if (_retry < _MAX_RETRY) {
+            // Firebase belum siap — tunggu dan coba lagi
+            _retry++;
+            // Coba inisialisasi Firebase secara paksa setelah 3 detik jika belum jalan
+            if (_retry === 10 && typeof firebase !== 'undefined' && typeof inisialisasiFirebase === 'function' && !fbDb) {
+                inisialisasiFirebase().catch(function(){});
             }
+            // Update teks loading agar tidak terlihat beku
+            var msgEl = document.querySelector('#_loadingTamuEl div:nth-child(2)');
+            if (msgEl && _retry > 5) {
+                var detik = Math.round(_retry * 300 / 1000);
+                msgEl.textContent = 'Menghubungkan ke server... (' + detik + 's)';
+            }
+            setTimeout(_ambilDariFirebase, 300);
+
+        } else {
+            // Timeout — tampilkan error dengan tombol coba lagi
+            var el = document.getElementById('_loadingTamuEl');
+            if (el) el.remove();
+            _tampilErrorTamu('Koneksi Firebase gagal. Pastikan internet aktif lalu coba lagi.' +
+                '<br><br><button onclick="window.location.reload()" ' +
+                'style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;' +
+                'border-radius:50px;padding:11px 0;font-size:0.92em;font-weight:800;cursor:pointer;width:100%;margin-top:4px;">' +
+                '🔄 Coba Lagi</button>');
         }
-        _ambilDariFirebase();
     }
+    _ambilDariFirebase();
 })();
 
 function _tampilLoadingTamu() {
@@ -3674,7 +3691,7 @@ function _tampilHalamanTamu(data) {
             '#_tamuBody .op-ttd-box{width:100%;max-width:360px;min-height:90px;border:1.5px solid rgba(212,168,32,0.35);border-radius:8px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(13,31,69,0.10);}',
             '#_tamuBody .op-ttd-img{width:100%;max-height:120px;object-fit:contain;}',
             '#_tamuBody .op-nama-ttd{font-size:0.95em;font-weight:800;color:#0d1f45;margin-top:4px;letter-spacing:0.03em;text-align:center;border:1.5px solid rgba(212,168,32,0.60);border-radius:7px;padding:6px 18px;width:100%;max-width:360px;background:rgba(212,168,32,0.06);box-sizing:border-box;}',
-            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.74em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
+            '#_tamuFooterNote{margin-top:18px;padding:12px 16px;background:rgba(13,31,69,0.06);border:1px solid rgba(212,168,32,0.30);border-radius:8px;font-size:0.68em;color:#666;text-align:center;line-height:1.7;letter-spacing:0.01em;}',
             '@media(max-width:400px){',
             '  #_tamuBody .op-row{grid-template-columns:105px 10px 1fr;}',
             '  #_tamuBody .op-rlbl{font-size:0.73em;padding:8px 5px 8px 10px;}',
@@ -4784,7 +4801,7 @@ let isEditMode = false;
 let editingSementara = false;
 
 const PIXELS_PER_CM = 37.7952755906;
-const MIN_STROKE_LENGTH_CM = 0.5;
+const MIN_STROKE_LENGTH_CM = 2;
 
 // ================================================================
 //  FULLSCREEN + TRANSISI INDAH
@@ -7159,11 +7176,11 @@ async function simpanDariEditBebas() {
         if (el && !el.value.trim()) { el.classList.add('error'); pesan.push('• ' + (el.labels?.[0]?.textContent || id) + ' wajib diisi'); isValid = false; }
     });
 
-    // Uraian minimal 5 karakter
+    // Uraian minimal 15 karakter
     const uraianEl = document.getElementById('uraian');
-    if (uraianEl && uraianEl.value.trim().length < 5) {
+    if (uraianEl && uraianEl.value.trim().length < 15) {
         uraianEl.classList.add('error');
-        pesan.push('• Uraian keperluan minimal 5 karakter');
+        pesan.push('• Uraian keperluan minimal 15 karakter');
         isValid = false;
     }
 
@@ -7335,10 +7352,10 @@ async function simpanData() {
     if (!form.reportValidity()) isValid = false;
     if (!isEditMode) {
         const uraianValue = document.getElementById('uraian').value.trim();
-        if (uraianValue.length < 5) {
+        if (uraianValue.length < 15) {
             document.getElementById('uraian').classList.add('error');
             isValid = false;
-            alert('Uraian minimal 5 karakter saat input baru!');
+            alert('Uraian minimal 15 karakter saat input baru!');
         }
         const namaInput = document.getElementById('nama');
         let hurufCount = (namaInput.value.trim().match(/[A-Za-z]/g) || []).length;
@@ -7400,12 +7417,12 @@ async function simpanData() {
             }
         }
 
-        // ── Validasi Uraian minimal 5 karakter ──
+        // ── Validasi Uraian minimal 15 karakter ──
         const uraianEditEl = document.getElementById('uraian');
-        if (uraianEditEl && uraianEditEl.value.trim().length < 5) {
+        if (uraianEditEl && uraianEditEl.value.trim().length < 15) {
             uraianEditEl.classList.add('error');
             isValid = false;
-            alert('Uraian minimal 5 karakter!');
+            alert('Uraian minimal 15 karakter!');
         }
 
         // ── Validasi Nomor HP minimal 11 digit ──
@@ -7931,9 +7948,6 @@ async function konfirmasiDanSimpanPDF(sIndex) {
     dataTamuSementara.splice(sIndex, 1);
     updateDataCounter();
     await lsSave();
-
-    // ── KIRIM WA SEGERA — tidak tunggu Firebase atau PDF ──
-    kirimNotifWASegera(data);
 
     // ── Popup muncul SEGERA setelah data tersimpan lokal ──
     _showCustomAlert('✅ Data berhasil disimpan!').then(function() {
@@ -9293,71 +9307,40 @@ function _kirimViaWALink(nomorBersih, pesan) {
     console.warn('[WA] _kirimViaWALink dinonaktifkan. Token Fonnte belum tersinkron.');
 }
 
-// ── KIRIM TEKS NOTIFIKASI INSTAN — dipanggil segera setelah data tersimpan lokal ──
-// Tidak perlu tunggu Firebase, tidak perlu tunggu PDF. Secepat kirim WA biasa.
-async function kirimNotifWASegera(data) {
-    const token = (CONFIG_FONNTE_TOKEN || localStorage.getItem('fonnte_token') || '').trim();
-    if (!token) return; // Fonnte belum dikonfigurasi
-
+// ── Fungsi utama: dipanggil setelah PDF dibuat ──
+async function kirimPdfKeWA(pdfBlob, data, _diabaikan, namaFile) {
     const pihak = data.pihakDitemui || '';
     const daftarNomor = _getNomorTujuan(pihak);
-    if (daftarNomor.length === 0) return;
 
-    const pesan = _buatPesanWA(data, false); // pesan teks saja (tanpa info PDF)
-    _tampilInfoWA('⏳ Mengirim notifikasi ke ' + pihak + '…', '#128c7e', true);
-
-    let berhasil = 0;
-    for (const nomorRaw of daftarNomor) {
-        const nomor = nomorRaw.replace(/[^0-9]/g, '');
-        if (!nomor || nomor.length < 10) continue;
-        try {
-            const fd = new FormData();
-            fd.append('target',  nomor);
-            fd.append('message', pesan);
-            const h = await _fonntePost('https://api.fonnte.com/send', fd);
-            if (h.status === true || h.status === 'true' || h.process) berhasil++;
-        } catch(e) { /* abaikan error, PDF masih akan menyusul */ }
+    if (daftarNomor.length === 0) {
+        const fallback = localStorage.getItem('wa_penerima_admin') || '';
+        if (!fallback) return;
+        daftarNomor.push(...fallback.split(',').map(n=>n.trim()).filter(Boolean));
+        if (daftarNomor.length === 0) return;
     }
-    if (berhasil > 0) {
-        _tampilInfoWA('✅ Notifikasi terkirim ke ' + pihak + ' (' + berhasil + ' nomor)', '#27ae60', false);
-    }
-}
-
-// ── Kirim PDF lampiran ke WA — dipanggil setelah PDF selesai dibuat ──
-// Teks notifikasi sudah dikirim lebih dulu oleh kirimNotifWASegera().
-// Fungsi ini hanya kirim file PDF sebagai lampiran (menyusul).
-async function kirimPdfKeWA(pdfBlob, data, _diabaikan, namaFile) {
-    const token     = (CONFIG_FONNTE_TOKEN || localStorage.getItem('fonnte_token') || '').trim();
-    const workerUrl = (CONFIG_WORKER_URL   || localStorage.getItem('cf_worker_url') || '').trim();
-    if (!token) return;
 
     const adaPdf = !!(pdfBlob && pdfBlob.size > 0);
-    // Jika tidak ada PDF atau tidak ada Worker, tidak perlu kirim lagi (teks sudah terkirim)
-    if (!adaPdf || !workerUrl) return;
-
-    const pihak = data.pihakDitemui || '';
-    const daftarNomor = _getNomorTujuan(pihak);
-    if (daftarNomor.length === 0) return;
-
-    const safeName = (namaFile || 'Data_Tamu.pdf').replace(/[\s,:]/g,'_');
+    const pesanDenganPdf   = _buatPesanWA(data, true);
+    const pesanTanpaPdf    = _buatPesanWA(data, false);
+    const token = (CONFIG_FONNTE_TOKEN || localStorage.getItem('fonnte_token') || '').trim();
     let berhasilCount = 0;
 
-    for (const nomorRaw of daftarNomor) {
-        const nomor = nomorRaw.replace(/[^0-9]/g,'');
+    _tampilInfoWA('⏳ Mengirim ke ' + pihak + '…', '#128c7e', true);
+
+    for (let i = 0; i < daftarNomor.length; i++) {
+        const nomor = daftarNomor[i].replace(/[^0-9]/g,'');
         if (!nomor || nomor.length < 10) continue;
-        try {
-            const fd = new FormData();
-            fd.append('target',    nomor);
-            fd.append('message',   '📎 *PDF Data Tamu Lengkap*
-_Lampiran untuk notifikasi tamu yang baru masuk._');
-            fd.append('file',      new File([pdfBlob], safeName, {type:'application/pdf'}));
-            fd.append('type_file', 'document');
-            const h = await _fonntePost('https://api.fonnte.com/send', fd);
-            if (h.status === true || h.status === 'true' || h.process) berhasilCount++;
-        } catch(e) { /* PDF gagal tidak masalah, teks sudah terkirim */ }
+
+        if (token) {
+            const ok = await _kirimFonnteRutin(nomor, pesanDenganPdf, pesanTanpaPdf, pdfBlob, namaFile);
+            if (ok) berhasilCount++;
+        } else if (i === 0) {
+            _kirimViaWALink(nomor, pesanTanpaPdf);
+        }
     }
-    if (berhasilCount > 0) {
-        _tampilInfoWA('✅ PDF terkirim ke ' + pihak + ' (' + berhasilCount + ' nomor)', '#27ae60', false);
+
+    if (token && berhasilCount > 0) {
+        _tampilInfoWA('✅ Notifikasi terkirim ke ' + pihak + ' (' + berhasilCount + ' nomor)', '#27ae60', false);
     }
 }
 
