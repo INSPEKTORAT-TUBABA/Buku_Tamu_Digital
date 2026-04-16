@@ -7965,11 +7965,11 @@ function displayData() {
     }
     const tMasy = dataBukuTamu.filter(d => d.asal === 'MASYARAKAT');
     if (tMasy.length > 0) {
-        html += `<div style="margin-bottom:28px;"><div style="background:#28a745;color:#fff;font-weight:bold;font-size:1em;padding:10px 16px;border-radius:8px 8px 0 0;letter-spacing:0.04em;">DAFTAR TAMU MASYARAKAT</div><div style="overflow-x:auto;border:1px solid #c3e6cb;border-top:none;border-radius:0 0 8px 8px;"><table style="width:100%;border-collapse:collapse;font-size:0.88em;background:#fff;"><thead><tr style="background:#28a745;color:#fff;text-align:center;"><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">No</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Nama</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Kecamatan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Desa</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Pihak Ditemui</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Layanan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Uraian</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">No HP</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Waktu</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">TTD</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Foto Depan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Foto Belakang</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Aksi</th></tr></thead><tbody>${tMasy.map((d, i) => { const realIdx = dataBukuTamu.indexOf(d); const rowBg = i % 2 === 0 ? '#fff' : '#f6fdf7'; return `<tr style="background:${rowBg};vertical-align:middle;"><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${i+1}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.nama||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.kecamatan||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.desa||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.pihakDitemui||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.jenisLayanan||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:120px;word-break:break-word;">${d.uraian||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;">${(d.nomorHp||'').replace(/^C\s*/,'')}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82em;">${d.timestamp||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.tandaTangan ? `<img src="${d.tandaTangan}" style="height:48px;max-width:80px;object-fit:contain;" alt="TTD">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoFront ? `<img src="${d.fotoFront}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Depan">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoBack ? `<img src="${d.fotoBack}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Belakang">` : '-'}</td><td style="padding:8px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;"><button onclick="lihatData(${realIdx})" style="background:#17a2b8;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">👁️ Lihat</button><button onclick="exportDetailPerTamuPDF(${realIdx}, false)" style="background:#6610f2;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;display:block;width:100%;">🖨️ PDF</button></td></tr>`; }).join('')}</tbody></table></div></div>`;
+        html += `<div style="margin-bottom:28px;"><div style="background:#28a745;color:#fff;font-weight:bold;font-size:1em;padding:10px 16px;border-radius:8px 8px 0 0;letter-spacing:0.04em;">DAFTAR TAMU MASYARAKAT</div><div style="overflow-x:auto;border:1px solid #c3e6cb;border-top:none;border-radius:0 0 8px 8px;"><table style="width:100%;border-collapse:collapse;font-size:0.88em;background:#fff;"><thead><tr style="background:#28a745;color:#fff;text-align:center;"><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">No</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Nama</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Kecamatan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Desa</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Pihak Ditemui</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Layanan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Uraian</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">No HP</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Waktu</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">TTD</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Foto Depan</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Foto Belakang</th><th style="padding:10px 8px;border:1px solid #c3e6cb;white-space:nowrap;">Aksi</th></tr></thead><tbody>${tMasy.map((d, i) => { const realIdx = dataBukuTamu.indexOf(d); const rowBg = i % 2 === 0 ? '#fff' : '#f6fdf7'; return `<tr style="background:${rowBg};vertical-align:middle;"><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${i+1}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.nama||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.kecamatan||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.desa||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.pihakDitemui||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.jenisLayanan||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:120px;word-break:break-word;">${d.uraian||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;">${(d.nomorHp||'').replace(/^C\s*/,'')}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82em;">${d.timestamp||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.tandaTangan ? `<img src="${d.tandaTangan}" style="height:48px;max-width:80px;object-fit:contain;" alt="TTD">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoFront ? `<img src="${d.fotoFront}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Depan">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoBack ? `<img src="${d.fotoBack}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Belakang">` : '-'}</td><td style="padding:8px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;"><button onclick="lihatData(${realIdx})" style="background:#17a2b8;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">👁️ Lihat</button><button onclick="exportDetailPerTamuPDF(${realIdx}, false)" style="background:#6610f2;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">🖨️ PDF</button><button onclick="deleteData(${realIdx})" style="background:#dc3545;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;display:block;width:100%;">🗑️ Hapus</button></td></tr>`; }).join('')}</tbody></table></div></div>`;
     }
     const tInst = dataBukuTamu.filter(d => d.asal === 'INSTANSI');
     if (tInst.length > 0) {
-        html += `<div style="margin-bottom:28px;"><div style="background:#0d6efd;color:#fff;font-weight:bold;font-size:1em;padding:10px 16px;border-radius:8px 8px 0 0;letter-spacing:0.04em;">DAFTAR TAMU INSTANSI / UNIT KERJA</div><div style="overflow-x:auto;border:1px solid #b6d0ff;border-top:none;border-radius:0 0 8px 8px;"><table style="width:100%;border-collapse:collapse;font-size:0.88em;background:#fff;"><thead><tr style="background:#0d6efd;color:#fff;text-align:center;"><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">No</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Nama</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Instansi</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Pihak Ditemui</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Layanan</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Uraian</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">No HP</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Waktu</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">TTD</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Foto Depan</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Foto Belakang</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Aksi</th></tr></thead><tbody>${tInst.map((d, i) => { const realIdx = dataBukuTamu.indexOf(d); const rowBg = i % 2 === 0 ? '#fff' : '#f0f5ff'; return `<tr style="background:${rowBg};vertical-align:middle;"><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${i+1}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.nama||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:130px;word-break:break-word;">${d.instansi||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.pihakDitemui||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.jenisLayanan||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:120px;word-break:break-word;">${d.uraian||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;">${(d.nomorHp||'').replace(/^C\s*/,'')}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82em;">${d.timestamp||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.tandaTangan ? `<img src="${d.tandaTangan}" style="height:48px;max-width:80px;object-fit:contain;" alt="TTD">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoFront ? `<img src="${d.fotoFront}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Depan">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoBack ? `<img src="${d.fotoBack}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Belakang">` : '-'}</td><td style="padding:8px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;"><button onclick="lihatData(${realIdx})" style="background:#17a2b8;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">👁️ Lihat</button><button onclick="exportDetailPerTamuPDF(${realIdx}, false)" style="background:#6610f2;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;display:block;width:100%;">🖨️ PDF</button></td></tr>`; }).join('')}</tbody></table></div></div>`;
+        html += `<div style="margin-bottom:28px;"><div style="background:#0d6efd;color:#fff;font-weight:bold;font-size:1em;padding:10px 16px;border-radius:8px 8px 0 0;letter-spacing:0.04em;">DAFTAR TAMU INSTANSI / UNIT KERJA</div><div style="overflow-x:auto;border:1px solid #b6d0ff;border-top:none;border-radius:0 0 8px 8px;"><table style="width:100%;border-collapse:collapse;font-size:0.88em;background:#fff;"><thead><tr style="background:#0d6efd;color:#fff;text-align:center;"><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">No</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Nama</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Instansi</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Pihak Ditemui</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Layanan</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Uraian</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">No HP</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Waktu</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">TTD</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Foto Depan</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Foto Belakang</th><th style="padding:10px 8px;border:1px solid #b6d0ff;white-space:nowrap;">Aksi</th></tr></thead><tbody>${tInst.map((d, i) => { const realIdx = dataBukuTamu.indexOf(d); const rowBg = i % 2 === 0 ? '#fff' : '#f0f5ff'; return `<tr style="background:${rowBg};vertical-align:middle;"><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${i+1}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.nama||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:130px;word-break:break-word;">${d.instansi||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.pihakDitemui||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;">${d.jenisLayanan||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;max-width:120px;word-break:break-word;">${d.uraian||'-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;">${(d.nomorHp||'').replace(/^C\s*/,'')}</td><td style="padding:10px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82em;">${d.timestamp||''}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.tandaTangan ? `<img src="${d.tandaTangan}" style="height:48px;max-width:80px;object-fit:contain;" alt="TTD">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoFront ? `<img src="${d.fotoFront}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Depan">` : '-'}</td><td style="padding:10px 8px;border:1px solid #dee2e6;text-align:center;">${d.fotoBack ? `<img src="${d.fotoBack}" style="height:60px;max-width:70px;object-fit:cover;border-radius:4px;" alt="Belakang">` : '-'}</td><td style="padding:8px 6px;border:1px solid #dee2e6;text-align:center;white-space:nowrap;"><button onclick="lihatData(${realIdx})" style="background:#17a2b8;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">👁️ Lihat</button><button onclick="exportDetailPerTamuPDF(${realIdx}, false)" style="background:#6610f2;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;margin-bottom:4px;display:block;width:100%;">🖨️ PDF</button><button onclick="deleteData(${realIdx})" style="background:#dc3545;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;display:block;width:100%;">🗑️ Hapus</button></td></tr>`; }).join('')}</tbody></table></div></div>`;
     }
     if (dataBukuTamu.length === 0) {
         html += `<p style="text-align:center;color:#888;margin-top:10px;">Belum ada data terkonfirmasi.</p>`;
@@ -8389,14 +8389,16 @@ async function cancelEdit() {
 }
 
 async function deleteData(index) {
-    if (confirm('Yakin ingin menghapus data tamu #' + (index + 1) + '?')) {
+    const nama = dataBukuTamu[index]?.nama || ('Tamu #' + (index + 1));
+    const ok = await window._showCustomConfirm('Yakin ingin menghapus data "' + nama + '"?\nData yang dihapus tidak dapat dikembalikan.');
+    if (ok) {
         const fbKey = dataBukuTamu[index]?._fbKey || null;
         dataBukuTamu.splice(index, 1);
         updateDataCounter();
         await lsSave();
         if (fbKey) await fbHapus(fbKey, false);
         displayData();
-        alert('Data berhasil dihapus!');
+        window._showCustomAlert('\uD83D\uDDD1\uFE0F Data berhasil dihapus!');
     }
 }
 
@@ -9827,6 +9829,19 @@ async function fbPindahKeFinal(fbKeySementara, formData) {
     }
 }
 
+// ── Hapus satu entri dari Firebase berdasarkan key ──
+async function fbHapus(fbKey, isSementara) {
+    if (!fbDb || !fbKey) return;
+    try {
+        _fbOnWrites += 2;
+        const path = isSementara ? 'bukuTamuSementara' : 'bukuTamu';
+        await fbDb.ref(path + '/' + fbKey).remove();
+    } catch (e) {
+        _fbOnWrites = Math.max(0, _fbOnWrites - 2);
+        console.warn('fbHapus error:', e);
+    }
+}
+
 // ── Hapus seluruh data di Firebase ──
 async function fbHapusSemua() {
     if (!fbDb) return;
@@ -10812,5 +10827,59 @@ function _mapCariLokasi() {
     };
 })();
 </script>
-</body>
-</html>
+
+<!-- ══ CUSTOM CONFIRM POPUP ══ -->
+<div id="_customConfirmOverlay" style="
+    display:none;position:fixed;inset:0;z-index:2147483641;
+    background:rgba(5,18,50,0.75);backdrop-filter:blur(8px);
+    align-items:center;justify-content:center;">
+    <div style="
+        position:relative;width:min(88vw,400px);
+        background:linear-gradient(155deg,#fff5f5 0%,#ffe0e0 40%,#fff0f0 100%);
+        border-radius:20px;padding:0;overflow:hidden;
+        box-shadow:0 0 0 2px rgba(220,53,69,0.4),0 12px 40px rgba(120,0,0,0.25);
+        animation:_caBoxIn 0.35s cubic-bezier(.22,.68,0,1.2) both;">
+        <div style="background:linear-gradient(135deg,#c0392b,#e74c3c,#ff6b6b);padding:24px 20px 18px;text-align:center;">
+            <div style="font-size:2.4rem;margin-bottom:8px;">🗑️</div>
+            <div style="color:#fff;font-weight:800;font-size:1.05rem;letter-spacing:0.04em;text-shadow:0 2px 6px rgba(0,0,0,0.3);">KONFIRMASI HAPUS</div>
+        </div>
+        <div style="padding:20px 24px 10px;text-align:center;">
+            <p id="_confirmMsg" style="color:#5a0000;font-size:0.97rem;font-weight:500;line-height:1.6;margin:0;"></p>
+        </div>
+        <div style="padding:12px 20px 22px;display:flex;gap:10px;justify-content:center;">
+            <button id="_confirmCancelBtn" style="padding:11px 32px;font-size:0.95rem;font-weight:700;background:#e9ecef;color:#444;border:none;border-radius:50px;cursor:pointer;transition:all 0.2s;">✖ Batal</button>
+            <button id="_confirmOkBtn" style="padding:11px 32px;font-size:0.95rem;font-weight:700;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;border:none;border-radius:50px;cursor:pointer;box-shadow:0 4px 14px rgba(192,57,43,0.45);transition:all 0.2s;">🗑️ Hapus</button>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var _ov = null, _resolvers2 = [];
+    function _init() {
+        _ov = document.getElementById('_customConfirmOverlay');
+        document.getElementById('_confirmCancelBtn').onclick = function() { _close(false); };
+        document.getElementById('_confirmOkBtn').onclick    = function() { _close(true);  };
+        document.getElementById('_confirmCancelBtn').onmouseenter = function() { this.style.background='#dee2e6'; };
+        document.getElementById('_confirmCancelBtn').onmouseleave = function() { this.style.background='#e9ecef'; };
+        document.getElementById('_confirmOkBtn').onmouseenter = function() { this.style.transform='translateY(-2px)'; };
+        document.getElementById('_confirmOkBtn').onmouseleave = function() { this.style.transform=''; };
+    }
+    function _close(result) {
+        if (!_ov) return;
+        _ov.style.display = 'none';
+        var r; while ((r = _resolvers2.shift())) r(result);
+    }
+    window._showCustomConfirm = function(msg) {
+        if (!_ov) _init();
+        document.getElementById('_confirmMsg').textContent = msg;
+        _ov.style.display = 'flex';
+        setTimeout(function() { document.getElementById('_confirmOkBtn').focus(); }, 200);
+        return new Promise(function(resolve) { _resolvers2.push(resolve); });
+    };
+    document.addEventListener('keydown', function(e) {
+        if (!_ov || _ov.style.display === 'none') return;
+        if (e.key === 'Escape') _close(false);
+        if (e.key === 'Enter')  _close(true);
+    });
+})();
+</script>
